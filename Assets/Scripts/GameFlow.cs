@@ -335,16 +335,19 @@ public class GameFlow : MonoBehaviour
 
     void Update()
     {
-        if (cook == null || cook.finished) return;
-        var mouse = Mouse.current;
-        bool held = mouse != null && mouse.leftButton.isPressed;
-        if (held && Mathf.Abs(mouse.delta.ReadValue().x) > 2f) stirTimer = 0.25f;
-        else stirTimer -= Time.deltaTime;
-        bool lid = held && lidRect != null &&
-                   RectTransformUtility.RectangleContainsScreenPoint(lidRect, mouse.position.ReadValue(), null);
+        if (cook == null) return;
+        if (!cook.finished) // [꺼내기] 버튼은 finished만 켜므로, 아래 FinishCook은 항상 한 번 실행된다
+        {
+            var mouse = Mouse.current;
+            bool held = mouse != null && mouse.leftButton.isPressed;
+            if (held && Mathf.Abs(mouse.delta.ReadValue().x) > 2f) stirTimer = 0.25f;
+            else stirTimer -= Time.deltaTime;
+            bool lid = held && lidRect != null &&
+                       RectTransformUtility.RectangleContainsScreenPoint(lidRect, mouse.position.ReadValue(), null);
 
-        cook.Tick(Time.deltaTime, stirTimer > 0f, lid);
-        RefreshCookUI();
+            cook.Tick(Time.deltaTime, stirTimer > 0f, lid);
+            RefreshCookUI();
+        }
         if (cook.finished) FinishCook();
     }
 
