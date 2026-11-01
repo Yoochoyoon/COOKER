@@ -21,7 +21,9 @@ public class Dish
 
 public class Run
 {
+    public int week = 1;
     public int day = 1;
+    public int strikes;      // 이번 주에 쓴 비상 라면 횟수
     public int budget = Balance.Budget;
     public int bought;
     public Dictionary<Ingredient, int> inv = new Dictionary<Ingredient, int>();
@@ -127,7 +129,7 @@ public class GameFlow : MonoBehaviour
     {
         Clear();
         UIKit.Label(root, "COOKER", 0.1f, 0.58f, 0.9f, 0.88f, 150, TextAnchor.MiddleCenter, UIKit.Accent);
-        UIKit.Label(root, "일주일치 장바구니로 7일을 버텨라", 0.1f, 0.46f, 0.9f, 0.58f, 54);
+        UIKit.Label(root, "일주일치 장바구니로 최대한 오래 버텨라", 0.1f, 0.46f, 0.9f, 0.58f, 54);
         UIKit.Btn(root, "시작  [Enter]", 0.35f, 0.26f, 0.65f, 0.40f, StartRun);
         UIKit.Btn(root, "도감  [D]", 0.35f, 0.10f, 0.65f, 0.22f, ShowDex, UIKit.Muted, 40);
         scr = Scr.Title;
@@ -147,13 +149,13 @@ public class GameFlow : MonoBehaviour
     void ShowShop()
     {
         Clear();
-        int spent = cart.Sum(kv => kv.Key.price * kv.Value);
+        int spent = cart.Sum(kv => Price(kv.Key) * kv.Value);
         int units = cart.Values.Sum();
         int left = run.budget - spent;
 
-        UIKit.Label(root, "장보기", 0.03f, 0.88f, 0.4f, 0.98f, 70, TextAnchor.MiddleLeft, UIKit.Accent);
+        UIKit.Label(root, run.week + "주차 장보기", 0.03f, 0.88f, 0.4f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
         UIKit.Label(root, "남은 예산 " + left.ToString("N0") + "원", 0.45f, 0.88f, 0.97f, 0.98f, 56, TextAnchor.MiddleRight);
-        UIKit.Label(root, "6끼분을 사자. 첫날 한 끼는 엄마가 달걀을 보내준다. 장보기는 이번 한 번뿐!   (숫자키 1~6 담기 / Shift+숫자 빼기 / Enter 확정)",
+        UIKit.Label(root, (run.week == 1 ? "6끼분을 사자. 첫날 한 끼는 엄마가 달걀을 보내준다." : "7끼분을 사자. 이번 주는 엄마의 달걀이 없다. 재료값이 올랐다!") + " 장보기는 이번 주 한 번뿐!   (숫자키 1~6 담기 / Shift+숫자 빼기 / Enter 확정)",
             0.03f, 0.80f, 0.97f, 0.88f, 28, TextAnchor.MiddleLeft, UIKit.Muted);
 
         UIKit.Label(root, "재료", 0.05f, 0.72f, 0.25f, 0.79f, 34, TextAnchor.MiddleLeft, UIKit.Muted);
@@ -170,19 +172,23 @@ public class GameFlow : MonoBehaviour
             int qty;
             cart.TryGetValue(ing, out qty);
             UIKit.Label(root, "[" + (r + 1) + "] " + ing.name, 0.05f, bot, 0.25f, top, 44, TextAnchor.MiddleLeft);
-            UIKit.Label(root, ing.price.ToString("N0") + "원", 0.27f, bot, 0.42f, top, 40);
+            UIKit.Label(root, Price(ing).ToString("N0") + "원", 0.27f, bot, 0.42f, top, 40);
             UIKit.Label(root, ing.shelf + "일", 0.43f, bot, 0.60f, top, 40);
             UIKit.Btn(root, "-", 0.64f, bot + 0.01f, 0.70f, top - 0.01f, () => ChangeCart(ing, -1), UIKit.Muted, 50, qty > 0);
             UIKit.Label(root, qty.ToString(), 0.70f, bot, 0.80f, top, 44);
-            UIKit.Btn(root, "+", 0.80f, bot + 0.01f, 0.86f, top - 0.01f, () => ChangeCart(ing, 1), UIKit.Accent, 50, ing.price <= left);
+            UIKit.Btn(root, "+", 0.80f, bot + 0.01f, 0.86f, top - 0.01f, () => ChangeCart(ing, 1), UIKit.Accent, 50, Price(ing) <= left);
         }
 
         UIKit.Label(root, "담은 재료 " + units + "개", 0.03f, 0.05f, 0.40f, 0.17f, 44, TextAnchor.MiddleLeft);
-        bool ok = units >= Balance.MinUnits;
-        UIKit.Btn(root, ok ? "구매 확정  [Enter]" : "최소 " + Balance.MinUnits + "개 필요", 0.55f, 0.05f, 0.97f, 0.19f, ConfirmShop, UIKit.Good, 48, ok);
+        bool ok = units >= Need();
+        UIKit.Btn(root, ok ? "구매 확정  [Enter]" : "최소 " + Need() + "개 필요", 0.55f, 0.05f, 0.97f, 0.19f, ConfirmShop, UIKit.Good, 48, ok);
         scr = Scr.Shop;
         confirm = ok ? (System.Action)ConfirmShop : null;
     }
+
+    // 이번 주 재료 가격: 매주 오른다
+    int Price(Ingredient i) { return Mathf.RoundToInt(i.price * Mathf.Pow(Balance.PriceGrowth, run.week - 1) / 10f) * 10; }
+    int Need() { return run.week == 1 ? Balance.MinUnits : Balance.Days; }
 
     void ChangeCart(Ingredient ing, int delta)
     {
@@ -195,7 +201,7 @@ public class GameFlow : MonoBehaviour
 
     void ConfirmShop()
     {
-        run.budget -= cart.Sum(kv => kv.Key.price * kv.Value);
+        run.budget -= cart.Sum(kv => Price(kv.Key) * kv.Value);
         run.inv = new Dictionary<Ingredient, int>(cart);
         run.bought = cart.Values.Sum();
         ShowDay();
@@ -211,10 +217,10 @@ public class GameFlow : MonoBehaviour
             if (DaysLeft(i) <= 0) run.inv.Remove(i);
         sel.RemoveAll(i => !run.inv.ContainsKey(i));
 
-        guideMeal = run.day == 1;
+        guideMeal = run.week == 1 && run.day == 1;
         if (!guideMeal && run.inv.Count == 0)
         {
-            ShowFail("먹을 재료가 하나도 없다. 오늘은 굶었다...");
+            Starve("먹을 재료가 하나도 없다.");
             return;
         }
         if (guideMeal)
@@ -225,8 +231,8 @@ public class GameFlow : MonoBehaviour
         }
 
         Clear();
-        UIKit.Label(root, run.day + "일차 / " + Balance.Days + "일", 0.03f, 0.88f, 0.5f, 0.98f, 70, TextAnchor.MiddleLeft, UIKit.Accent);
-        UIKit.Label(root, "먹은 끼니 " + run.dishes.Count + "개", 0.55f, 0.88f, 0.97f, 0.98f, 46, TextAnchor.MiddleRight);
+        UIKit.Label(root, run.week + "주차 " + run.day + "일차 / " + Balance.Days + "일", 0.03f, 0.88f, 0.55f, 0.98f, 56, TextAnchor.MiddleLeft, UIKit.Accent);
+        UIKit.Label(root, "비상 라면 " + (Balance.Lifelines - run.strikes) + "/" + Balance.Lifelines + "   먹은 끼니 " + run.dishes.Count + "개", 0.55f, 0.88f, 0.97f, 0.98f, 40, TextAnchor.MiddleRight);
 
         // 왼쪽: 재료
         UIKit.Box(root, "Left", 0.03f, 0.25f, 0.50f, 0.87f, UIKit.Card);
@@ -304,7 +310,7 @@ public class GameFlow : MonoBehaviour
         var chosen = sel.ToArray();
         var md = Data.GetMethod(selMethod.Value);
         Clear();
-        cook = new Cook(chosen, md);
+        cook = new Cook(chosen, md, Balance.Ease(run.week));
         stirTimer = 0f;
 
         UIKit.Label(root, md.name + " 중", 0.03f, 0.88f, 0.5f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
@@ -525,7 +531,7 @@ public class GameFlow : MonoBehaviour
                 return;
             }
             Consume(used);
-            ShowFail(why == null ? "아무것도 만들지 못했다. 굶었다..." : "요리가 " + why + "이 되어 못 먹었다. 굶었다...");
+            Starve(why == null ? "아무것도 만들지 못했다." : "요리가 " + why + "이 되어 못 먹었다.");
             return;
         }
 
@@ -565,7 +571,7 @@ public class GameFlow : MonoBehaviour
             : dish.satisfaction >= 60 ? "나쁘지 않은데?"
             : dish.satisfaction >= 40 ? "먹을 만은 하다..."
             : "일단 배는 채웠다.";
-        UIKit.Label(root, run.day + "일차 식사", 0.03f, 0.88f, 0.5f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
+        UIKit.Label(root, run.week + "주차 " + run.day + "일차 식사", 0.03f, 0.88f, 0.5f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
         UIKit.Label(root, dish.name, 0.05f, 0.62f, 0.95f, 0.80f, 100);
         if (isNew) UIKit.Label(root, "도감에 새로 등록!", 0.3f, 0.54f, 0.7f, 0.62f, 40, TextAnchor.MiddleCenter, UIKit.Good);
         UIKit.Label(root, "만족도 " + dish.satisfaction, 0.2f, 0.40f, 0.8f, 0.54f, 80, TextAnchor.MiddleCenter, UIKit.Accent);
@@ -575,6 +581,45 @@ public class GameFlow : MonoBehaviour
         UIKit.Btn(root, (last ? "결산 보기" : "다음 날") + " [Enter]", 0.30f, 0.07f, 0.70f, 0.21f, NextDay, UIKit.Good, 48);
         scr = Scr.Meal;
         confirm = NextDay;
+    }
+
+    // 굶음. 주마다 한 번은 엄마 몰래 비상 라면으로 넘어가고, 두 번째부터는 종료.
+    void Starve(string reason)
+    {
+        if (run.strikes < Balance.Lifelines)
+        {
+            run.strikes++;
+            var ramen = new Dish
+            {
+                name = "비상 라면", key = "비상 라면", ings = new Ingredient[0], method = Method.Boil,
+                satisfaction = Balance.RamenSat,
+                note = reason + " 결국 비상 라면으로 때웠다. (이번 주 비상 라면 사용)",
+            };
+            run.dishes.Add(ramen);
+            ShowMeal(ramen, false);
+        }
+        else ShowFail(reason + " 비상 라면도 이미 먹었다. 굶었다...");
+    }
+
+    int NextBudget(float sat)
+    {
+        return Mathf.Clamp(Mathf.RoundToInt((Balance.BudgetBase + sat * Balance.BudgetPerSat) / 100f) * 100, Balance.BudgetMin, Balance.BudgetMax);
+    }
+
+    void NextWeek()
+    {
+        float sat = run.dishes.Count == 0 ? 0f : (float)run.dishes.Average(d => (float)d.satisfaction);
+        run.week++;
+        run.day = 1;
+        run.strikes = 0;
+        run.dishes.Clear();
+        run.inv.Clear(); // 유통기한이 최대 7일이라 이월되는 재료는 없다
+        run.budget = NextBudget(sat);
+        run.bought = 0;
+        cart.Clear();
+        sel.Clear();
+        selMethod = null;
+        ShowShop();
     }
 
     void NextDay()
@@ -591,14 +636,14 @@ public class GameFlow : MonoBehaviour
     {
         Clear();
         float sat = (float)run.dishes.Average(d => (float)d.satisfaction);
-        int combos = run.dishes.Select(d => d.key).Distinct().Count();
+        int combos = run.dishes.Where(d => d.key != "비상 라면").Select(d => d.key).Distinct().Count();
         float div = 100f * combos / Balance.Days;
         int leftover = run.inv.Values.Sum();
         float left = Mathf.Min(100f, 100f * leftover / Mathf.Max(1, run.bought));
         float total = sat * 0.5f + div * 0.3f + left * 0.2f;
         string grade = total >= Balance.GradeS ? "S" : total >= Balance.GradeA ? "A" : total >= Balance.GradeB ? "B" : "C";
 
-        UIKit.Label(root, "7일 생존 성공!", 0.05f, 0.84f, 0.95f, 0.98f, 90, TextAnchor.MiddleCenter, UIKit.Good);
+        UIKit.Label(root, run.week + "주차 생존!", 0.05f, 0.84f, 0.95f, 0.98f, 90, TextAnchor.MiddleCenter, UIKit.Good);
         UIKit.Label(root, grade, 0.05f, 0.62f, 0.35f, 0.84f, 180, TextAnchor.MiddleCenter, UIKit.Accent);
         UIKit.Label(root, "총점 " + Mathf.RoundToInt(total) + "점\n"
             + "만족도 " + Mathf.RoundToInt(sat) + " (50%)\n"
@@ -607,16 +652,17 @@ public class GameFlow : MonoBehaviour
             0.40f, 0.52f, 0.97f, 0.84f, 44, TextAnchor.MiddleLeft);
         UIKit.Label(root, DishList(), 0.05f, 0.24f, 0.95f, 0.50f, 34, TextAnchor.UpperLeft);
         UIKit.Btn(root, "도감 [D]", 0.2f, 0.05f, 0.45f, 0.19f, ShowDex, UIKit.Muted, 40);
-        UIKit.Btn(root, "다시 하기 [Enter]", 0.52f, 0.05f, 0.85f, 0.19f, ShowTitle, UIKit.Good, 40);
+        UIKit.Label(root, "다음 주 예산 " + NextBudget(sat).ToString("N0") + "원 (재료값 +" + Mathf.RoundToInt((Balance.PriceGrowth - 1f) * 100f) + "%)", 0.05f, 0.195f, 0.95f, 0.245f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
+        UIKit.Btn(root, "다음 주 [Enter]", 0.52f, 0.05f, 0.85f, 0.19f, NextWeek, UIKit.Good, 40);
         scr = Scr.Result;
-        confirm = ShowTitle;
+        confirm = NextWeek;
     }
 
     void ShowFail(string reason)
     {
         Clear();
         UIKit.Label(root, "굶었다...", 0.05f, 0.76f, 0.95f, 0.96f, 120, TextAnchor.MiddleCenter, UIKit.Bad);
-        UIKit.Label(root, run.day + "일차에 실패", 0.05f, 0.66f, 0.95f, 0.76f, 54);
+        UIKit.Label(root, run.week + "주차 " + run.day + "일차에 실패  (총 " + ((run.week - 1) * Balance.Days + run.day - 1) + "일 버팀)", 0.05f, 0.66f, 0.95f, 0.76f, 48);
         UIKit.Label(root, reason, 0.05f, 0.54f, 0.95f, 0.66f, 40, TextAnchor.MiddleCenter, UIKit.Muted);
         UIKit.Label(root, run.dishes.Count == 0 ? "먹은 요리가 없다." : "그때까지 먹은 요리\n" + DishList(),
             0.05f, 0.24f, 0.95f, 0.52f, 34, TextAnchor.UpperLeft);

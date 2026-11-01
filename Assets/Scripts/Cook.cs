@@ -33,15 +33,20 @@ public class Cook
     public float lidProgress;
 
     float bubbleTimer;
+    float lo, hi, speed; // 이번 주 난이도(ease)를 반영한 적정 구간과 기본 속도
 
-    public Cook(Ingredient[] ings, MethodDef m)
+    // ease 1 = 가장 쉬움(1주차), 0 = 원래 값. 구간을 넓히고 속도를 늦춘다.
+    public Cook(Ingredient[] ings, MethodDef m, float ease = 0f)
     {
         this.m = m;
         items = ings.Select(i => new CookItem { ing = i }).ToArray();
+        lo = m.lo - Balance.EaseBand * ease;
+        hi = m.hi + Balance.EaseBand * ease;
+        speed = m.speed * (1f - Balance.EaseSpeed * ease);
     }
 
-    public float Lo { get { return m.lo; } }
-    public float Hi(CookItem it) { return m.hi + it.hiBonus; }
+    public float Lo { get { return lo; } }
+    public float Hi(CookItem it) { return hi + it.hiBonus; }
 
     public void SetFire(int level) { fire = Mathf.Clamp(level, 0, 2); }
 
@@ -101,7 +106,7 @@ public class Cook
             else lidProgress = 0f;
         }
 
-        float common = m.speed * Balance.Fire[fire];
+        float common = speed * Balance.Fire[fire];
         if (stirring) common *= Balance.StirSlow;
         if (bubble) common *= Balance.BubbleFast;
 

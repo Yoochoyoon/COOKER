@@ -40,6 +40,16 @@ public static class Balance
     public const float StirSlow = 0.7f;
     public const float BubbleFast = 1.2f;
     public const float FlipBonus = 5f;
+    // 난이도: 1주차는 쉽고 4주차에 원래 값이 된다
+    public const float EaseBand = 5f;              // 1주차에 적정 구간을 양쪽으로 넓히는 폭
+    public const float EaseSpeed = 0.2f;           // 1주차에 방식 속도를 늦추는 비율
+    public static float Ease(int week) { return Mathf.Clamp01(1f - (week - 1) / 3f); }
+    // 주차 진행
+    public const float PriceGrowth = 1.08f;        // 재료 가격이 매주 오르는 배율
+    public const int BudgetBase = 6000, BudgetMin = 6000, BudgetMax = 12000;
+    public const int BudgetPerSat = 60;            // 다음 주 예산 = BudgetBase + 평균 만족도 x 이 값
+    public const int Lifelines = 1;                // 주마다 봐주는 굶음 횟수(엄마 비상 라면)
+    public const int RamenSat = 20;
     // 등급 컷 (임시)
     public const float GradeS = 85f, GradeA = 70f, GradeB = 55f;
 }
