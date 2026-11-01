@@ -29,7 +29,7 @@ public static class Balance
     public const int Budget = 10000;               // 16000이면 예산이 제약이 안 돼서 낮춤 (docs/09 시뮬레이션 참고)
     public const int MinUnits = 6;                 // 첫날 한 끼는 엄마가 보내준 달걀이라 6끼분이 필요
     public const int Days = 7;
-    public const float MaxCookTime = 40f;
+    public const float MaxCookTime = 45f;          // 40이면 끓이기+감자+약불이 구간에 못 닿는 함정이 생겨 45로 늘림
     public static readonly float[] Fire = { 0.6f, 1.0f, 1.5f };
     public static readonly string[] FireName = { "약불", "중불", "강불" };
     public const float NonFit = 0.6f;
