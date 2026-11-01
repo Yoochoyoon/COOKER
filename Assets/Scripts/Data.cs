@@ -62,7 +62,7 @@ public static class Data
 
     public static readonly Ingredient Egg = new Ingredient
     {
-        name = "달걀", price = 800, shelf = 4, fits = new[] { Method.Grill, Method.Stirfry }, baseScore = 60, speedMod = 1.2f,
+        name = "달걀", price = 800, shelf = 4, fits = new[] { Method.Grill, Method.Stirfry }, baseScore = 60, speedMod = 1.4f,
         raw = C(0.97f, 0.97f, 0.88f), cooked = C(1f, 0.8f, 0.1f), burnt = C(0.2f, 0.1f, 0.03f)
     };
 
@@ -73,11 +73,11 @@ public static class Data
             raw = C(0.98f, 0.98f, 0.98f), cooked = C(0.9f, 0.65f, 0.25f), burnt = C(0.15f, 0.08f, 0.03f) },
         new Ingredient { name = "양파", price = 600, shelf = 7, fits = new[] { Method.Stirfry, Method.Boil }, baseScore = 40, speedMod = 0.9f,
             raw = C(0.95f, 0.88f, 0.9f), cooked = C(0.85f, 0.5f, 0.15f), burnt = C(0.15f, 0.07f, 0.03f) },
-        new Ingredient { name = "감자", price = 700, shelf = 6, fits = new[] { Method.Grill, Method.Boil }, baseScore = 50, speedMod = 0.8f,
+        new Ingredient { name = "감자", price = 700, shelf = 6, fits = new[] { Method.Grill, Method.Boil }, baseScore = 50, speedMod = 0.6f,
             raw = C(0.85f, 0.8f, 0.5f), cooked = C(0.95f, 0.7f, 0.1f), burnt = C(0.15f, 0.08f, 0.03f) },
-        new Ingredient { name = "돼지고기", price = 2500, shelf = 3, fits = new[] { Method.Grill, Method.Stirfry }, baseScore = 90, speedMod = 1.0f,
+        new Ingredient { name = "돼지고기", price = 2500, shelf = 3, fits = new[] { Method.Grill, Method.Stirfry }, baseScore = 90, speedMod = 0.7f,
             raw = C(1f, 0.55f, 0.6f), cooked = C(0.6f, 0.33f, 0.15f), burnt = C(0.1f, 0.05f, 0.02f) },
-        new Ingredient { name = "김치", price = 900, shelf = 5, fits = new[] { Method.Stirfry, Method.Boil }, baseScore = 65, speedMod = 1.0f,
+        new Ingredient { name = "김치", price = 900, shelf = 5, fits = new[] { Method.Stirfry, Method.Boil }, baseScore = 65, speedMod = 0.8f,
             raw = C(1f, 0.3f, 0.15f), cooked = C(0.7f, 0.1f, 0.05f), burnt = C(0.12f, 0.05f, 0.03f) },
     };
 

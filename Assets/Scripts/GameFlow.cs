@@ -16,6 +16,7 @@ public class Dish
     public Ingredient[] ings;
     public Method method;
     public int satisfaction;
+    public string note;      // 일부 재료를 망쳤을 때의 안내
 }
 
 public class Run
@@ -61,7 +62,9 @@ public class GameFlow : MonoBehaviour
     float stirTimer;
     RectTransform lidRect;
     Image lidImage;
-    readonly List<Image> swatches = new List<Image>();
+    readonly List<RectTransform> itemRects = new List<RectTransform>(); // 재료 아이템 (트레이/팬/접시를 오감)
+    readonly List<Image> itemImgs = new List<Image>();
+    readonly List<Text> itemLabels = new List<Text>();
     readonly List<bool> swArt = new List<bool>(); // 이 재료가 그림(5단계)으로 그려지는지
     readonly List<Image> fireBtns = new List<Image>();
     Button flipBtn;
@@ -106,7 +109,9 @@ public class GameFlow : MonoBehaviour
         confirm = null;
         dayList.Clear();
         lidRect = null;
-        swatches.Clear();
+        itemRects.Clear();
+        itemImgs.Clear();
+        itemLabels.Clear();
         swArt.Clear();
         fireBtns.Clear();
         flipBtn = null;
@@ -304,24 +309,31 @@ public class GameFlow : MonoBehaviour
 
         UIKit.Label(root, md.name + " 중", 0.03f, 0.88f, 0.5f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
         timeLabel = UIKit.Label(root, "", 0.6f, 0.88f, 0.97f, 0.98f, 40, TextAnchor.MiddleRight, UIKit.Muted);
-        UIKit.Label(root, guideMeal ? "[첫날 가이드] 색이 알맞게 변했을 때 [꺼내기]! 너무 오래 두면 탄다. " + md.guide : md.guide,
+        UIKit.Label(root, guideMeal ? "[첫날 가이드] 아래 재료를 눌러 팬에 넣고, 색이 알맞게 변했을 때 다시 눌러 꺼내! 너무 오래 두면 탄다. " + md.guide : md.guide,
             0.03f, 0.78f, 0.97f, 0.88f, 32, TextAnchor.MiddleLeft, UIKit.Muted);
 
-        // 재료 (색 변화가 유일한 단서)
+        // 자리: 아래 왼쪽 트레이 / 가운데 팬 / 아래 오른쪽 접시. 색(그림) 변화가 유일한 단서
         UIKit.Box(root, "Pan", 0.03f, 0.30f, 0.60f, 0.77f, new Color(0.25f, 0.2f, 0.18f));
-        int n = chosen.Length;
-        for (int i = 0; i < n; i++)
+        UIKit.Label(root, "팬", 0.03f, 0.70f, 0.60f, 0.77f, 28, TextAnchor.MiddleCenter, new Color(1f, 1f, 1f, 0.5f));
+        UIKit.Box(root, "Tray", 0.03f, 0.05f, 0.60f, 0.24f, new Color(0.45f, 0.33f, 0.22f));
+        UIKit.Box(root, "Plate", 0.64f, 0.05f, 0.97f, 0.24f, new Color(0.45f, 0.5f, 0.55f));
+        UIKit.Label(root, "접시", 0.64f, 0.19f, 0.97f, 0.24f, 24, TextAnchor.MiddleCenter, new Color(1f, 1f, 1f, 0.7f));
+        for (int i = 0; i < chosen.Length; i++)
         {
-            float w = 0.57f / n;
-            float x0 = 0.03f + i * w + w * 0.15f;
-            float x1 = 0.03f + (i + 1) * w - w * 0.15f;
-            var sw = UIKit.Box(root, "Swatch", x0, 0.38f, x1, 0.70f, chosen[i].raw);
-            var swImg = sw.GetComponent<Image>();
-            swatches.Add(swImg);
+            int idx = i;
+            var rt = UIKit.Box(root, "Item" + i, 0, 0, 0.1f, 0.1f, chosen[i].raw);
+            var img = rt.GetComponent<Image>();
+            var b = rt.gameObject.AddComponent<Button>();
+            b.targetGraphic = img;
+            b.transition = Selectable.Transition.None;
+            b.onClick.AddListener(() => ItemClick(idx));
             bool hasArt = Art.HasSet(chosen[i]);
+            if (hasArt) img.preserveAspect = true;
+            itemRects.Add(rt);
+            itemImgs.Add(img);
+            itemLabels.Add(UIKit.Label(rt, "", 0f, 0f, 1f, 0.26f, 30, TextAnchor.MiddleCenter, Color.white));
             swArt.Add(hasArt);
-            if (hasArt) swImg.preserveAspect = true;
-            UIKit.Label(root, chosen[i].name, x0, 0.31f, x1, 0.38f, 36, TextAnchor.MiddleCenter, Color.white);
+            PlaceItem(i);
         }
 
         // 불 조절
@@ -353,8 +365,48 @@ public class GameFlow : MonoBehaviour
         }
         stateLabel = UIKit.Label(root, "", 0.64f, 0.27f, 0.97f, 0.34f, 30, TextAnchor.MiddleLeft, UIKit.Bad);
 
-        UIKit.Btn(root, "꺼내기 [Space]", 0.30f, 0.05f, 0.70f, 0.22f, () => cook.TakeOut(), UIKit.Bad, 56);
+        UIKit.Btn(root, "팬의 재료 모두 꺼내기 [Space]", 0.03f, 0.245f, 0.60f, 0.295f, () => { if (cook != null) cook.TakeOutAll(); }, UIKit.Bad, 26);
         scr = Scr.Cook;
+    }
+
+    void ItemClick(int i)
+    {
+        if (cook == null) return;
+        var it = cook.items[i];
+        if (it.spot == Spot.Tray) cook.Put(i);
+        else if (it.spot == Spot.Pan) cook.TakeOut(i);
+    }
+
+    // 재료 아이템을 지금 자리(트레이/팬/접시)의 칸으로 옮긴다.
+    void PlaceItem(int i)
+    {
+        var it = cook.items[i];
+        int n = cook.items.Length;
+        float x0, x1, y0, y1;
+        if (it.spot == Spot.Pan)
+        {
+            float w = 0.57f / n;
+            x0 = 0.03f + i * w + w * 0.15f; x1 = 0.03f + (i + 1) * w - w * 0.15f; y0 = 0.33f; y1 = 0.69f;
+        }
+        else if (it.spot == Spot.Tray)
+        {
+            float w = 0.57f / n;
+            x0 = 0.03f + i * w + w * 0.2f; x1 = 0.03f + (i + 1) * w - w * 0.2f; y0 = 0.06f; y1 = 0.23f;
+        }
+        else
+        {
+            float w = 0.33f / n;
+            x0 = 0.64f + i * w + w * 0.1f; x1 = 0.64f + (i + 1) * w - w * 0.1f; y0 = 0.06f; y1 = 0.19f;
+        }
+        var rt = itemRects[i];
+        rt.anchorMin = new Vector2(x0, y0);
+        rt.anchorMax = new Vector2(x1, y1);
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+        string key = i == 0 ? "Z" : "X";
+        itemLabels[i].text = it.spot == Spot.Tray ? "[" + key + "] " + it.ing.name + " 넣기"
+            : it.spot == Spot.Pan ? "[" + key + "] " + it.ing.name + " 꺼내기"
+            : it.ing.name;
     }
 
     // 1~9 숫자키 (윗줄·숫자패드). 눌린 게 없으면 0.
@@ -423,7 +475,9 @@ public class GameFlow : MonoBehaviour
                 if (kb.fKey.wasPressedThisFrame && cook.flipAvailable) cook.Flip();
                 int n = DigitPressed(kb);
                 if (n >= 1 && n <= 3) cook.SetFire(n - 1);
-                if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) cook.TakeOut();
+                if (kb.zKey.wasPressedThisFrame) ItemClick(0);
+                if (kb.xKey.wasPressedThisFrame) ItemClick(1);
+                if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) cook.TakeOutAll();
             }
 
             cook.Tick(Time.deltaTime, stirTimer > 0f, lid);
@@ -434,15 +488,16 @@ public class GameFlow : MonoBehaviour
 
     void RefreshCookUI()
     {
-        var stage = cook.Stage;
-        for (int i = 0; i < swatches.Count; i++)
+        for (int i = 0; i < itemImgs.Count; i++)
         {
+            var it = cook.items[i];
             if (swArt[i])
             {
-                swatches[i].sprite = Art.Get(cook.ings[i], stage);
-                swatches[i].color = Color.white;
+                itemImgs[i].sprite = Art.Get(it.ing, cook.Stage(it));
+                itemImgs[i].color = Color.white;
             }
-            else swatches[i].color = cook.Tone(cook.ings[i]);
+            else itemImgs[i].color = cook.Tone(it);
+            PlaceItem(i);
         }
         for (int f = 0; f < fireBtns.Count; f++) fireBtns[f].color = f == cook.fire ? UIKit.Accent : UIKit.Muted;
         if (flipBtn != null) flipBtn.gameObject.SetActive(cook.flipAvailable);
@@ -453,26 +508,28 @@ public class GameFlow : MonoBehaviour
 
     void FinishCook()
     {
-        float coef; string fail;
-        bool ok = cook.Evaluate(out coef, out fail);
-        var ings = cook.ings;
+        var used = cook.Used;                 // 접시에 올린 재료(소비됨). 트레이에 남은 재료는 쓰지 않은 것
+        var ings = cook.GoodIngredients;      // 성공한 재료만 요리가 된다
+        var lost = cook.LostIngredients;
+        string fail = cook.FailText;
         var md = cook.m;
-        int sat = ok ? cook.Satisfaction(coef) : 0;
+        int sat = cook.Satisfaction();
         cook = null;
 
-        if (!ok)
+        if (ings.Length == 0)
         {
+            string why = used.Length == 0 ? null : fail;
             if (guideMeal)
             {
-                ShowMessage("엄마: " + fail + "이 됐네! 첫날은 봐줄게. 다시 해 봐.", "다시 하기", ShowDay);
+                ShowMessage(why == null ? "엄마: 재료를 팬에 넣고 꺼내야지! 다시 해 봐." : "엄마: " + why + "이 됐네! 첫날은 봐줄게. 다시 해 봐.", "다시 하기", ShowDay);
                 return;
             }
-            Consume(ings);
-            ShowFail("요리가 " + fail + "이 되어 못 먹었다. 굶었다...");
+            Consume(used);
+            ShowFail(why == null ? "아무것도 만들지 못했다. 굶었다..." : "요리가 " + why + "이 되어 못 먹었다. 굶었다...");
             return;
         }
 
-        if (!guideMeal) Consume(ings);
+        if (!guideMeal) Consume(used);
         var names = string.Join(" ", ings.Select(i => i.name));
         var dish = new Dish
         {
@@ -481,6 +538,7 @@ public class GameFlow : MonoBehaviour
             ings = ings,
             method = md.id,
             satisfaction = sat,
+            note = lost.Length == 0 ? null : string.Join(", ", lost.Select(i => i.name)) + "은(는) 망쳐서 버렸다...",
         };
         run.dishes.Add(dish);
         bool isNew = !dex.ContainsKey(dish.key);
@@ -512,6 +570,7 @@ public class GameFlow : MonoBehaviour
         if (isNew) UIKit.Label(root, "도감에 새로 등록!", 0.3f, 0.54f, 0.7f, 0.62f, 40, TextAnchor.MiddleCenter, UIKit.Good);
         UIKit.Label(root, "만족도 " + dish.satisfaction, 0.2f, 0.40f, 0.8f, 0.54f, 80, TextAnchor.MiddleCenter, UIKit.Accent);
         UIKit.Label(root, reaction, 0.1f, 0.28f, 0.9f, 0.40f, 52);
+        if (!string.IsNullOrEmpty(dish.note)) UIKit.Label(root, dish.note, 0.1f, 0.21f, 0.9f, 0.28f, 32, TextAnchor.MiddleCenter, UIKit.Bad);
         bool last = run.day >= Balance.Days;
         UIKit.Btn(root, (last ? "결산 보기" : "다음 날") + " [Enter]", 0.30f, 0.07f, 0.70f, 0.21f, NextDay, UIKit.Good, 48);
         scr = Scr.Meal;
