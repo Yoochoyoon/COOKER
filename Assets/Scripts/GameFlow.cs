@@ -24,6 +24,8 @@ public class Run
     public int week = 1;
     public int day = 1;
     public int strikes;      // 이번 주에 쓴 비상 라면 횟수
+    public Dictionary<Ingredient, int> expire = new Dictionary<Ingredient, int>(); // 재료 더미가 먹을 수 있는 마지막 날(전체 기준 일차)
+    public int Abs { get { return (week - 1) * Balance.Days + day; } } // 판 전체에서 몇 일차인지
     public int budget = Balance.Budget;
     public int bought;
     public Dictionary<Ingredient, int> inv = new Dictionary<Ingredient, int>();
@@ -149,13 +151,14 @@ public class GameFlow : MonoBehaviour
     void ShowShop()
     {
         Clear();
+        PurgeExpired();
         int spent = cart.Sum(kv => Price(kv.Key) * kv.Value);
         int units = cart.Values.Sum();
         int left = run.budget - spent;
 
         UIKit.Label(root, run.week + "주차 장보기", 0.03f, 0.88f, 0.4f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
         UIKit.Label(root, "남은 예산 " + left.ToString("N0") + "원", 0.45f, 0.88f, 0.97f, 0.98f, 56, TextAnchor.MiddleRight);
-        UIKit.Label(root, (run.week == 1 ? "6끼분을 사자. 첫날 한 끼는 엄마가 달걀을 보내준다." : "7끼분을 사자. 이번 주는 엄마의 달걀이 없다. 재료값이 올랐다!") + " 장보기는 이번 주 한 번뿐!   (숫자키 1~6 담기 / Shift+숫자 빼기 / Enter 확정)",
+        UIKit.Label(root, (run.week == 1 ? "6끼분을 사자. 첫날 한 끼는 엄마가 달걀을 보내준다." : "7끼분을 맞추자(남은 재료는 이월). 엄마의 달걀은 없고 재료값이 올랐다!") + " 가격은 1끼분 기준, 이번 주 장보기는 한 번뿐!   (숫자키 1~6 담기 / Shift+숫자 빼기 / Enter 확정)",
             0.03f, 0.80f, 0.97f, 0.88f, 28, TextAnchor.MiddleLeft, UIKit.Muted);
 
         UIKit.Label(root, "재료", 0.05f, 0.72f, 0.25f, 0.79f, 34, TextAnchor.MiddleLeft, UIKit.Muted);
@@ -171,7 +174,9 @@ public class GameFlow : MonoBehaviour
             UIKit.Box(root, "Row", 0.03f, bot, 0.97f, top, UIKit.Card);
             int qty;
             cart.TryGetValue(ing, out qty);
-            UIKit.Label(root, "[" + (r + 1) + "] " + ing.name, 0.05f, bot, 0.25f, top, 44, TextAnchor.MiddleLeft);
+            int own;
+            run.inv.TryGetValue(ing, out own);
+            UIKit.Label(root, "[" + (r + 1) + "] " + ing.name + (own > 0 ? " (보유 " + own + ")" : ""), 0.05f, bot, 0.25f, top, 40, TextAnchor.MiddleLeft);
             UIKit.Label(root, Price(ing).ToString("N0") + "원", 0.27f, bot, 0.42f, top, 40);
             UIKit.Label(root, ing.shelf + "일", 0.43f, bot, 0.60f, top, 40);
             UIKit.Btn(root, "-", 0.64f, bot + 0.01f, 0.70f, top - 0.01f, () => ChangeCart(ing, -1), UIKit.Muted, 50, qty > 0);
@@ -188,7 +193,8 @@ public class GameFlow : MonoBehaviour
 
     // 이번 주 재료 가격: 매주 오른다
     int Price(Ingredient i) { return Mathf.RoundToInt(i.price * Mathf.Pow(Balance.PriceGrowth, run.week - 1) / 10f) * 10; }
-    int Need() { return run.week == 1 ? Balance.MinUnits : Balance.Days; }
+    // 이번 주 장보기에서 최소로 담아야 하는 개수. 이월된 재료만큼 줄어든다.
+    int Need() { return run.week == 1 ? Balance.MinUnits : Mathf.Max(0, Balance.Days - run.inv.Values.Sum()); }
 
     void ChangeCart(Ingredient ing, int delta)
     {
@@ -202,19 +208,35 @@ public class GameFlow : MonoBehaviour
     void ConfirmShop()
     {
         run.budget -= cart.Sum(kv => Price(kv.Key) * kv.Value);
-        run.inv = new Dictionary<Ingredient, int>(cart);
-        run.bought = cart.Values.Sum();
+        int carried = run.inv.Values.Sum();
+        foreach (var kv in cart)
+        {
+            int have;
+            run.inv.TryGetValue(kv.Key, out have);
+            run.inv[kv.Key] = have + kv.Value;
+            int last = run.Abs + kv.Key.shelf - 1;
+            int old;
+            // 이월된 재료와 새로 산 재료가 섞이면 더 먼저 상하는 쪽을 따른다
+            run.expire[kv.Key] = run.expire.TryGetValue(kv.Key, out old) && have > 0 ? Mathf.Min(old, last) : last;
+        }
+        run.bought = carried + cart.Values.Sum();
         ShowDay();
     }
 
     // ---------------------------------------------------------------- 하루 메인
-    int DaysLeft(Ingredient i) { return i.shelf - run.day + 1; } // 오늘 포함 며칠 더 쓸 수 있는지
+    int DaysLeft(Ingredient i) { return run.expire[i] - run.Abs + 1; } // 오늘 포함 며칠 더 쓸 수 있는지
+
+    // 유통기한 지난 재료는 폐기
+    void PurgeExpired()
+    {
+        foreach (var i in run.inv.Keys.ToList())
+            if (!run.expire.ContainsKey(i) || DaysLeft(i) <= 0) { run.inv.Remove(i); run.expire.Remove(i); }
+    }
 
     void ShowDay()
     {
         // 유통기한 지난 재료는 폐기
-        foreach (var i in run.inv.Keys.ToList())
-            if (DaysLeft(i) <= 0) run.inv.Remove(i);
+        PurgeExpired();
         sel.RemoveAll(i => !run.inv.ContainsKey(i));
 
         guideMeal = run.week == 1 && run.day == 1;
@@ -246,7 +268,7 @@ public class GameFlow : MonoBehaviour
         else
         {
             int r = 0;
-            foreach (var kv in run.inv.OrderBy(k => k.Key.shelf))
+            foreach (var kv in run.inv.OrderBy(k => DaysLeft(k.Key)))
             {
                 var ing = kv.Key;
                 float top = 0.79f - r * 0.092f;
@@ -559,7 +581,7 @@ public class GameFlow : MonoBehaviour
         {
             int q;
             if (!run.inv.TryGetValue(i, out q)) continue;
-            if (q <= 1) run.inv.Remove(i); else run.inv[i] = q - 1;
+            if (q <= 1) { run.inv.Remove(i); run.expire.Remove(i); } else run.inv[i] = q - 1;
         }
     }
 
@@ -613,9 +635,7 @@ public class GameFlow : MonoBehaviour
         run.day = 1;
         run.strikes = 0;
         run.dishes.Clear();
-        run.inv.Clear(); // 유통기한이 최대 7일이라 이월되는 재료는 없다
         run.budget = NextBudget(sat);
-        run.bought = 0;
         cart.Clear();
         sel.Clear();
         selMethod = null;
