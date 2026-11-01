@@ -62,6 +62,8 @@ public class GameFlow : MonoBehaviour
     RectTransform lidRect;
     Image lidImage;
     readonly List<Image> swatches = new List<Image>();
+    readonly List<Image> swCooked = new List<Image>(); // 그림이 있을 때만 값이 있고, 없으면 null
+    readonly List<Image> swBurnt = new List<Image>();
     readonly List<Image> fireBtns = new List<Image>();
     Button flipBtn;
     Text timeLabel, stateLabel;
@@ -106,6 +108,8 @@ public class GameFlow : MonoBehaviour
         dayList.Clear();
         lidRect = null;
         swatches.Clear();
+        swCooked.Clear();
+        swBurnt.Clear();
         fireBtns.Clear();
         flipBtn = null;
         foreach (Transform c in root)
@@ -314,7 +318,18 @@ public class GameFlow : MonoBehaviour
             float x0 = 0.03f + i * w + w * 0.15f;
             float x1 = 0.03f + (i + 1) * w - w * 0.15f;
             var sw = UIKit.Box(root, "Swatch", x0, 0.38f, x1, 0.70f, chosen[i].raw);
-            swatches.Add(sw.GetComponent<Image>());
+            var swImg = sw.GetComponent<Image>();
+            swatches.Add(swImg);
+            if (Art.HasSet(chosen[i]))
+            {
+                // 그림 3장을 겹쳐 두고, 익힘에 따라 위 두 장의 투명도만 바꾼다
+                swImg.sprite = Art.Get(chosen[i], "raw");
+                swImg.color = Color.white;
+                swImg.preserveAspect = true;
+                swCooked.Add(ArtLayer(sw, "cooked", Art.Get(chosen[i], "cooked")));
+                swBurnt.Add(ArtLayer(sw, "burnt", Art.Get(chosen[i], "burnt")));
+            }
+            else { swCooked.Add(null); swBurnt.Add(null); }
             UIKit.Label(root, chosen[i].name, x0, 0.31f, x1, 0.38f, 36, TextAnchor.MiddleCenter, Color.white);
         }
 
@@ -426,9 +441,28 @@ public class GameFlow : MonoBehaviour
         if (cook.finished) FinishCook();
     }
 
+    Image ArtLayer(RectTransform parent, string name, Sprite sprite)
+    {
+        var img = UIKit.Box(parent, name, 0, 0, 1, 1, new Color(1, 1, 1, 0)).GetComponent<Image>();
+        img.sprite = sprite;
+        img.preserveAspect = true;
+        img.raycastTarget = false;
+        return img;
+    }
+
     void RefreshCookUI()
     {
-        for (int i = 0; i < swatches.Count; i++) swatches[i].color = cook.Tone(cook.ings[i]);
+        float cookedA, burntA;
+        cook.Blend(out cookedA, out burntA);
+        for (int i = 0; i < swatches.Count; i++)
+        {
+            if (swCooked[i] != null)
+            {
+                swCooked[i].color = new Color(1, 1, 1, cookedA);
+                swBurnt[i].color = new Color(1, 1, 1, burntA);
+            }
+            else swatches[i].color = cook.Tone(cook.ings[i]);
+        }
         for (int f = 0; f < fireBtns.Count; f++) fireBtns[f].color = f == cook.fire ? UIKit.Accent : UIKit.Muted;
         if (flipBtn != null) flipBtn.gameObject.SetActive(cook.flipAvailable);
         timeLabel.text = "남은 시간 " + Mathf.Max(0, Mathf.CeilToInt(Balance.MaxCookTime - cook.t)) + "초";

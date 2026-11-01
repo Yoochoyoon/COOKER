@@ -91,6 +91,14 @@ public class Cook
         return Mathf.RoundToInt(baseAvg * compat * coef);
     }
 
+    // 그림 3장을 겹칠 때의 투명도. 날것 위에 익음을 cooked만큼, 그 위에 탄 것을 burnt만큼 얹는다.
+    public void Blend(out float cooked, out float burnt)
+    {
+        if (d <= Lo) { cooked = Mathf.Clamp01(d / Lo); burnt = 0f; }
+        else if (d <= Hi) { cooked = 1f; burnt = 0f; }
+        else { cooked = 1f; burnt = Mathf.Clamp01((d - Hi) / (100f - Hi)); }
+    }
+
     public Color Tone(Ingredient i)
     {
         if (d <= Lo) return Color.Lerp(i.raw, i.cooked, Mathf.Clamp01(d / Lo));
