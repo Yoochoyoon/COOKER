@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
@@ -38,6 +39,12 @@ public class GameFlow : MonoBehaviour
         var go = new GameObject("COOKER");
         inst = go.AddComponent<GameFlow>();
     }
+
+    // 키보드 조작: 화면마다 Enter/Space로 누를 기본 동작을 정해 둔다.
+    enum Scr { None, Title, Shop, Day, Cook, Meal, Result, Other }
+    Scr scr;
+    System.Action confirm;
+    readonly List<Ingredient> dayList = new List<Ingredient>();
 
     RectTransform canvasRT, root;
     GameObject modal;
@@ -94,6 +101,9 @@ public class GameFlow : MonoBehaviour
     {
         CloseModal();
         cook = null;
+        scr = Scr.Other;
+        confirm = null;
+        dayList.Clear();
         lidRect = null;
         swatches.Clear();
         fireBtns.Clear();
@@ -111,8 +121,10 @@ public class GameFlow : MonoBehaviour
         Clear();
         UIKit.Label(root, "COOKER", 0.1f, 0.58f, 0.9f, 0.88f, 150, TextAnchor.MiddleCenter, UIKit.Accent);
         UIKit.Label(root, "일주일치 장바구니로 7일을 버텨라", 0.1f, 0.46f, 0.9f, 0.58f, 54);
-        UIKit.Btn(root, "시작", 0.35f, 0.26f, 0.65f, 0.40f, StartRun);
-        UIKit.Btn(root, "도감", 0.35f, 0.10f, 0.65f, 0.22f, ShowDex, UIKit.Muted, 40);
+        UIKit.Btn(root, "시작  [Enter]", 0.35f, 0.26f, 0.65f, 0.40f, StartRun);
+        UIKit.Btn(root, "도감  [D]", 0.35f, 0.10f, 0.65f, 0.22f, ShowDex, UIKit.Muted, 40);
+        scr = Scr.Title;
+        confirm = StartRun;
     }
 
     void StartRun()
@@ -134,8 +146,8 @@ public class GameFlow : MonoBehaviour
 
         UIKit.Label(root, "장보기", 0.03f, 0.88f, 0.4f, 0.98f, 70, TextAnchor.MiddleLeft, UIKit.Accent);
         UIKit.Label(root, "남은 예산 " + left.ToString("N0") + "원", 0.45f, 0.88f, 0.97f, 0.98f, 56, TextAnchor.MiddleRight);
-        UIKit.Label(root, "6끼분을 사자. 첫날 한 끼는 엄마가 달걀을 보내준다. 장보기는 이번 한 번뿐!",
-            0.03f, 0.80f, 0.97f, 0.88f, 34, TextAnchor.MiddleLeft, UIKit.Muted);
+        UIKit.Label(root, "6끼분을 사자. 첫날 한 끼는 엄마가 달걀을 보내준다. 장보기는 이번 한 번뿐!   (숫자키 1~6 담기 / Shift+숫자 빼기 / Enter 확정)",
+            0.03f, 0.80f, 0.97f, 0.88f, 28, TextAnchor.MiddleLeft, UIKit.Muted);
 
         UIKit.Label(root, "재료", 0.05f, 0.72f, 0.25f, 0.79f, 34, TextAnchor.MiddleLeft, UIKit.Muted);
         UIKit.Label(root, "가격", 0.27f, 0.72f, 0.42f, 0.79f, 34, TextAnchor.MiddleCenter, UIKit.Muted);
@@ -150,7 +162,7 @@ public class GameFlow : MonoBehaviour
             UIKit.Box(root, "Row", 0.03f, bot, 0.97f, top, UIKit.Card);
             int qty;
             cart.TryGetValue(ing, out qty);
-            UIKit.Label(root, ing.name, 0.05f, bot, 0.25f, top, 44, TextAnchor.MiddleLeft);
+            UIKit.Label(root, "[" + (r + 1) + "] " + ing.name, 0.05f, bot, 0.25f, top, 44, TextAnchor.MiddleLeft);
             UIKit.Label(root, ing.price.ToString("N0") + "원", 0.27f, bot, 0.42f, top, 40);
             UIKit.Label(root, ing.shelf + "일", 0.43f, bot, 0.60f, top, 40);
             UIKit.Btn(root, "-", 0.64f, bot + 0.01f, 0.70f, top - 0.01f, () => ChangeCart(ing, -1), UIKit.Muted, 50, qty > 0);
@@ -160,7 +172,9 @@ public class GameFlow : MonoBehaviour
 
         UIKit.Label(root, "담은 재료 " + units + "개", 0.03f, 0.05f, 0.40f, 0.17f, 44, TextAnchor.MiddleLeft);
         bool ok = units >= Balance.MinUnits;
-        UIKit.Btn(root, ok ? "구매 확정" : "최소 " + Balance.MinUnits + "개 필요", 0.55f, 0.05f, 0.97f, 0.19f, ConfirmShop, UIKit.Good, 48, ok);
+        UIKit.Btn(root, ok ? "구매 확정  [Enter]" : "최소 " + Balance.MinUnits + "개 필요", 0.55f, 0.05f, 0.97f, 0.19f, ConfirmShop, UIKit.Good, 48, ok);
+        scr = Scr.Shop;
+        confirm = ok ? (System.Action)ConfirmShop : null;
     }
 
     void ChangeCart(Ingredient ing, int delta)
@@ -227,7 +241,8 @@ public class GameFlow : MonoBehaviour
                 int dl = DaysLeft(ing);
                 string tag = dl == 1 ? "오늘까지!" : "D-" + (dl - 1);
                 bool on = sel.Contains(ing);
-                UIKit.Btn(root, ing.name + " x" + kv.Value + "   (" + tag + ")", 0.06f, bot, 0.47f, top,
+                dayList.Add(ing);
+                UIKit.Btn(root, "[" + (r + 1) + "] " + ing.name + " x" + kv.Value + "   (" + tag + ")", 0.06f, bot, 0.47f, top,
                     () => ToggleIngredient(ing), on ? UIKit.Good : (dl == 1 ? UIKit.Bad : UIKit.Accent), 38);
                 r++;
             }
@@ -242,7 +257,7 @@ public class GameFlow : MonoBehaviour
             float top = 0.79f - k * 0.105f;
             float bot = top - 0.095f;
             bool on = selMethod == md.id;
-            UIKit.Btn(root, md.name, 0.55f, bot, 0.94f, top, () => { selMethod = md.id; ShowDay(); },
+            UIKit.Btn(root, "[" + "QWE"[k] + "] " + md.name, 0.55f, bot, 0.94f, top, () => { selMethod = md.id; ShowDay(); },
                 on ? UIKit.Good : UIKit.Accent, 44, !guideMeal);
         }
 
@@ -258,9 +273,11 @@ public class GameFlow : MonoBehaviour
         string summary = sel.Count == 0 ? "재료를 골라 주세요" : string.Join(" + ", sel.Select(i => i.name));
         summary += selMethod.HasValue ? "  /  " + Data.GetMethod(selMethod.Value).name : "  /  방식을 골라 주세요";
         UIKit.Label(root, summary, 0.03f, 0.07f, 0.55f, 0.20f, 40, TextAnchor.MiddleLeft);
-        UIKit.Btn(root, "도감", 0.57f, 0.07f, 0.70f, 0.20f, ShowDex, UIKit.Muted, 36);
+        UIKit.Btn(root, "도감 [D]", 0.57f, 0.07f, 0.70f, 0.20f, ShowDex, UIKit.Muted, 30);
         bool canCook = sel.Count > 0 && selMethod.HasValue;
-        UIKit.Btn(root, "조리 시작", 0.72f, 0.05f, 0.97f, 0.22f, StartCook, UIKit.Good, 48, canCook);
+        UIKit.Btn(root, "조리 시작 [Enter]", 0.72f, 0.05f, 0.97f, 0.22f, StartCook, UIKit.Good, 40, canCook);
+        scr = Scr.Day;
+        confirm = canCook ? (System.Action)StartCook : null;
     }
 
     void ToggleIngredient(Ingredient ing)
@@ -302,48 +319,106 @@ public class GameFlow : MonoBehaviour
         }
 
         // 불 조절
-        UIKit.Label(root, "불 조절", 0.64f, 0.70f, 0.97f, 0.77f, 34, TextAnchor.MiddleLeft, UIKit.Muted);
+        UIKit.Label(root, "불 조절 (숫자키 1·2·3)", 0.64f, 0.70f, 0.97f, 0.77f, 30, TextAnchor.MiddleLeft, UIKit.Muted);
         for (int f = 0; f < 3; f++)
         {
             int level = f;
             float x0 = 0.64f + f * 0.11f;
-            var b = UIKit.Btn(root, Balance.FireName[f], x0, 0.57f, x0 + 0.10f, 0.69f, () => cook.SetFire(level), UIKit.Muted, 32);
+            var b = UIKit.Btn(root, "[" + (f + 1) + "] " + Balance.FireName[f], x0, 0.57f, x0 + 0.10f, 0.69f, () => cook.SetFire(level), UIKit.Muted, 26);
             fireBtns.Add(b.GetComponent<Image>());
         }
 
         // 방식별 고유 조작
         if (md.id == Method.Grill)
         {
-            flipBtn = UIKit.Btn(root, "뒤집기!", 0.64f, 0.34f, 0.97f, 0.53f, () => cook.Flip(), UIKit.Good, 52);
+            flipBtn = UIKit.Btn(root, "뒤집기! [F]", 0.64f, 0.34f, 0.97f, 0.53f, () => cook.Flip(), UIKit.Good, 48);
             flipBtn.gameObject.SetActive(false);
         }
         else if (md.id == Method.Stirfry)
         {
             UIKit.Box(root, "StirArea", 0.64f, 0.34f, 0.97f, 0.53f, UIKit.Card);
-            UIKit.Label(root, "마우스를 누른 채\n좌우로 흔들기", 0.65f, 0.35f, 0.96f, 0.52f, 36);
+            UIKit.Label(root, "마우스를 누른 채 좌우로 흔들기\n또는 ←→ / A·D 키를 번갈아", 0.65f, 0.35f, 0.96f, 0.52f, 30);
         }
         else
         {
             lidRect = UIKit.Box(root, "Lid", 0.64f, 0.34f, 0.97f, 0.53f, UIKit.Card);
             lidImage = lidRect.GetComponent<Image>();
-            UIKit.Label(lidRect, "뚜껑 (꾹 누르기)", 0.05f, 0.05f, 0.95f, 0.95f, 38);
+            UIKit.Label(lidRect, "뚜껑 (꾹 누르기)\n또는 S 키를 누른 채", 0.05f, 0.05f, 0.95f, 0.95f, 32);
         }
         stateLabel = UIKit.Label(root, "", 0.64f, 0.27f, 0.97f, 0.34f, 30, TextAnchor.MiddleLeft, UIKit.Bad);
 
-        UIKit.Btn(root, "꺼내기", 0.30f, 0.05f, 0.70f, 0.22f, () => cook.TakeOut(), UIKit.Bad, 60);
+        UIKit.Btn(root, "꺼내기 [Space]", 0.30f, 0.05f, 0.70f, 0.22f, () => cook.TakeOut(), UIKit.Bad, 56);
+        scr = Scr.Cook;
+    }
+
+    // 1~9 숫자키 (윗줄·숫자패드). 눌린 게 없으면 0.
+    static int DigitPressed(Keyboard kb)
+    {
+        for (int i = 0; i < 9; i++)
+        {
+            if (((KeyControl)kb[(Key)((int)Key.Digit1 + i)]).wasPressedThisFrame) return i + 1;
+            if (((KeyControl)kb[(Key)((int)Key.Numpad1 + i)]).wasPressedThisFrame) return i + 1;
+        }
+        return 0;
+    }
+
+    // 조리 중이 아닐 때의 키보드 입력
+    void HandleMenuKeys(Keyboard kb)
+    {
+        if (modal != null)
+        {
+            if (kb.escapeKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame ||
+                kb.spaceKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame) CloseModal();
+            return;
+        }
+        if (kb.dKey.wasPressedThisFrame && (scr == Scr.Title || scr == Scr.Day || scr == Scr.Result)) { ShowDex(); return; }
+        if (confirm != null && (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame))
+        {
+            var act = confirm;
+            confirm = null; // 한 번의 키 입력이 두 번 처리되지 않게
+            act();
+            return;
+        }
+
+        int n = DigitPressed(kb);
+        bool shift = kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
+        if (scr == Scr.Shop && n >= 1 && n <= Data.All.Length) ChangeCart(Data.All[n - 1], shift ? -1 : 1);
+        else if (scr == Scr.Day && !guideMeal)
+        {
+            if (n >= 1 && n <= dayList.Count) ToggleIngredient(dayList[n - 1]);
+            else if (kb.qKey.wasPressedThisFrame) { selMethod = Method.Grill; ShowDay(); }
+            else if (kb.wKey.wasPressedThisFrame) { selMethod = Method.Stirfry; ShowDay(); }
+            else if (kb.eKey.wasPressedThisFrame) { selMethod = Method.Boil; ShowDay(); }
+        }
     }
 
     void Update()
     {
-        if (cook == null) return;
+        var kb = Keyboard.current;
+        if (cook == null)
+        {
+            if (kb != null) HandleMenuKeys(kb);
+            return;
+        }
         if (!cook.finished) // [꺼내기] 버튼은 finished만 켜므로, 아래 FinishCook은 항상 한 번 실행된다
         {
             var mouse = Mouse.current;
             bool held = mouse != null && mouse.leftButton.isPressed;
-            if (held && Mathf.Abs(mouse.delta.ReadValue().x) > 2f) stirTimer = 0.25f;
-            else stirTimer -= Time.deltaTime;
             bool lid = held && lidRect != null &&
                        RectTransformUtility.RectangleContainsScreenPoint(lidRect, mouse.position.ReadValue(), null);
+            if (held && Mathf.Abs(mouse.delta.ReadValue().x) > 2f) stirTimer = 0.25f;
+            else stirTimer -= Time.deltaTime;
+
+            if (kb != null)
+            {
+                if (kb.leftArrowKey.wasPressedThisFrame || kb.rightArrowKey.wasPressedThisFrame ||
+                    kb.aKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame) stirTimer = 0.25f;
+                if (kb.sKey.isPressed || kb.downArrowKey.isPressed) lid = true;
+                if (kb.fKey.wasPressedThisFrame && cook.flipAvailable) cook.Flip();
+                int n = DigitPressed(kb);
+                if (n >= 1 && n <= 3) cook.SetFire(n - 1);
+                if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) cook.TakeOut();
+            }
 
             cook.Tick(Time.deltaTime, stirTimer > 0f, lid);
             RefreshCookUI();
@@ -423,7 +498,9 @@ public class GameFlow : MonoBehaviour
         UIKit.Label(root, "만족도 " + dish.satisfaction, 0.2f, 0.40f, 0.8f, 0.54f, 80, TextAnchor.MiddleCenter, UIKit.Accent);
         UIKit.Label(root, reaction, 0.1f, 0.28f, 0.9f, 0.40f, 52);
         bool last = run.day >= Balance.Days;
-        UIKit.Btn(root, last ? "결산 보기" : "다음 날", 0.35f, 0.07f, 0.65f, 0.21f, NextDay, UIKit.Good, 52);
+        UIKit.Btn(root, (last ? "결산 보기" : "다음 날") + " [Enter]", 0.30f, 0.07f, 0.70f, 0.21f, NextDay, UIKit.Good, 48);
+        scr = Scr.Meal;
+        confirm = NextDay;
     }
 
     void NextDay()
@@ -455,8 +532,10 @@ public class GameFlow : MonoBehaviour
             + "남은 재료 " + Mathf.RoundToInt(left) + " (20%)  " + leftover + "개",
             0.40f, 0.52f, 0.97f, 0.84f, 44, TextAnchor.MiddleLeft);
         UIKit.Label(root, DishList(), 0.05f, 0.24f, 0.95f, 0.50f, 34, TextAnchor.UpperLeft);
-        UIKit.Btn(root, "도감", 0.2f, 0.05f, 0.45f, 0.19f, ShowDex, UIKit.Muted, 44);
-        UIKit.Btn(root, "다시 하기", 0.55f, 0.05f, 0.8f, 0.19f, ShowTitle, UIKit.Good, 48);
+        UIKit.Btn(root, "도감 [D]", 0.2f, 0.05f, 0.45f, 0.19f, ShowDex, UIKit.Muted, 40);
+        UIKit.Btn(root, "다시 하기 [Enter]", 0.52f, 0.05f, 0.85f, 0.19f, ShowTitle, UIKit.Good, 40);
+        scr = Scr.Result;
+        confirm = ShowTitle;
     }
 
     void ShowFail(string reason)
@@ -467,7 +546,8 @@ public class GameFlow : MonoBehaviour
         UIKit.Label(root, reason, 0.05f, 0.54f, 0.95f, 0.66f, 40, TextAnchor.MiddleCenter, UIKit.Muted);
         UIKit.Label(root, run.dishes.Count == 0 ? "먹은 요리가 없다." : "그때까지 먹은 요리\n" + DishList(),
             0.05f, 0.24f, 0.95f, 0.52f, 34, TextAnchor.UpperLeft);
-        UIKit.Btn(root, "다시 하기", 0.35f, 0.05f, 0.65f, 0.19f, ShowTitle, UIKit.Good, 52);
+        UIKit.Btn(root, "다시 하기 [Enter]", 0.30f, 0.05f, 0.70f, 0.19f, ShowTitle, UIKit.Good, 48);
+        confirm = ShowTitle;
     }
 
     string DishList()
@@ -480,7 +560,8 @@ public class GameFlow : MonoBehaviour
     {
         Clear();
         UIKit.Label(root, msg, 0.1f, 0.45f, 0.9f, 0.75f, 56);
-        UIKit.Btn(root, btn, 0.35f, 0.2f, 0.65f, 0.34f, onClick, UIKit.Good, 52);
+        UIKit.Btn(root, btn + " [Enter]", 0.30f, 0.2f, 0.70f, 0.34f, onClick, UIKit.Good, 48);
+        confirm = onClick;
     }
 
     void ShowDex()
@@ -489,7 +570,7 @@ public class GameFlow : MonoBehaviour
         modal = UIKit.Box(canvasRT, "Dex", 0.08f, 0.08f, 0.92f, 0.92f, UIKit.Card).gameObject;
         var m = modal.transform;
         UIKit.Label(m, "도감 (" + dex.Count + "종류)", 0.05f, 0.86f, 0.7f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
-        UIKit.Btn(m, "닫기", 0.78f, 0.88f, 0.95f, 0.98f, CloseModal, UIKit.Muted, 40);
+        UIKit.Btn(m, "닫기 [Esc]", 0.74f, 0.88f, 0.95f, 0.98f, CloseModal, UIKit.Muted, 34);
         string body = dex.Count == 0
             ? "아직 만든 요리가 없다."
             : string.Join("\n", dex.Values.OrderByDescending(d => d.satisfaction)
