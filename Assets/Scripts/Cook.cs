@@ -2,6 +2,8 @@ using System.Linq;
 using UnityEngine;
 
 // 조리 한 번의 상태. 화면과 무관한 순수 로직이라 수치 검증이 쉽다.
+public enum Doneness { Raw, Under, Good, Over, Burnt }
+
 public class Cook
 {
     public Ingredient[] ings;
@@ -91,18 +93,29 @@ public class Cook
         return Mathf.RoundToInt(baseAvg * compat * coef);
     }
 
-    // 그림 3장을 겹칠 때의 투명도. 날것 위에 익음을 cooked만큼, 그 위에 탄 것을 burnt만큼 얹는다.
-    public void Blend(out float cooked, out float burnt)
+    // 익힘 5단계. 색이 서서히 변하지 않고 단계가 바뀔 때 한 번에 바뀐다. 기준은 꺼내기 판정(Evaluate)과 같다.
+    public Doneness Stage
     {
-        if (d <= Lo) { cooked = Mathf.Clamp01(d / Lo); burnt = 0f; }
-        else if (d <= Hi) { cooked = 1f; burnt = 0f; }
-        else { cooked = 1f; burnt = Mathf.Clamp01((d - Hi) / (100f - Hi)); }
+        get
+        {
+            if (d < Balance.RawLimit) return Doneness.Raw;        // 날것 (꺼내면 실패)
+            if (d >= Balance.BurnLimit) return Doneness.Burnt;    // 탄 것 (꺼내면 실패)
+            if (d < Lo) return Doneness.Under;                    // 적게 익힘
+            if (d <= Hi) return Doneness.Good;                    // 알맞음
+            return Doneness.Over;                                 // 많이 익힘
+        }
     }
 
+    // 그림이 없을 때 쓰는 단계별 단색
     public Color Tone(Ingredient i)
     {
-        if (d <= Lo) return Color.Lerp(i.raw, i.cooked, Mathf.Clamp01(d / Lo));
-        if (d <= Hi) return i.cooked;
-        return Color.Lerp(i.cooked, i.burnt, Mathf.Clamp01((d - Hi) / (100f - Hi)));
+        switch (Stage)
+        {
+            case Doneness.Raw: return i.raw;
+            case Doneness.Under: return Color.Lerp(i.raw, i.cooked, 0.5f);
+            case Doneness.Good: return i.cooked;
+            case Doneness.Over: return Color.Lerp(i.cooked, i.burnt, 0.5f);
+            default: return i.burnt;
+        }
     }
 }

@@ -62,8 +62,7 @@ public class GameFlow : MonoBehaviour
     RectTransform lidRect;
     Image lidImage;
     readonly List<Image> swatches = new List<Image>();
-    readonly List<Image> swCooked = new List<Image>(); // 그림이 있을 때만 값이 있고, 없으면 null
-    readonly List<Image> swBurnt = new List<Image>();
+    readonly List<bool> swArt = new List<bool>(); // 이 재료가 그림(5단계)으로 그려지는지
     readonly List<Image> fireBtns = new List<Image>();
     Button flipBtn;
     Text timeLabel, stateLabel;
@@ -108,8 +107,7 @@ public class GameFlow : MonoBehaviour
         dayList.Clear();
         lidRect = null;
         swatches.Clear();
-        swCooked.Clear();
-        swBurnt.Clear();
+        swArt.Clear();
         fireBtns.Clear();
         flipBtn = null;
         foreach (Transform c in root)
@@ -320,16 +318,9 @@ public class GameFlow : MonoBehaviour
             var sw = UIKit.Box(root, "Swatch", x0, 0.38f, x1, 0.70f, chosen[i].raw);
             var swImg = sw.GetComponent<Image>();
             swatches.Add(swImg);
-            if (Art.HasSet(chosen[i]))
-            {
-                // 그림 3장을 겹쳐 두고, 익힘에 따라 위 두 장의 투명도만 바꾼다
-                swImg.sprite = Art.Get(chosen[i], "raw");
-                swImg.color = Color.white;
-                swImg.preserveAspect = true;
-                swCooked.Add(ArtLayer(sw, "cooked", Art.Get(chosen[i], "cooked")));
-                swBurnt.Add(ArtLayer(sw, "burnt", Art.Get(chosen[i], "burnt")));
-            }
-            else { swCooked.Add(null); swBurnt.Add(null); }
+            bool hasArt = Art.HasSet(chosen[i]);
+            swArt.Add(hasArt);
+            if (hasArt) swImg.preserveAspect = true;
             UIKit.Label(root, chosen[i].name, x0, 0.31f, x1, 0.38f, 36, TextAnchor.MiddleCenter, Color.white);
         }
 
@@ -441,25 +432,15 @@ public class GameFlow : MonoBehaviour
         if (cook.finished) FinishCook();
     }
 
-    Image ArtLayer(RectTransform parent, string name, Sprite sprite)
-    {
-        var img = UIKit.Box(parent, name, 0, 0, 1, 1, new Color(1, 1, 1, 0)).GetComponent<Image>();
-        img.sprite = sprite;
-        img.preserveAspect = true;
-        img.raycastTarget = false;
-        return img;
-    }
-
     void RefreshCookUI()
     {
-        float cookedA, burntA;
-        cook.Blend(out cookedA, out burntA);
+        var stage = cook.Stage;
         for (int i = 0; i < swatches.Count; i++)
         {
-            if (swCooked[i] != null)
+            if (swArt[i])
             {
-                swCooked[i].color = new Color(1, 1, 1, cookedA);
-                swBurnt[i].color = new Color(1, 1, 1, burntA);
+                swatches[i].sprite = Art.Get(cook.ings[i], stage);
+                swatches[i].color = Color.white;
             }
             else swatches[i].color = cook.Tone(cook.ings[i]);
         }

@@ -2,7 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // 그림 파일을 찾아 주는 도우미. 파일이 없으면 null을 돌려주고, 게임은 단색으로 대신 그린다.
-// 규칙: Assets/Resources/Art/<재료id>_<상태>.png  (상태: raw=날것, cooked=알맞게 익음, burnt=탄 것)
+// 규칙: Assets/Resources/Art/<재료id>_<단계>.png
+// 단계: raw=날것, under=적게 익힘, good=알맞음, over=많이 익힘, burnt=탄 것
 // 재료 id: egg, tofu, onion, potato, pork, kimchi  (자세한 건 docs/13아트가이드.md)
 public static class Art
 {
@@ -29,16 +30,20 @@ public static class Art
         return s;
     }
 
-    // state: raw / cooked / burnt
-    public static Sprite Get(Ingredient i, string state)
+    // 5단계 파일 이름 (Doneness 순서와 같다)
+    static readonly string[] stages = { "raw", "under", "good", "over", "burnt" };
+
+    public static Sprite Get(Ingredient i, Doneness stage)
     {
         string id = Id(i);
-        return id == null ? null : Load(id + "_" + state);
+        return id == null ? null : Load(id + "_" + stages[(int)stage]);
     }
 
-    // 세 장이 모두 있어야 그림으로 그린다 (일부만 있으면 단색으로 대신해 어색한 화면을 막는다)
+    // 다섯 장이 모두 있어야 그림으로 그린다 (일부만 있으면 단색으로 대신해 어색한 화면을 막는다)
     public static bool HasSet(Ingredient i)
     {
-        return Get(i, "raw") != null && Get(i, "cooked") != null && Get(i, "burnt") != null;
+        for (int s = 0; s < stages.Length; s++)
+            if (Get(i, (Doneness)s) == null) return false;
+        return true;
     }
 }
