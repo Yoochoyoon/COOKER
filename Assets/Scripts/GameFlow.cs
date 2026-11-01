@@ -429,6 +429,8 @@ public class GameFlow : MonoBehaviour
     void NextDay()
     {
         run.day++;
+        sel.Clear();          // 첫날 가이드의 달걀·굽기가 다음 날 미리 선택된 채로 남지 않게 한다
+        selMethod = null;
         if (run.day > Balance.Days) ShowResult();
         else ShowDay();
     }
