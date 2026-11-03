@@ -158,7 +158,10 @@ public class Cook
             float compat = it.ing.fits.Contains(m.id) ? 1f : Balance.NonFit;
             sum += it.ing.baseScore * compat * it.coef;
         }
-        return Mathf.RoundToInt(sum / plated.Length);
+        float avg = sum / plated.Length;
+        // 재료 2개를 섞어 모두 성공시키면 보너스
+        if (plated.Length >= 2 && plated.All(it => it.ok)) avg *= 1f + Balance.MixBonus;
+        return Mathf.Min(100, Mathf.RoundToInt(avg));
     }
 
     // 익힘 5단계. 색이 서서히 변하지 않고 단계가 바뀔 때 한 번에 바뀐다. 기준은 꺼내기 판정(Judge)과 같다.

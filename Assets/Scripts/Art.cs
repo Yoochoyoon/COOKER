@@ -15,6 +15,10 @@ public static class Art
 
     static readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
 
+    // 에디터에서 도메인 리로드를 끄고 Play하면 static이 남는다. 이전 실행에서 "없음"으로 기억한 그림이 남지 않게 Play마다 비운다.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetCache() { cache.Clear(); }
+
     public static string Id(Ingredient i)
     {
         string id;

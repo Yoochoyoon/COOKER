@@ -33,6 +33,7 @@ public static class Balance
     public static readonly float[] Fire = { 0.6f, 1.0f, 1.5f };
     public static readonly string[] FireName = { "약불", "중불", "강불" };
     public const float NonFit = 0.6f;
+    public const float MixBonus = 0.10f; // 재료 2개를 모두 성공시키면 평균 만족도에 더하는 비율
     public const float RawLimit = 40f;             // 이 미만에 꺼내면 날것(실패)
     public const float BurnLimit = 100f;           // 이 이상이면 탄 것(실패)
     public const float BubbleInterval = 5f;

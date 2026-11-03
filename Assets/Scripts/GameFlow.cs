@@ -74,6 +74,11 @@ public class GameFlow : MonoBehaviour
     Button flipBtn;
     Text timeLabel, stateLabel;
 
+    // 배경 그림, 장보기 연출
+    Image bgImg;
+    RectTransform flyLayer, basketRT;
+    int landing; // 날아가는 중인 재료 수 (도착하기 전에는 장바구니 안에 보이지 않는다)
+
     void Awake()
     {
         if (Camera.main != null) Camera.main.backgroundColor = UIKit.Bg;
@@ -94,8 +99,9 @@ public class GameFlow : MonoBehaviour
         cgo.AddComponent<GraphicRaycaster>();
         canvasRT = (RectTransform)cgo.transform;
 
-        UIKit.Box(canvasRT, "Background", 0, 0, 1, 1, UIKit.Bg);
+        bgImg = UIKit.Box(canvasRT, "Background", 0, 0, 1, 1, UIKit.Bg).GetComponent<Image>();
         root = UIKit.Box(canvasRT, "Screen", 0, 0, 1, 1);
+        flyLayer = UIKit.Box(canvasRT, "Fly", 0, 0, 1, 1); // 화면이 다시 그려져도 남는, 날아가는 재료용 층
 
         if (FindFirstObjectByType<EventSystem>() == null)
         {
@@ -108,6 +114,7 @@ public class GameFlow : MonoBehaviour
     void Clear()
     {
         CloseModal();
+        SetBg(null);
         cook = null;
         scr = Scr.Other;
         confirm = null;
@@ -130,17 +137,72 @@ public class GameFlow : MonoBehaviour
     void ShowTitle()
     {
         Clear();
-        UIKit.Label(root, "COOKER", 0.1f, 0.58f, 0.9f, 0.88f, 150, TextAnchor.MiddleCenter, UIKit.Accent);
-        UIKit.Label(root, "일주일치 장바구니로 최대한 오래 버텨라", 0.1f, 0.46f, 0.9f, 0.58f, 54);
-        UIKit.Btn(root, "시작  [Enter]", 0.35f, 0.26f, 0.65f, 0.40f, StartRun);
-        UIKit.Btn(root, "도감  [D]", 0.35f, 0.10f, 0.65f, 0.22f, ShowDex, UIKit.Muted, 40);
+        SetBg("bg_title");
+        var logo = Art.Load("title_logo");
+        var start = Art.Load("title_start");
+        var exit = Art.Load("title_exit");
+        if (logo != null && start != null && exit != null)
+        {
+            // 그림 배치는 원본 타이틀 이미지(1671x941)의 위치를 화면 비율로 옮긴 것이다. 겹치는 START와 EXIT는 원본처럼 EXIT가 위에 그려진다.
+            // 창 비율이 16:9가 아니어도 배치가 눌리지 않도록, 원본과 같은 비율의 영역 안에 놓는다.
+            var area = UIKit.Box(root, "TitleArea", 0, 0, 1, 1);
+            var fit = area.gameObject.AddComponent<AspectRatioFitter>();
+            fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            fit.aspectRatio = 1671f / 941f;
+            TitleImage(area, logo, 0.1125f, 0.3921f, 0.9539f, 0.9341f);
+            var startImg = TitleImage(area, start, 0.2202f, 0.2136f, 0.7828f, 0.4262f);
+            var exitImg = TitleImage(area, exit, 0.2513f, 0.0839f, 0.7756f, 0.3411f);
+            // 두 그림이 겹치므로 눌리는 영역은 글자 높이에서 위아래로 나눈다.
+            TitleHit(area, "StartHit", 0.23f, 0.2667f, 0.78f, 0.4208f, startImg, StartRun);
+            TitleHit(area, "ExitHit", 0.26f, 0.09f, 0.775f, 0.2667f, exitImg, QuitGame);
+            UIKit.Btn(root, "도감 [D]", 0.03f, 0.03f, 0.17f, 0.11f, ShowDex, UIKit.Muted, 30);
+        }
+        else
+        {
+            UIKit.Label(root, "COOKER", 0.1f, 0.58f, 0.9f, 0.88f, 150, TextAnchor.MiddleCenter, UIKit.Accent);
+            UIKit.Label(root, "일주일치 장바구니로 최대한 오래 버텨라", 0.1f, 0.46f, 0.9f, 0.58f, 54);
+            UIKit.Btn(root, "시작  [Enter]", 0.35f, 0.26f, 0.65f, 0.40f, StartRun);
+            UIKit.Btn(root, "도감  [D]", 0.35f, 0.10f, 0.65f, 0.22f, ShowDex, UIKit.Muted, 40);
+        }
         scr = Scr.Title;
         confirm = StartRun;
+    }
+
+    Image TitleImage(Transform parent, Sprite s, float x0, float y0, float x1, float y1)
+    {
+        var im = UIKit.Box(parent, "TitleArt", x0, y0, x1, y1).gameObject.AddComponent<Image>();
+        im.sprite = s;
+        im.preserveAspect = true;
+        im.raycastTarget = false;
+        return im;
+    }
+
+    // 눈에 안 보이는 눌림 영역. 눌리거나 마우스를 올리면 그림(visual)이 어두워진다.
+    void TitleHit(Transform parent, string name, float x0, float y0, float x1, float y1, Image visual, System.Action onClick)
+    {
+        var rt = UIKit.Box(parent, name, x0, y0, x1, y1, new Color(1f, 1f, 1f, 0f));
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = visual;
+        var cb = b.colors;
+        cb.highlightedColor = new Color(0.9f, 0.9f, 0.9f);
+        cb.pressedColor = new Color(0.75f, 0.75f, 0.75f);
+        b.colors = cb;
+        b.onClick.AddListener(() => onClick());
+    }
+
+    void QuitGame()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
     }
 
     void StartRun()
     {
         run = new Run();
+        landing = 0;
         cart.Clear();
         sel.Clear();
         selMethod = null;
@@ -151,44 +213,145 @@ public class GameFlow : MonoBehaviour
     void ShowShop()
     {
         Clear();
+        SetBg("bg_shop");
         PurgeExpired();
         int spent = cart.Sum(kv => Price(kv.Key) * kv.Value);
         int units = cart.Values.Sum();
         int left = run.budget - spent;
 
-        UIKit.Label(root, run.week + "주차 장보기", 0.03f, 0.88f, 0.4f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
-        UIKit.Label(root, "남은 예산 " + left.ToString("N0") + "원", 0.45f, 0.88f, 0.97f, 0.98f, 56, TextAnchor.MiddleRight);
-        UIKit.Label(root, (run.week == 1 ? "6끼분을 사자. 첫날 한 끼는 엄마가 달걀을 보내준다." : "7끼분을 맞추자(남은 재료는 이월). 엄마의 달걀은 없고 재료값이 올랐다!") + " 가격은 1끼분 기준, 이번 주 장보기는 한 번뿐!   (숫자키 1~6 담기 / Shift+숫자 빼기 / Enter 확정)",
-            0.03f, 0.80f, 0.97f, 0.88f, 28, TextAnchor.MiddleLeft, UIKit.Muted);
+        // 왼쪽: 장보기 표
+        UIKit.Box(root, "Panel", 0.02f, 0.03f, 0.545f, 0.97f, new Color(1f, 0.88f, 0.45f, 0.97f));
+        UIKit.Label(root, run.week + "주차 장보기", 0.04f, 0.88f, 0.30f, 0.96f, 52, TextAnchor.MiddleLeft, UIKit.Accent);
+        UIKit.Label(root, "남은 예산 " + left.ToString("N0") + "원", 0.30f, 0.88f, 0.525f, 0.96f, 44, TextAnchor.MiddleRight);
+        UIKit.Label(root, (run.week == 1 ? "6끼분을 사자. 첫날 한 끼는 엄마가 달걀을 보내준다." : "7끼분을 맞추자(남은 재료는 이월). 엄마의 달걀은 없고 재료값이 올랐다!")
+            + "\n가격은 1끼분 기준, 이번 주 장보기는 한 번뿐!   (숫자키 1~6 담기 / Shift+숫자 빼기 / Enter 확정)",
+            0.04f, 0.79f, 0.525f, 0.875f, 24, TextAnchor.MiddleLeft, UIKit.Muted);
 
-        UIKit.Label(root, "재료", 0.05f, 0.72f, 0.25f, 0.79f, 34, TextAnchor.MiddleLeft, UIKit.Muted);
-        UIKit.Label(root, "가격", 0.27f, 0.72f, 0.42f, 0.79f, 34, TextAnchor.MiddleCenter, UIKit.Muted);
-        UIKit.Label(root, "유통기한", 0.43f, 0.72f, 0.60f, 0.79f, 34, TextAnchor.MiddleCenter, UIKit.Muted);
-        UIKit.Label(root, "수량", 0.64f, 0.72f, 0.86f, 0.79f, 34, TextAnchor.MiddleCenter, UIKit.Muted);
+        UIKit.Label(root, "재료", 0.10f, 0.725f, 0.235f, 0.785f, 30, TextAnchor.MiddleLeft, UIKit.Muted);
+        UIKit.Label(root, "가격", 0.235f, 0.725f, 0.325f, 0.785f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
+        UIKit.Label(root, "유통기한", 0.325f, 0.725f, 0.395f, 0.785f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
+        UIKit.Label(root, "수량", 0.405f, 0.725f, 0.525f, 0.785f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
 
         for (int r = 0; r < Data.All.Length; r++)
         {
             var ing = Data.All[r];
-            float top = 0.71f - r * 0.095f;
-            float bot = top - 0.085f;
-            UIKit.Box(root, "Row", 0.03f, bot, 0.97f, top, UIKit.Card);
+            float top = RowTop(r);
+            float bot = top - 0.08f;
+            UIKit.Box(root, "Row", 0.035f, bot, 0.53f, top, UIKit.Card);
             int qty;
             cart.TryGetValue(ing, out qty);
             int own;
             run.inv.TryGetValue(ing, out own);
-            UIKit.Label(root, "[" + (r + 1) + "] " + ing.name + (own > 0 ? " (보유 " + own + ")" : ""), 0.05f, bot, 0.25f, top, 40, TextAnchor.MiddleLeft);
-            UIKit.Label(root, Price(ing).ToString("N0") + "원", 0.27f, bot, 0.42f, top, 40);
-            UIKit.Label(root, ing.shelf + "일", 0.43f, bot, 0.60f, top, 40);
-            UIKit.Btn(root, "-", 0.64f, bot + 0.01f, 0.70f, top - 0.01f, () => ChangeCart(ing, -1), UIKit.Muted, 50, qty > 0);
-            UIKit.Label(root, qty.ToString(), 0.70f, bot, 0.80f, top, 44);
-            UIKit.Btn(root, "+", 0.80f, bot + 0.01f, 0.86f, top - 0.01f, () => ChangeCart(ing, 1), UIKit.Accent, 50, Price(ing) <= left);
+            SetIcon(UIKit.Box(root, "Icon", 0.045f, bot + 0.008f, 0.095f, top - 0.008f).gameObject.AddComponent<Image>(), ing);
+            UIKit.Label(root, "[" + (r + 1) + "] " + ing.name + (own > 0 ? " (보유 " + own + ")" : ""), 0.10f, bot, 0.235f, top, 34, TextAnchor.MiddleLeft);
+            UIKit.Label(root, Price(ing).ToString("N0") + "원", 0.235f, bot, 0.325f, top, 34);
+            UIKit.Label(root, ing.shelf + "일", 0.325f, bot, 0.395f, top, 34);
+            UIKit.Btn(root, "-", 0.405f, bot + 0.01f, 0.445f, top - 0.01f, () => ChangeCart(ing, -1), UIKit.Muted, 44, qty > 0);
+            UIKit.Label(root, qty.ToString(), 0.445f, bot, 0.485f, top, 38);
+            UIKit.Btn(root, "+", 0.485f, bot + 0.01f, 0.525f, top - 0.01f, () => ChangeCart(ing, 1), UIKit.Accent, 44, Price(ing) <= left);
         }
 
-        UIKit.Label(root, "담은 재료 " + units + "개", 0.03f, 0.05f, 0.40f, 0.17f, 44, TextAnchor.MiddleLeft);
+        UIKit.Label(root, "담은 재료 " + units + "개", 0.04f, 0.04f, 0.25f, 0.16f, 38, TextAnchor.MiddleLeft);
         bool ok = units >= Need();
-        UIKit.Btn(root, ok ? "구매 확정  [Enter]" : "최소 " + Need() + "개 필요", 0.55f, 0.05f, 0.97f, 0.19f, ConfirmShop, UIKit.Good, 48, ok);
+        UIKit.Btn(root, ok ? "구매 확정  [Enter]" : "최소 " + Need() + "개 필요", 0.27f, 0.04f, 0.525f, 0.16f, ConfirmShop, UIKit.Good, 40, ok);
+
+        DrawBasket();
         scr = Scr.Shop;
         confirm = ok ? (System.Action)ConfirmShop : null;
+    }
+
+    // ---- 장바구니 연출
+    // 재료 줄의 위쪽 위치(0~1). 날아가는 재료의 출발점도 이 값으로 정한다.
+    static float RowTop(int r) { return 0.715f - r * 0.09f; }
+    static readonly Vector2 BasketMouth = new Vector2(0.785f, 0.42f); // 재료가 떨어지는 장바구니 입구 (화면 비율)
+
+    // 장바구니: 그림(Resources/Art/shop_basket.png)이 있으면 그걸, 없으면 빨간 상자로 그린다.
+    // 담은 재료는 장바구니 안에 작은 그림으로 쌓인다(최대 12개). 날아오는 중인 재료는 도착해야 보인다.
+    void DrawBasket()
+    {
+        basketRT = UIKit.Box(root, "Basket", 0.60f, 0.12f, 0.97f, 0.62f);
+        var spr = Art.Load("shop_basket");
+        if (spr != null)
+        {
+            var im = basketRT.gameObject.AddComponent<Image>();
+            im.sprite = spr;
+            im.preserveAspect = true;
+            im.raycastTarget = false;
+        }
+        else
+        {
+            UIKit.Box(basketRT, "Body", 0.04f, 0.0f, 0.96f, 0.72f, new Color(0.85f, 0.25f, 0.22f));
+            UIKit.Box(basketRT, "Rim", 0.0f, 0.62f, 1.0f, 0.80f, new Color(0.65f, 0.15f, 0.15f));
+            UIKit.Label(basketRT, "장바구니", 0.1f, 0.03f, 0.9f, 0.28f, 54, TextAnchor.MiddleCenter, Color.white);
+        }
+        var list = cart.SelectMany(kv => Enumerable.Repeat(kv.Key, kv.Value)).ToList();
+        int shown = Mathf.Clamp(list.Count - landing, 0, 12);
+        for (int i = 0; i < shown; i++)
+        {
+            float x = 0.10f + (i % 6) * 0.135f;
+            float y = 0.32f + (i / 6) * 0.17f;
+            SetIcon(UIKit.Box(basketRT, "Item", x, y, x + 0.12f, y + 0.15f).gameObject.AddComponent<Image>(), list[i]);
+        }
+    }
+
+    // 재료 그림(날것)을 쓰고, 없으면 그 재료의 색 사각형으로 대신한다.
+    void SetIcon(Image img, Ingredient ing)
+    {
+        var s = Art.Get(ing, Doneness.Raw);
+        img.sprite = s;
+        img.color = s != null ? Color.white : ing.raw;
+        img.preserveAspect = true;
+        img.raycastTarget = false;
+    }
+
+    // 재료 하나가 from에서 to로 포물선을 그리며 날아간다. 장바구니에 담길 때는 도착하면 장바구니가 통통 튄다.
+    System.Collections.IEnumerator FlyRoutine(Ingredient ing, Vector2 from, Vector2 to, bool intoBasket)
+    {
+        var go = new GameObject("Fly", typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(flyLayer, false);
+        var rt = (RectTransform)go.transform;
+        rt.sizeDelta = new Vector2(100f, 100f);
+        rt.anchorMin = rt.anchorMax = from;
+        SetIcon(go.GetComponent<Image>(), ing);
+        const float dur = 0.45f;
+        for (float t = 0f; t < dur; t += Time.deltaTime)
+        {
+            if (rt == null) yield break;
+            float k = t / dur;
+            float e = k * k * (3f - 2f * k);
+            var p = Vector2.Lerp(from, to, e);
+            p.y += Mathf.Sin(k * Mathf.PI) * 0.10f;
+            rt.anchorMin = rt.anchorMax = p;
+            rt.localScale = Vector3.one * Mathf.Lerp(1f, 0.6f, k);
+            yield return null;
+        }
+        if (go != null) Destroy(go);
+        if (!intoBasket) yield break;
+        landing = Mathf.Max(0, landing - 1);
+        if (scr == Scr.Shop) ShowShop();                 // 도착한 재료가 장바구니 안에 나타난다
+        if (basketRT != null) StartCoroutine(BumpRoutine(basketRT));
+    }
+
+    System.Collections.IEnumerator BumpRoutine(RectTransform rt)
+    {
+        const float dur = 0.2f;
+        for (float t = 0f; t < dur; t += Time.deltaTime)
+        {
+            if (rt == null) yield break;
+            rt.localScale = Vector3.one * (1f + 0.08f * Mathf.Sin(t / dur * Mathf.PI));
+            yield return null;
+        }
+        if (rt != null) rt.localScale = Vector3.one;
+    }
+
+    // 화면마다 배경 그림(Resources/Art/<파일>.png)을 깐다. 파일이 없으면 단색 배경이다. 16:9 그림을 권장한다.
+    void SetBg(string file)
+    {
+        if (bgImg == null) return;
+        var s = file == null ? null : Art.Load(file);
+        bgImg.sprite = s;
+        bgImg.preserveAspect = s != null; // 창 비율이 달라도 그림이 늘어나지 않는다(남는 곳은 배경색)
+        bgImg.color = s != null ? Color.white : UIKit.Bg;
     }
 
     // 이번 주 재료 가격: 매주 오른다
@@ -200,13 +363,23 @@ public class GameFlow : MonoBehaviour
     {
         int qty;
         cart.TryGetValue(ing, out qty);
+        int before = qty;
+        if (delta > 0 && Price(ing) > run.budget - cart.Sum(kv => Price(kv.Key) * kv.Value)) return; // 예산 초과는 담지 않는다
         qty = Mathf.Max(0, qty + delta);
         if (qty == 0) cart.Remove(ing); else cart[ing] = qty;
+        if (qty != before)
+        {
+            int r = System.Array.IndexOf(Data.All, ing);
+            var rowPos = new Vector2(0.07f, RowTop(r) - 0.04f);
+            if (delta > 0) { landing++; StartCoroutine(FlyRoutine(ing, rowPos, BasketMouth, true)); }
+            else StartCoroutine(FlyRoutine(ing, BasketMouth, rowPos, false));
+        }
         ShowShop();
     }
 
     void ConfirmShop()
     {
+        landing = 0;
         run.budget -= cart.Sum(kv => Price(kv.Key) * kv.Value);
         int carried = run.inv.Values.Sum();
         foreach (var kv in cart)
@@ -664,8 +837,9 @@ public class GameFlow : MonoBehaviour
         string grade = total >= Balance.GradeS ? "S" : total >= Balance.GradeA ? "A" : total >= Balance.GradeB ? "B" : "C";
 
         UIKit.Label(root, run.week + "주차 생존!", 0.05f, 0.84f, 0.95f, 0.98f, 90, TextAnchor.MiddleCenter, UIKit.Good);
-        UIKit.Label(root, grade, 0.05f, 0.62f, 0.35f, 0.84f, 180, TextAnchor.MiddleCenter, UIKit.Accent);
-        UIKit.Label(root, "총점 " + Mathf.RoundToInt(total) + "점\n"
+        UIKit.Label(root, "지금까지 " + (run.week * Balance.Days) + "일 버텼다", 0.05f, 0.76f, 0.95f, 0.84f, 44, TextAnchor.MiddleCenter, UIKit.Ink);
+        UIKit.Label(root, grade, 0.05f, 0.56f, 0.35f, 0.76f, 150, TextAnchor.MiddleCenter, UIKit.Accent);
+        UIKit.Label(root, "이번 주 평가 (참고) " + Mathf.RoundToInt(total) + "점\n"
             + "만족도 " + Mathf.RoundToInt(sat) + " (50%)\n"
             + "다양성 " + Mathf.RoundToInt(div) + " (30%)  " + combos + "종류\n"
             + "남은 재료 " + Mathf.RoundToInt(left) + " (20%)  " + leftover + "개",
@@ -682,7 +856,7 @@ public class GameFlow : MonoBehaviour
     {
         Clear();
         UIKit.Label(root, "굶었다...", 0.05f, 0.76f, 0.95f, 0.96f, 120, TextAnchor.MiddleCenter, UIKit.Bad);
-        UIKit.Label(root, run.week + "주차 " + run.day + "일차에 실패  (총 " + ((run.week - 1) * Balance.Days + run.day - 1) + "일 버팀)", 0.05f, 0.66f, 0.95f, 0.76f, 48);
+        UIKit.Label(root, ((run.week - 1) * Balance.Days + run.day - 1) + "일 버텼다  (" + run.week + "주차 " + run.day + "일차에 실패)", 0.05f, 0.66f, 0.95f, 0.76f, 52, TextAnchor.MiddleCenter, UIKit.Ink);
         UIKit.Label(root, reason, 0.05f, 0.54f, 0.95f, 0.66f, 40, TextAnchor.MiddleCenter, UIKit.Muted);
         UIKit.Label(root, run.dishes.Count == 0 ? "먹은 요리가 없다." : "그때까지 먹은 요리\n" + DishList(),
             0.05f, 0.24f, 0.95f, 0.52f, 34, TextAnchor.UpperLeft);
