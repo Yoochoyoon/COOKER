@@ -40,7 +40,11 @@ public static class Balance
     public const float LidHoldTime = 0.5f;
     public const float StirSlow = 0.7f;
     public const float BubbleFast = 1.2f;
-    public const float FlipBonus = 5f;
+    public const float FlipPenalty = 10f;          // 뒤집기 타이밍을 놓치면 적정 구간 윗선이 이만큼 좁아진다(한쪽만 익어서)
+    public const float StirGrace = 1.2f;           // 볶기 중 이만큼 안 저으면 눌어붙은 것으로 친다(계속 저어야 한다)
+    public const float NoStirCoef = 0.6f;          // 한 번이라도 눌어붙으면 만족도 배율
+    public const float OverflowGrace = 2f;         // 거품이 올라온 뒤 이만큼 더 방치하면 끓어넘친 것으로 친다
+    public const float BoilOverCoef = 0.7f;        // 끓어넘치면 만족도 배율(양·맛이 줄어서)
     // 난이도: 1주차는 쉽고 4주차에 원래 값이 된다
     public const float EaseBand = 5f;              // 1주차에 적정 구간을 양쪽으로 넓히는 폭
     public const float EaseSpeed = 0.2f;           // 1주차에 방식 속도를 늦추는 비율
@@ -62,11 +66,11 @@ public static class Data
     public static readonly MethodDef[] Methods =
     {
         new MethodDef { id = Method.Grill,   name = "굽기",   verb = "구운", speed = 6f,   lo = 60, hi = 75,
-            guide = "굽기: 빨리 익는다. 익는 도중 [뒤집기!] 버튼이 잠깐 뜨면 눌러 보자." },
+            guide = "굽기: 빨리 익는다. [뒤집기!] 버튼 뜰 때 안 누르면 한쪽만 익어서 탈 확률이 높아진다." },
         new MethodDef { id = Method.Stirfry, name = "볶기",   verb = "볶은", speed = 4f,   lo = 55, hi = 80,
-            guide = "볶기: 마우스를 누른 채 좌우로 흔들면 천천히 익는다." },
+            guide = "볶기: 마우스를 누른 채 좌우로 흔들면 천천히 익는다. 쉬지 않고 계속 저어야 하고, 잠깐이라도 멈추면 눌어붙어 맛이 떨어진다." },
         new MethodDef { id = Method.Boil,    name = "끓이기", verb = "끓인", speed = 2.5f, lo = 50, hi = 90,
-            guide = "끓이기: 거품이 올라오면 [뚜껑]을 꾹 눌러 가라앉히자." },
+            guide = "끓이기: 거품이 올라오면 [뚜껑]을 꾹 눌러 가라앉히자. 너무 오래 두면 끓어넘쳐서 맛이 줄어든다." },
     };
 
     public static MethodDef GetMethod(Method m) { return Methods[(int)m]; }
