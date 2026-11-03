@@ -36,7 +36,7 @@ public static class Balance
     public const float RawLimit = 40f;             // 이 미만에 꺼내면 날것(실패)
     public const float BurnLimit = 100f;           // 이 이상이면 탄 것(실패)
     public const float BubbleInterval = 5f;
-    public const float LidHoldTime = 0.5f;
+    public const float LidOffSlow = 0.9f;           // 끓이기에서 뚜껑을 열어 둔 동안 익는 속도 배율
     public const float StirSlow = 0.7f;
     public const float BubbleFast = 1.2f;
     public const float FlipBonus = 5f;
@@ -61,11 +61,11 @@ public static class Data
     public static readonly MethodDef[] Methods =
     {
         new MethodDef { id = Method.Grill,   name = "굽기",   verb = "구운", speed = 6f,   lo = 60, hi = 75,
-            guide = "굽기: 빨리 익는다. 익는 도중 [뒤집기!] 버튼이 잠깐 뜨면 눌러 보자." },
+            guide = "굽기: 빨리 익는다. 뒤집개를 집어 들고 \"지금 뒤집어!\"가 뜨면 팬을 클릭하자." },
         new MethodDef { id = Method.Stirfry, name = "볶기",   verb = "볶은", speed = 4f,   lo = 55, hi = 80,
-            guide = "볶기: 마우스를 누른 채 좌우로 흔들면 천천히 익는다." },
+            guide = "볶기: 뒤집개를 클릭해 집고 팬 위에서 휘저으면 천천히 익는다." },
         new MethodDef { id = Method.Boil,    name = "끓이기", verb = "끓인", speed = 2.5f, lo = 50, hi = 90,
-            guide = "끓이기: 거품이 올라오면 [뚜껑]을 꾹 눌러 가라앉히자." },
+            guide = "끓이기: 넘칠 것 같으면 뚜껑을 집어서 열자. 다 익은 재료는 집게를 들고 클릭해서 건지기!" },
     };
 
     public static MethodDef GetMethod(Method m) { return Methods[(int)m]; }

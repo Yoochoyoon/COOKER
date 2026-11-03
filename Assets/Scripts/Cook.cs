@@ -30,7 +30,8 @@ public class Cook
     public bool flipped, flipAvailable;
     public bool stirring;
     public bool bubble;
-    public float lidProgress;
+    // 끓이기: 뚜껑을 덮어 두면 거품이 차올라 넘치기 직전(bubble)이 되고, 뚜껑을 열면 가라앉는다. 열어 둔 동안은 열이 빠져 조금 느리게 익는다.
+    public bool lidOn = true;
 
     float bubbleTimer;
     float lo, hi, speed; // 이번 주 난이도(ease)를 반영한 적정 구간과 기본 속도
@@ -84,31 +85,28 @@ public class Cook
     public bool AnyInPan { get { return items.Any(it => it.spot == Spot.Pan); } }
     public bool AnyInTray { get { return items.Any(it => it.spot == Spot.Tray); } }
 
-    public void Tick(float dt, bool stir, bool lidHeld)
+    public void SetLid(bool on)
+    {
+        lidOn = on;
+        if (!on) { bubble = false; bubbleTimer = 0f; }
+    }
+
+    public void Tick(float dt, bool stir)
     {
         if (finished) return;
         t += dt;
         stirring = m.id == Method.Stirfry && stir;
 
-        if (m.id == Method.Boil)
+        if (m.id == Method.Boil && lidOn && !bubble)
         {
-            if (!bubble)
-            {
-                bubbleTimer += dt;
-                lidProgress = 0f;
-                if (bubbleTimer >= Balance.BubbleInterval) bubble = true;
-            }
-            else if (lidHeld)
-            {
-                lidProgress += dt;
-                if (lidProgress >= Balance.LidHoldTime) { bubble = false; bubbleTimer = 0f; lidProgress = 0f; }
-            }
-            else lidProgress = 0f;
+            bubbleTimer += dt;
+            if (bubbleTimer >= Balance.BubbleInterval) bubble = true;
         }
 
         float common = speed * Balance.Fire[fire];
         if (stirring) common *= Balance.StirSlow;
         if (bubble) common *= Balance.BubbleFast;
+        if (m.id == Method.Boil && !lidOn) common *= Balance.LidOffSlow;
 
         bool windowOpen = false;
         for (int i = 0; i < items.Length; i++)
@@ -144,6 +142,9 @@ public class Cook
     public Ingredient[] Used { get { return items.Where(it => it.spot == Spot.Plate).Select(it => it.ing).ToArray(); } }
     public Ingredient[] GoodIngredients { get { return items.Where(it => it.spot == Spot.Plate && it.ok).Select(it => it.ing).ToArray(); } }
     public Ingredient[] LostIngredients { get { return items.Where(it => it.spot == Spot.Plate && !it.ok).Select(it => it.ing).ToArray(); } }
+    // 위 배열과 순서가 같은 익힘 단계 (요리 그림에 쓴다)
+    public Doneness[] UsedStages { get { return items.Where(it => it.spot == Spot.Plate).Select(Stage).ToArray(); } }
+    public Doneness[] GoodStages { get { return items.Where(it => it.spot == Spot.Plate && it.ok).Select(Stage).ToArray(); } }
     public string FailText { get { var f = items.FirstOrDefault(it => it.spot == Spot.Plate && !it.ok); return f == null ? null : f.fail; } }
 
     // 접시에 올린 재료의 평균 만족도. 망친 재료는 0점으로 평균에 들어간다.
@@ -173,10 +174,11 @@ public class Cook
     }
 
     // 그림이 없을 때 쓰는 단계별 단색
-    public Color Tone(CookItem it)
+    public Color Tone(CookItem it) { return ToneOf(it.ing, Stage(it)); }
+
+    public static Color ToneOf(Ingredient i, Doneness stage)
     {
-        var i = it.ing;
-        switch (Stage(it))
+        switch (stage)
         {
             case Doneness.Raw: return i.raw;
             case Doneness.Under: return Color.Lerp(i.raw, i.cooked, 0.5f);
