@@ -12,7 +12,7 @@ public class CookItem
     public Ingredient ing;
     public Spot spot = Spot.Tray;
     public float d;          // 익힘 0~100 (팬에 있는 동안만 오른다)
-    public float hiBonus;    // 뒤집기 보너스
+    public float hiBonus;    // 뒤집기 전이면 음수(페널티), 뒤집으면 0으로 풀린다
     // 접시에 올린 순간 확정되는 판정
     public bool ok;
     public string fail;
@@ -27,19 +27,21 @@ public class Cook
     public int fire = 1;     // 0 약, 1 중, 2 강 (팬 전체 공유)
     public bool finished;
 
-    public bool flipped, flipAvailable;
-    public bool stirring;
-    public bool bubble;
+    public bool flipped, flipAvailable, flipMissed;
+    public bool stirring, stirLapsed; // stirLapsed: 안 젓고 너무 오래 버텨서 눌어붙은 적이 있다(계속 저어야 한다)
+    public bool bubble, hadOverflow;
     public float lidProgress;
 
-    float bubbleTimer;
+    float bubbleTimer, bubbleActiveTime, stirIdleTime;
     float lo, hi, speed; // 이번 주 난이도(ease)를 반영한 적정 구간과 기본 속도
 
     // ease 1 = 가장 쉬움(1주차), 0 = 원래 값. 구간을 넓히고 속도를 늦춘다.
     public Cook(Ingredient[] ings, MethodDef m, float ease = 0f)
     {
         this.m = m;
-        items = ings.Select(i => new CookItem { ing = i }).ToArray();
+        // 굽기는 뒤집기 전까지 적정 구간 윗선이 좁다(한쪽만 익은 상태). 뒤집으면 0으로 풀린다.
+        float startHiBonus = m.id == Method.Grill ? -Balance.FlipPenalty : 0f;
+        items = ings.Select(i => new CookItem { ing = i, hiBonus = startHiBonus }).ToArray();
         lo = m.lo - Balance.EaseBand * ease;
         hi = m.hi + Balance.EaseBand * ease;
         speed = m.speed * (1f - Balance.EaseSpeed * ease);
@@ -72,13 +74,13 @@ public class Cook
         for (int i = 0; i < items.Length; i++) TakeOut(i);
     }
 
-    // 팬의 재료 전부에 뒤집기 보너스를 준다.
+    // 팬의 재료 전부에서 뒤집기 페널티를 없앤다(적정 구간이 원래 너비로 돌아온다).
     public void Flip()
     {
         if (!flipAvailable) return;
         flipped = true;
         flipAvailable = false;
-        foreach (var it in items) if (it.spot == Spot.Pan) it.hiBonus = Balance.FlipBonus;
+        foreach (var it in items) if (it.spot == Spot.Pan) it.hiBonus = 0f;
     }
 
     public bool AnyInPan { get { return items.Any(it => it.spot == Spot.Pan); } }
@@ -89,6 +91,15 @@ public class Cook
         if (finished) return;
         t += dt;
         stirring = m.id == Method.Stirfry && stir;
+        if (m.id == Method.Stirfry && AnyInPan)
+        {
+            if (stirring) stirIdleTime = 0f;
+            else
+            {
+                stirIdleTime += dt;
+                if (stirIdleTime >= Balance.StirGrace) stirLapsed = true; // 쉬는 동안 눌어붙었다
+            }
+        }
 
         if (m.id == Method.Boil)
         {
@@ -96,14 +107,20 @@ public class Cook
             {
                 bubbleTimer += dt;
                 lidProgress = 0f;
+                bubbleActiveTime = 0f;
                 if (bubbleTimer >= Balance.BubbleInterval) bubble = true;
             }
             else if (lidHeld)
             {
                 lidProgress += dt;
-                if (lidProgress >= Balance.LidHoldTime) { bubble = false; bubbleTimer = 0f; lidProgress = 0f; }
+                if (lidProgress >= Balance.LidHoldTime) { bubble = false; bubbleTimer = 0f; lidProgress = 0f; bubbleActiveTime = 0f; }
             }
-            else lidProgress = 0f;
+            else
+            {
+                lidProgress = 0f;
+                bubbleActiveTime += dt;
+                if (bubbleActiveTime >= Balance.OverflowGrace) hadOverflow = true; // 거품을 반응 안 하고 너무 오래 둬서 끓어넘쳤다
+            }
         }
 
         float common = speed * Balance.Fire[fire];
@@ -119,7 +136,9 @@ public class Cook
             if (m.id == Method.Grill && it.d >= 30f && it.d <= 40f) windowOpen = true;
             if (it.d >= Balance.BurnLimit) TakeOut(i); // 탄 재료는 그 재료만 접시로 넘어간다
         }
+        bool wasAvailable = flipAvailable;
         flipAvailable = windowOpen && !flipped;
+        if (wasAvailable && !flipAvailable && !flipped) flipMissed = true; // 창이 닫힐 때까지 안 눌렀다
 
         if (t >= Balance.MaxCookTime) { TakeOutAll(); finished = true; }
         else if (!AnyInPan && !AnyInTray) finished = true;
@@ -136,6 +155,8 @@ public class Cook
         if (d < Lo) coef = Mathf.Lerp(0.5f, 1f, (d - Balance.RawLimit) / (Lo - Balance.RawLimit));
         else if (d <= hi) coef = 1f;
         else coef = Mathf.Lerp(1f, 0.5f, (d - hi) / (99f - hi));
+        if (m.id == Method.Stirfry && stirLapsed) coef *= Balance.NoStirCoef; // 쉬지 않고 계속 저어야 한다. 한 번이라도 너무 오래 쉬면 눌어붙는다
+        if (m.id == Method.Boil && hadOverflow) coef *= Balance.BoilOverCoef;   // 끓어넘치게 두면 양·맛이 깎인다
         return true;
     }
 
