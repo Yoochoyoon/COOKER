@@ -655,6 +655,17 @@ public class GameFlow : MonoBehaviour
     // 조리 중이 아닐 때의 키보드 입력
     void HandleMenuKeys(Keyboard kb)
     {
+        if (modal != null && dexSearch != null && dexSearch.isFocused) // 검색창에 글자를 치는 중에는 단축키를 막는다
+        {
+            if (kb.escapeKey.wasPressedThisFrame) EventSystem.current.SetSelectedGameObject(null);
+            return;
+        }
+        if (dexDetail != null)
+        {
+            if (kb.escapeKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame ||
+                kb.spaceKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame) CloseDexDetail();
+            return;
+        }
         if (modal != null)
         {
             if (kb.escapeKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame ||
@@ -841,6 +852,7 @@ public class GameFlow : MonoBehaviour
 
     void RefreshMeal(Dish d)
     {
+        RefreshDexDetail(d);
         if (d != mealDish || scr != Scr.Meal) return;
         if (mealName != null) mealName.text = d.name;
         if (mealDesc != null) mealDesc.text = d.namePending ? "AI가 이름을 짓는 중..." : (d.desc ?? "");
@@ -961,23 +973,278 @@ public class GameFlow : MonoBehaviour
         confirm = onClick;
     }
 
+    // ---------------------------------------------------------------- 도감
+    // 만들 수 있는 모든 조합(재료 1~2개 x 방식 3개)을 칸으로 보여 주고, 만든 것만 채운다.
+    // 칸의 key는 요리를 만들 때 쓰는 Dish.key와 같은 규칙이다.
+    class DexSlot { public string key; public Ingredient[] ings; public Method method; }
+    static List<DexSlot> dexSlots;
+
+    static List<DexSlot> DexSlots()
+    {
+        if (dexSlots != null) return dexSlots;
+        dexSlots = new List<DexSlot>();
+        var combos = new List<Ingredient[]>();
+        foreach (var a in Data.All) combos.Add(new[] { a });
+        for (int i = 0; i < Data.All.Length; i++)
+            for (int j = i + 1; j < Data.All.Length; j++) combos.Add(new[] { Data.All[i], Data.All[j] });
+        foreach (var md in Data.Methods)
+            foreach (var c in combos)
+                dexSlots.Add(new DexSlot
+                {
+                    ings = c,
+                    method = md.id,
+                    key = string.Join("+", c.Select(i => i.name).OrderBy(s => s)) + "/" + md.id,
+                });
+        return dexSlots;
+    }
+
+    static readonly string[] StageName = { "날것", "덜 익음", "알맞음", "너무 익음", "탐" };
+
+    static string Stars(int sat)
+    {
+        int n = Mathf.Clamp(Mathf.RoundToInt(sat / 20f), 0, 5);
+        return new string('★', n) + new string('☆', 5 - n);
+    }
+
+    // 요리 그림. AI 그림이 있으면 그것을, 없으면 재료마다 그림을 가로로 나란히 놓는다 (재료 2개면 2장).
+    // 그림 파일이 없으면 그 재료의 색 사각형으로 대신한다.
+    // silhouette이면 아직 못 만든 요리라서 어두운 실루엣으로 보여 준다.
+    static void BuildDexPic(Transform parent, Ingredient[] ings, Dish d, bool silhouette)
+    {
+        for (int k = parent.childCount - 1; k >= 0; k--)
+        {
+            var c = parent.GetChild(k);
+            c.SetParent(null);
+            Destroy(c.gameObject);
+        }
+        if (d != null && d.image != null)
+        {
+            var big = UIKit.Box(parent, "Pic", 0, 0, 1, 1).gameObject.AddComponent<Image>();
+            big.sprite = d.image;
+            big.preserveAspect = true;
+            big.raycastTarget = false;
+            return;
+        }
+        bool any = false;
+        int n = ings.Length;
+        for (int k = 0; k < n; k++)
+        {
+            var ing = ings[k];
+            var stage = d != null && d.stages != null && k < d.stages.Length ? d.stages[k] : Doneness.Good;
+            Sprite s = silhouette ? (Art.ShopIcon(ing) ?? Art.Get(ing, Doneness.Good)) : Art.Get(ing, stage);
+            any |= s != null;
+            float x0 = k / (float)n + 0.01f, x1 = (k + 1) / (float)n - 0.01f;
+            var im = UIKit.Box(parent, "Pic", x0, 0, x1, 1).gameObject.AddComponent<Image>();
+            im.sprite = s;
+            im.preserveAspect = true;
+            im.raycastTarget = false;
+            if (silhouette) im.color = new Color(0.25f, 0.2f, 0.15f, s != null ? 0.55f : 0.25f);
+            else im.color = s != null ? Color.white : ing.cooked;
+        }
+        if (silhouette && !any) UIKit.Label(parent, "?", 0, 0, 1, 1, 120, TextAnchor.MiddleCenter, UIKit.Muted);
+    }
+
+    // 도감 화면의 정렬·필터·검색 상태. 도감을 열 때마다 초기화한다.
+    int dexSort;                                   // 0 기본, 1 만족도 높은 순, 2 만족도 낮은 순
+    readonly HashSet<Ingredient> dexIngs = new HashSet<Ingredient>(); // 고른 재료가 모두 들어간 요리만
+    int dexMethod = -1;                            // -1 전체, 아니면 Method 값
+    string dexQuery = "";
+    InputField dexSearch;
+    Transform dexContent;
+    Text dexInfo;
+    readonly List<System.Action> dexRestyle = new List<System.Action>();
+
     void ShowDex()
     {
         CloseModal();
-        modal = UIKit.Box(canvasRT, "Dex", 0.08f, 0.08f, 0.92f, 0.92f, UIKit.Card).gameObject;
+        dexSort = 0; dexIngs.Clear(); dexMethod = -1; dexQuery = ""; dexRestyle.Clear();
+        var slots = DexSlots();
+        int found = slots.Count(s => dex.ContainsKey(s.key));
+        modal = UIKit.Box(canvasRT, "Dex", 0.08f, 0.08f, 0.92f, 0.92f, UIKit.Card, true).gameObject;
         var m = modal.transform;
-        UIKit.Label(m, "도감 (" + dex.Count + "종류)", 0.05f, 0.86f, 0.7f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
-        UIKit.Btn(m, "닫기 [Esc]", 0.74f, 0.88f, 0.95f, 0.98f, CloseModal, UIKit.Muted, 34);
-        string body = dex.Count == 0
-            ? "아직 만든 요리가 없다."
-            : string.Join("\n", dex.Values.OrderByDescending(d => d.satisfaction)
-                .Select(d => d.name + "   [" + Data.GetMethod(d.method).name + "]  최고 만족도 " + d.satisfaction));
-        UIKit.Label(m, body, 0.05f, 0.05f, 0.95f, 0.84f, 40, TextAnchor.UpperLeft);
+        UIKit.Label(m, "도감 (" + found + " / " + slots.Count + ")", 0.05f, 0.88f, 0.45f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
+        dexInfo = UIKit.Label(m, "", 0.40f, 0.88f, 0.74f, 0.98f, 28, TextAnchor.MiddleRight, UIKit.Muted);
+        UIKit.Btn(m, "닫기 [Esc]", 0.76f, 0.89f, 0.96f, 0.98f, CloseModal, UIKit.Muted, 34, true, true);
+
+        // 1줄: 정렬 버튼 + 검색창
+        DexChip(m, "만족도 높은 순", 0.02f, 0.80f, 0.17f, 0.87f, () => dexSort == 1, () => dexSort = dexSort == 1 ? 0 : 1);
+        DexChip(m, "만족도 낮은 순", 0.175f, 0.80f, 0.325f, 0.87f, () => dexSort == 2, () => dexSort = dexSort == 2 ? 0 : 2);
+        var fieldRT = UIKit.Box(m, "Search", 0.35f, 0.80f, 0.98f, 0.87f, Color.white, true);
+        dexSearch = fieldRT.gameObject.AddComponent<InputField>();
+        var txt = UIKit.Label(fieldRT, "", 0.02f, 0.05f, 0.98f, 0.95f, 32, TextAnchor.MiddleLeft);
+        txt.resizeTextForBestFit = false;
+        txt.supportRichText = false;
+        txt.horizontalOverflow = HorizontalWrapMode.Overflow;
+        var ph = UIKit.Label(fieldRT, "요리 이름·재료 검색", 0.02f, 0.05f, 0.98f, 0.95f, 32, TextAnchor.MiddleLeft, UIKit.Muted);
+        ph.resizeTextForBestFit = false;
+        dexSearch.textComponent = txt;
+        dexSearch.placeholder = ph;
+        dexSearch.lineType = InputField.LineType.SingleLine;
+        dexSearch.onValueChanged.AddListener(v => { dexQuery = v; RebuildDexGrid(); });
+
+        // 2줄: 재료 칩(여러 개 고르면 모두 들어간 요리) + 방식 칩
+        UIKit.Label(m, "재료", 0.02f, 0.72f, 0.065f, 0.79f, 28, TextAnchor.MiddleCenter, UIKit.Muted);
+        for (int i = 0; i < Data.All.Length; i++)
+        {
+            var ing = Data.All[i];
+            float x = 0.07f + i * 0.095f;
+            DexChip(m, ing.name, x, 0.72f, x + 0.09f, 0.79f, () => dexIngs.Contains(ing),
+                () => { if (!dexIngs.Remove(ing)) dexIngs.Add(ing); });
+        }
+        UIKit.Label(m, "방식", 0.65f, 0.72f, 0.70f, 0.79f, 28, TextAnchor.MiddleCenter, UIKit.Muted);
+        for (int i = 0; i < Data.Methods.Length; i++)
+        {
+            int mi = i;
+            float x = 0.71f + i * 0.095f;
+            DexChip(m, Data.Methods[i].name, x, 0.72f, x + 0.09f, 0.79f, () => dexMethod == mi, () => dexMethod = dexMethod == mi ? -1 : mi);
+        }
+
+        // 스크롤 영역: 5열 그리드
+        var view = UIKit.Box(m, "Scroll", 0.02f, 0.02f, 0.98f, 0.70f);
+        var sr = view.gameObject.AddComponent<ScrollRect>();
+        var vp = UIKit.Box(view, "Viewport", 0, 0, 1, 1, new Color(1f, 1f, 1f, 0.01f));
+        vp.gameObject.AddComponent<RectMask2D>();
+        var content = new GameObject("Content", typeof(RectTransform));
+        content.transform.SetParent(vp, false);
+        var crt = (RectTransform)content.transform;
+        crt.anchorMin = new Vector2(0, 1);
+        crt.anchorMax = new Vector2(1, 1);
+        crt.pivot = new Vector2(0.5f, 1);
+        crt.offsetMin = Vector2.zero;
+        crt.offsetMax = Vector2.zero;
+        var grid = content.AddComponent<GridLayoutGroup>();
+        grid.cellSize = new Vector2(270, 320);
+        grid.spacing = new Vector2(20, 20);
+        grid.padding = new RectOffset(20, 20, 10, 20);
+        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        grid.constraintCount = 5;
+        grid.childAlignment = TextAnchor.UpperCenter;
+        content.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        sr.content = crt;
+        sr.viewport = vp;
+        sr.horizontal = false;
+        sr.movementType = ScrollRect.MovementType.Clamped;
+        sr.scrollSensitivity = 40f;
+        dexContent = content.transform;
+        RebuildDexGrid();
+    }
+
+    // 켜짐/꺼짐이 색으로 보이는 작은 버튼. 누르면 상태를 바꾸고 칸을 다시 만든다.
+    void DexChip(Transform parent, string text, float x0, float y0, float x1, float y1, System.Func<bool> on, System.Action click)
+    {
+        var b = UIKit.Btn(parent, text, x0, y0, x1, y1, () =>
+        {
+            click();
+            foreach (var r in dexRestyle) r();
+            RebuildDexGrid();
+        }, UIKit.Muted, 28, true, true);
+        var img = b.GetComponent<Image>();
+        System.Action restyle = () => img.color = on() ? UIKit.Accent : UIKit.Muted;
+        dexRestyle.Add(restyle);
+        restyle();
+    }
+
+    // 정렬·필터·검색을 적용해 카드를 다시 만든다. 못 만든 요리는 이름을 모르니 검색에서는 뺀다.
+    void RebuildDexGrid()
+    {
+        if (dexContent == null) return;
+        for (int k = dexContent.childCount - 1; k >= 0; k--)
+        {
+            var c = dexContent.GetChild(k);
+            c.SetParent(null);
+            Destroy(c.gameObject);
+        }
+        IEnumerable<DexSlot> list = DexSlots();
+        foreach (var ing in dexIngs.ToArray()) { var want = ing; list = list.Where(s => s.ings.Contains(want)); }
+        if (dexMethod >= 0) list = list.Where(s => (int)s.method == dexMethod);
+        string q = (dexQuery ?? "").Trim();
+        if (q.Length > 0)
+            list = list.Where(s =>
+            {
+                Dish d;
+                if (!dex.TryGetValue(s.key, out d)) return false;
+                return d.name.Contains(q) || (d.desc != null && d.desc.Contains(q)) ||
+                       Data.GetMethod(s.method).name.Contains(q) || s.ings.Any(i => i.name.Contains(q));
+            });
+        if (dexSort == 1) list = list.OrderBy(s => dex.ContainsKey(s.key) ? 0 : 1).ThenByDescending(s => dex.ContainsKey(s.key) ? dex[s.key].satisfaction : 0);
+        else if (dexSort == 2) list = list.OrderBy(s => dex.ContainsKey(s.key) ? 0 : 1).ThenBy(s => dex.ContainsKey(s.key) ? dex[s.key].satisfaction : 0);
+        var shown = list.ToList();
+        foreach (var s in shown) DexCard(dexContent, s);
+        ((RectTransform)dexContent).anchoredPosition = Vector2.zero;
+        if (dexInfo != null)
+            dexInfo.text = shown.Count == 0 ? "조건에 맞는 요리가 없다." : "표시 " + shown.Count + "칸 · 요리를 누르면 자세히";
+    }
+
+    void DexCard(Transform parent, DexSlot s)
+    {
+        Dish d;
+        bool has = dex.TryGetValue(s.key, out d);
+        var card = UIKit.Box(parent, "Card", 0, 0, 1, 1, has ? Color.white : new Color(0.88f, 0.8f, 0.64f), true);
+        BuildDexPic(UIKit.Box(card, "Pic", 0.08f, 0.40f, 0.92f, 0.96f), s.ings, d, !has);
+        UIKit.Label(card, has ? d.name : "???", 0.04f, 0.20f, 0.96f, 0.40f, 40, TextAnchor.MiddleCenter, has ? UIKit.Ink : UIKit.Muted);
+        string method = Data.GetMethod(s.method).name;
+        UIKit.Label(card, has ? Stars(d.satisfaction) + "  " + d.satisfaction : method, 0.04f, 0.02f, 0.96f, 0.20f, 30,
+            TextAnchor.MiddleCenter, has ? UIKit.Accent : UIKit.Muted);
+        if (!has) return;
+        var b = card.gameObject.AddComponent<Button>();
+        b.targetGraphic = card.GetComponent<Image>();
+        var cb = b.colors;
+        cb.highlightedColor = new Color(1f, 0.92f, 0.7f);
+        cb.pressedColor = new Color(0.9f, 0.8f, 0.55f);
+        b.colors = cb;
+        b.onClick.AddListener(() => ShowDexDetail(d));
+    }
+
+    // 도감 상세 팝업. AI 이름·설명·그림이 늦게 오면 RefreshDexDetail이 열려 있는 팝업을 갱신한다.
+    GameObject dexDetail;
+    Dish detailDish;
+    Text dtName, dtDesc, dtImgNote;
+    Transform dtPic;
+
+    void ShowDexDetail(Dish d)
+    {
+        CloseDexDetail();
+        detailDish = d;
+        dexDetail = UIKit.Box(canvasRT, "DexDetail", 0, 0, 1, 1, new Color(0f, 0f, 0f, 0.55f)).gameObject;
+        dexDetail.AddComponent<Button>().onClick.AddListener(CloseDexDetail); // 바깥을 누르면 닫는다
+        var card = UIKit.Box(dexDetail.transform, "Card", 0.14f, 0.10f, 0.86f, 0.90f, UIKit.Card, true);
+        var panel = UIKit.Box(card, "Pic", 0.04f, 0.18f, 0.44f, 0.94f, Color.white, true);
+        dtPic = UIKit.Box(panel, "Img", 0.04f, 0.10f, 0.96f, 0.96f);
+        dtImgNote = UIKit.Label(panel, "", 0.04f, 0.01f, 0.96f, 0.10f, 26, TextAnchor.MiddleCenter, UIKit.Muted);
+        dtName = UIKit.Label(card, "", 0.48f, 0.76f, 0.96f, 0.94f, 64, TextAnchor.MiddleLeft);
+        dtDesc = UIKit.Label(card, "", 0.48f, 0.56f, 0.96f, 0.76f, 34, TextAnchor.UpperLeft, UIKit.Muted);
+
+        string ings = string.Join(", ", d.ings.Select((i, k) =>
+            i.name + (d.stages != null && k < d.stages.Length ? "(" + StageName[(int)d.stages[k]] + ")" : "")).ToArray());
+        UIKit.Label(card, "재료  " + ings, 0.48f, 0.44f, 0.96f, 0.56f, 36, TextAnchor.MiddleLeft);
+        UIKit.Label(card, "방식  " + Data.GetMethod(d.method).name, 0.48f, 0.34f, 0.96f, 0.44f, 36, TextAnchor.MiddleLeft);
+        UIKit.Label(card, "최고 만족도  " + d.satisfaction + "   " + Stars(d.satisfaction), 0.48f, 0.22f, 0.96f, 0.34f, 40, TextAnchor.MiddleLeft, UIKit.Accent);
+        if (!string.IsNullOrEmpty(d.note)) UIKit.Label(card, d.note, 0.04f, 0.08f, 0.62f, 0.18f, 28, TextAnchor.MiddleLeft, UIKit.Bad);
+        UIKit.Btn(card, "닫기 [Esc]", 0.70f, 0.04f, 0.96f, 0.16f, CloseDexDetail, UIKit.Muted, 34, true, true);
+        RefreshDexDetail(d);
+    }
+
+    void RefreshDexDetail(Dish d)
+    {
+        if (dexDetail == null || d != detailDish) return;
+        dtName.text = d.name;
+        dtDesc.text = d.namePending ? "AI가 이름을 짓는 중..." : (string.IsNullOrEmpty(d.desc) ? "아직 AI 설명이 없다." : d.desc);
+        BuildDexPic(dtPic, d.ings, d, false);
+        dtImgNote.text = d.imagePending ? "AI가 그림을 그리는 중..." : (d.image == null ? "임시 그림" : "");
+    }
+
+    void CloseDexDetail()
+    {
+        if (dexDetail != null) Destroy(dexDetail);
+        dexDetail = null;
+        detailDish = null;
     }
 
     void CloseModal()
     {
+        CloseDexDetail();
         if (modal != null) Destroy(modal);
         modal = null;
+        dexSearch = null; dexContent = null; dexInfo = null;
     }
 }
