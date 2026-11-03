@@ -17,6 +17,10 @@ public class Dish
     public Method method;
     public int satisfaction;
     public string note;      // 일부 재료를 망쳤을 때의 안내
+    public Doneness[] stages; // ings와 같은 순서의 익힘 상태 (AI 이름·그림 요청에 쓴다)
+    public string desc;       // AI가 지은 한 줄 설명 (없으면 비어 있다)
+    public Sprite image;      // AI가 그린 요리 그림 (없으면 null)
+    public bool namePending, imagePending; // AI 응답을 기다리는 중
 }
 
 public class Run
@@ -712,6 +716,7 @@ public class GameFlow : MonoBehaviour
         var used = cook.Used;                 // 접시에 올린 재료(소비됨). 트레이에 남은 재료는 쓰지 않은 것
         var ings = cook.GoodIngredients;      // 성공한 재료만 요리가 된다
         var lost = cook.LostIngredients;
+        var stages = cook.items.Where(it => it.spot == Spot.Plate && it.ok).Select(it => cook.Stage(it)).ToArray();
         string fail = cook.FailText;
         var md = cook.m;
         int sat = cook.Satisfaction();
@@ -737,6 +742,7 @@ public class GameFlow : MonoBehaviour
             name = md.verb + " " + names,
             key = string.Join("+", ings.Select(i => i.name).OrderBy(s => s)) + "/" + md.id,
             ings = ings,
+            stages = stages,
             method = md.id,
             satisfaction = sat,
             note = lost.Length == 0 ? null : string.Join(", ", lost.Select(i => i.name)) + "은(는) 망쳐서 버렸다...",
@@ -744,6 +750,7 @@ public class GameFlow : MonoBehaviour
         run.dishes.Add(dish);
         bool isNew = !dex.ContainsKey(dish.key);
         if (isNew || dex[dish.key].satisfaction < sat) dex[dish.key] = dish;
+        AiDishService.Start(this, dish, RefreshMeal); // 이름·설명·그림 요청. 실패해도 규칙 이름으로 계속 진행한다
         ShowMeal(dish, isNew);
     }
 
@@ -767,15 +774,57 @@ public class GameFlow : MonoBehaviour
             : dish.satisfaction >= 40 ? "먹을 만은 하다..."
             : "일단 배는 채웠다.";
         UIKit.Label(root, run.week + "주차 " + run.day + "일차 식사", 0.03f, 0.88f, 0.5f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
-        UIKit.Label(root, dish.name, 0.05f, 0.62f, 0.95f, 0.80f, 100);
-        if (isNew) UIKit.Label(root, "도감에 새로 등록!", 0.3f, 0.54f, 0.7f, 0.62f, 40, TextAnchor.MiddleCenter, UIKit.Good);
-        UIKit.Label(root, "만족도 " + dish.satisfaction, 0.2f, 0.40f, 0.8f, 0.54f, 80, TextAnchor.MiddleCenter, UIKit.Accent);
-        UIKit.Label(root, reaction, 0.1f, 0.28f, 0.9f, 0.40f, 52);
-        if (!string.IsNullOrEmpty(dish.note)) UIKit.Label(root, dish.note, 0.1f, 0.21f, 0.9f, 0.28f, 32, TextAnchor.MiddleCenter, UIKit.Bad);
+        // 왼쪽: 이름, 설명, 만족도. 오른쪽: 요리 그림 (재료가 있는 요리만)
+        bool hasPic = dish.ings != null && dish.ings.Length > 0;
+        float right = hasPic ? 0.64f : 0.97f;
+        mealDish = dish;
+        mealName = UIKit.Label(root, dish.name, 0.03f, 0.70f, right, 0.86f, 84);
+        if (isNew) UIKit.Label(root, "도감에 새로 등록!", 0.03f, 0.64f, right, 0.70f, 36, TextAnchor.MiddleCenter, UIKit.Good);
+        mealDesc = UIKit.Label(root, "", 0.03f, 0.50f, right, 0.64f, 34, TextAnchor.MiddleCenter, UIKit.Muted);
+        UIKit.Label(root, "만족도 " + dish.satisfaction, 0.03f, 0.38f, right, 0.50f, 68, TextAnchor.MiddleCenter, UIKit.Accent);
+        UIKit.Label(root, reaction, 0.03f, 0.29f, right, 0.38f, 44);
+        if (!string.IsNullOrEmpty(dish.note)) UIKit.Label(root, dish.note, 0.03f, 0.21f, right, 0.29f, 30, TextAnchor.MiddleCenter, UIKit.Bad);
+        mealImg = null; mealImgNote = null;
+        if (hasPic)
+        {
+            var panel = UIKit.Box(root, "DishImage", 0.67f, 0.27f, 0.97f, 0.86f, UIKit.Card);
+            mealImg = UIKit.Box(panel, "Img", 0.04f, 0.10f, 0.96f, 0.96f).gameObject.AddComponent<Image>();
+            mealImg.preserveAspect = true;
+            mealImg.raycastTarget = false;
+            mealImgNote = UIKit.Label(panel, "", 0.04f, 0.01f, 0.96f, 0.10f, 26, TextAnchor.MiddleCenter, UIKit.Muted);
+        }
         bool last = run.day >= Balance.Days;
         UIKit.Btn(root, (last ? "결산 보기" : "다음 날") + " [Enter]", 0.30f, 0.07f, 0.70f, 0.21f, NextDay, UIKit.Good, 48);
         scr = Scr.Meal;
         confirm = NextDay;
+        RefreshMeal(dish); // 이미 받아 둔 이름·그림이 있으면 바로 채운다
+    }
+
+    // 식사 화면의 AI 영역. 응답이 늦게 와도 지금 그 요리의 식사 화면일 때만 바꾼다.
+    Dish mealDish;
+    Text mealName, mealDesc, mealImgNote;
+    Image mealImg;
+
+    void RefreshMeal(Dish d)
+    {
+        if (d != mealDish || scr != Scr.Meal) return;
+        if (mealName != null) mealName.text = d.name;
+        if (mealDesc != null) mealDesc.text = d.namePending ? "AI가 이름을 짓는 중..." : (d.desc ?? "");
+        if (mealImg == null) return;
+        if (d.image != null)
+        {
+            mealImg.sprite = d.image;
+            mealImg.color = Color.white;
+        }
+        else
+        {
+            // 임시 그림: 첫 재료의 그림, 없으면 그 재료의 색
+            var first = d.ings[0];
+            var tmp = Art.Get(first, d.stages != null && d.stages.Length > 0 ? d.stages[0] : Doneness.Good);
+            mealImg.sprite = tmp;
+            mealImg.color = tmp != null ? Color.white : first.cooked;
+        }
+        if (mealImgNote != null) mealImgNote.text = d.imagePending ? "AI가 그림을 그리는 중..." : "";
     }
 
     // 굶음. 주마다 한 번은 엄마 몰래 비상 라면으로 넘어가고, 두 번째부터는 종료.

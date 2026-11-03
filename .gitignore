@@ -39,3 +39,6 @@ crashlytics-build.session.json
 # OS
 .DS_Store
 Thumbs.db
+
+# AI 설정 (API 키가 들어 있어 올리지 않는다)
+ai.local.json
