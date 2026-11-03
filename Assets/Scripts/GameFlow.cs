@@ -76,6 +76,7 @@ public class GameFlow : MonoBehaviour
     readonly List<RectTransform> itemRects = new List<RectTransform>(); // 재료 아이템 (트레이/팬/접시를 오감)
     readonly List<Image> itemImgs = new List<Image>();
     readonly List<Text> itemLabels = new List<Text>();
+    readonly List<Image> gaugeFills = new List<Image>(); // 재료별 익힘 게이지 (하양→노랑→주황→빨강, 주황일 때 꺼내면 된다)
     readonly List<bool> swArt = new List<bool>(); // 이 재료가 그림(5단계)으로 그려지는지
     readonly List<Image> fireBtns = new List<Image>();
     Button flipBtn;
@@ -142,6 +143,7 @@ public class GameFlow : MonoBehaviour
         itemRects.Clear();
         itemImgs.Clear();
         itemLabels.Clear();
+        gaugeFills.Clear();
         swArt.Clear();
         fireBtns.Clear();
         flipBtn = null;
@@ -476,14 +478,18 @@ public class GameFlow : MonoBehaviour
         UIKit.Label(root, run.week + "주차 " + run.day + "일차 / " + Balance.Days + "일", 0.03f, 0.88f, 0.55f, 0.98f, 56, TextAnchor.MiddleLeft, UIKit.Accent);
         UIKit.Label(root, "비상 라면 " + (Balance.Lifelines - run.strikes) + "/" + Balance.Lifelines + "   먹은 끼니 " + run.dishes.Count + "개", 0.55f, 0.88f, 0.97f, 0.98f, 40, TextAnchor.MiddleRight);
 
-        // 왼쪽: 재료
-        UIKit.Box(root, "Left", 0.03f, 0.25f, 0.50f, 0.87f, UIKit.Card);
-        UIKit.Label(root, guideMeal ? "엄마가 보낸 달걀 (첫날 가이드)" : "보유 재료 (최대 2개 선택)", 0.05f, 0.80f, 0.48f, 0.86f, 34, TextAnchor.MiddleLeft, UIKit.Muted);
+        const float panTop = 0.87f, panBot = 0.30f;
+
+        // ---- 왼쪽: ① 재료 고르기 (고른 순서 ①② 표시, 재료마다 아이콘)
+        UIKit.Box(root, "Left", 0.03f, panBot, 0.50f, panTop, UIKit.Card, true);
+        UIKit.Label(root, "① 재료 고르기" + (sel.Count > 0 ? "  ✓" : ""), 0.05f, panTop - 0.065f, 0.48f, panTop - 0.01f, 28, TextAnchor.MiddleLeft, sel.Count > 0 ? UIKit.Good : UIKit.Muted);
         if (guideMeal)
         {
-            UIKit.Btn(root, "달걀 x1", 0.06f, 0.66f, 0.47f, 0.77f, null, UIKit.Accent, 44);
+            var eggRow = UIKit.Box(root, "EggRow", 0.06f, panTop - 0.22f, 0.47f, panTop - 0.10f, UIKit.Accent, true);
+            SetIcon(UIKit.Box(eggRow, "Icon", 0.03f, 0.1f, 0.26f, 0.9f).gameObject.AddComponent<Image>(), Data.Egg);
+            UIKit.Label(eggRow, "달걀 x1", 0.30f, 0f, 0.97f, 1f, 40, TextAnchor.MiddleLeft, Color.white);
             UIKit.Label(root, "첫날은 달걀을 굽는다.\n불 세기와 꺼내기를 익혀 보자.\n실패해도 굶지 않으니 다시 하면 돼!",
-                0.06f, 0.30f, 0.47f, 0.64f, 38, TextAnchor.UpperLeft);
+                0.06f, panBot + 0.03f, 0.47f, panTop - 0.26f, 32, TextAnchor.UpperLeft);
         }
         else
         {
@@ -491,46 +497,54 @@ public class GameFlow : MonoBehaviour
             foreach (var kv in run.inv.OrderBy(k => DaysLeft(k.Key)))
             {
                 var ing = kv.Key;
-                float top = 0.79f - r * 0.092f;
-                float bot = top - 0.082f;
+                float top = panTop - 0.08f - r * 0.084f;
+                float bot = top - 0.074f;
                 int dl = DaysLeft(ing);
                 string tag = dl == 1 ? "오늘까지!" : "D-" + (dl - 1);
-                bool on = sel.Contains(ing);
+                int pick = sel.IndexOf(ing);
+                bool on = pick >= 0;
                 dayList.Add(ing);
-                UIKit.Btn(root, "[" + (r + 1) + "] " + ing.name + " x" + kv.Value + "   (" + tag + ")", 0.06f, bot, 0.47f, top,
-                    () => ToggleIngredient(ing), on ? UIKit.Good : (dl == 1 ? UIKit.Bad : UIKit.Accent), 38);
+
+                var row = UIKit.Box(root, "Row" + r, 0.06f, bot, 0.47f, top,
+                    on ? UIKit.Good : (dl == 1 ? UIKit.Bad : UIKit.Accent), true);
+                var rb = row.gameObject.AddComponent<Button>();
+                rb.targetGraphic = row.GetComponent<Image>();
+                rb.onClick.AddListener(() => ToggleIngredient(ing));
+                SetIcon(UIKit.Box(row, "Icon", 0.02f, 0.12f, 0.17f, 0.88f).gameObject.AddComponent<Image>(), ing);
+                string badge = on ? (pick == 0 ? "① " : "② ") : "";
+                UIKit.Label(row, badge + "[" + (r + 1) + "] " + ing.name + " x" + kv.Value + "   (" + tag + ")",
+                    0.20f, 0f, 0.97f, 1f, 32, TextAnchor.MiddleLeft, Color.white);
                 r++;
             }
         }
 
-        // 오른쪽: 방식
-        UIKit.Box(root, "Right", 0.52f, 0.47f, 0.97f, 0.87f, UIKit.Card);
-        UIKit.Label(root, "조리 방식", 0.54f, 0.80f, 0.95f, 0.86f, 34, TextAnchor.MiddleLeft, UIKit.Muted);
+        // ---- 오른쪽: ② 방식 고르기 (왼쪽과 같은 높이, 버튼을 크게)
+        UIKit.Box(root, "Right", 0.52f, panBot, 0.97f, panTop, UIKit.Card, true);
+        UIKit.Label(root, "② 방식 고르기" + (selMethod.HasValue ? "  ✓" : ""), 0.54f, panTop - 0.065f, 0.95f, panTop - 0.01f, 28, TextAnchor.MiddleLeft, selMethod.HasValue ? UIKit.Good : UIKit.Muted);
         for (int k = 0; k < Data.Methods.Length; k++)
         {
             var md = Data.Methods[k];
-            float top = 0.79f - k * 0.105f;
-            float bot = top - 0.095f;
+            float top = panTop - 0.10f - k * 0.155f;
+            float bot = top - 0.135f;
             bool on = selMethod == md.id;
             UIKit.Btn(root, "[" + "QWE"[k] + "] " + md.name, 0.55f, bot, 0.94f, top, () => { selMethod = md.id; ShowDay(); },
-                on ? UIKit.Good : UIKit.Accent, 44, !guideMeal);
+                on ? UIKit.Good : UIKit.Accent, 46, !guideMeal, true);
         }
 
-        // 엄마 힌트
-        UIKit.Box(root, "Hint", 0.52f, 0.25f, 0.97f, 0.45f, UIKit.Card);
+        // ---- 엄마의 전화: 결정에 필수는 아니라서 작은 말풍선 한 줄로 축소
+        UIKit.Box(root, "Hint", 0.03f, 0.195f, 0.97f, 0.285f, UIKit.Card, true);
         string hint = sel.Count == 0
             ? "밥은 잘 챙겨 먹고 있니? 아껴 쓰되, 굶지는 마라."
-            : string.Join("\n", sel.Select(i => Data.MomHint(i)));
-        UIKit.Label(root, "엄마의 전화", 0.54f, 0.39f, 0.95f, 0.45f, 28, TextAnchor.MiddleLeft, UIKit.Muted);
-        UIKit.Label(root, hint, 0.54f, 0.26f, 0.95f, 0.40f, 34, TextAnchor.MiddleLeft);
+            : string.Join("   ", sel.Select(i => Data.MomHint(i)));
+        UIKit.Label(root, "엄마: " + hint, 0.05f, 0.20f, 0.95f, 0.28f, 22, TextAnchor.MiddleLeft, UIKit.Muted);
 
-        // 하단
+        // ---- 하단
         string summary = sel.Count == 0 ? "재료를 골라 주세요" : string.Join(" + ", sel.Select(i => i.name));
         summary += selMethod.HasValue ? "  /  " + Data.GetMethod(selMethod.Value).name : "  /  방식을 골라 주세요";
-        UIKit.Label(root, summary, 0.03f, 0.07f, 0.55f, 0.20f, 40, TextAnchor.MiddleLeft);
-        UIKit.Btn(root, "도감 [D]", 0.57f, 0.07f, 0.70f, 0.20f, ShowDex, UIKit.Muted, 30);
+        UIKit.Label(root, summary, 0.03f, 0.055f, 0.55f, 0.18f, 36, TextAnchor.MiddleLeft);
+        UIKit.Btn(root, "도감 [D]", 0.57f, 0.055f, 0.70f, 0.18f, ShowDex, UIKit.Muted, 28, true, true);
         bool canCook = sel.Count > 0 && selMethod.HasValue;
-        UIKit.Btn(root, "조리 시작 [Enter]", 0.72f, 0.05f, 0.97f, 0.22f, StartCook, UIKit.Good, 40, canCook);
+        UIKit.Btn(root, "조리 시작 [Enter]", 0.72f, 0.04f, 0.97f, 0.195f, StartCook, UIKit.Good, 40, canCook, true);
         scr = Scr.Day;
         confirm = canCook ? (System.Action)StartCook : null;
     }
@@ -632,8 +646,8 @@ public class GameFlow : MonoBehaviour
             var b = rt.gameObject.AddComponent<Button>();
             b.targetGraphic = img;
             b.transition = Selectable.Transition.None;
-            // 클릭으로는 아무것도 안 한다. 넣기·꺼내기는 드래그나 Z·X·Enter로만.
-            var drag = rt.gameObject.AddComponent<ItemDrag>();
+            b.onClick.AddListener(() => ItemClick(idx)); // 클릭으로도 바로 넣기/꺼내기
+            var drag = rt.gameObject.AddComponent<ItemDrag>(); // 드래그로도 옮길 수 있다
             drag.flow = this;
             drag.index = idx;
             bool hasArt = Art.HasSet(chosen[i]);
@@ -641,6 +655,8 @@ public class GameFlow : MonoBehaviour
             itemRects.Add(rt);
             itemImgs.Add(img);
             itemLabels.Add(UIKit.Label(rt, "", 0f, 0f, 1f, 0.26f, 30, TextAnchor.MiddleCenter, Color.white));
+            var gaugeBg = UIKit.Box(rt, "GaugeBg", 0.06f, 0.28f, 0.94f, 0.36f, new Color(0f, 0f, 0f, 0.35f), true);
+            gaugeFills.Add(UIKit.Box(gaugeBg, "GaugeFill", 0f, 0f, 0f, 1f, Color.white, true).GetComponent<Image>());
             swArt.Add(hasArt);
             PlaceItem(i);
         }
@@ -735,8 +751,8 @@ public class GameFlow : MonoBehaviour
             // 그림이 있을 땐 실제 팬/트레이/접시 그림 영역(panRect 등) 가운데에, 크기를 고정해서 넣는다(영역을 꽉 채우지 않게).
             var zone = it.spot == Spot.Pan ? panRect : it.spot == Spot.Tray ? trayRect : plateRect;
             float zx0 = zone.anchorMin.x, zx1 = zone.anchorMax.x, zy0 = zone.anchorMin.y, zy1 = zone.anchorMax.y;
-            float itemW = it.spot == Spot.Tray ? 0.09f : 0.14f;
-            float itemH = it.spot == Spot.Tray ? 0.12f : 0.18f;
+            float itemW = it.spot == Spot.Tray ? 0.075f : 0.115f;
+            float itemH = it.spot == Spot.Tray ? 0.10f : 0.15f;
             float cy = (zy0 + zy1) * 0.5f;
             y0 = cy - itemH * 0.5f; y1 = cy + itemH * 0.5f;
             float slotW = (zx1 - zx0) / n;
@@ -846,6 +862,16 @@ public class GameFlow : MonoBehaviour
         if (cook.finished) FinishCook();
     }
 
+    // 익힘 게이지 색. 하양(날것) → 노랑(덜 익음) → 주황(적정, 지금 빼면 된다) → 빨강(많이 익음·탄 것)
+    Color GaugeColor(CookItem it)
+    {
+        float d = it.d;
+        if (d < Balance.RawLimit) return new Color(0.95f, 0.95f, 0.9f);
+        if (d < cook.Lo) return new Color(1f, 0.85f, 0.2f);
+        if (d <= cook.Hi(it)) return new Color(1f, 0.55f, 0.1f);
+        return new Color(0.85f, 0.15f, 0.1f);
+    }
+
     void RefreshCookUI()
     {
         for (int i = 0; i < itemImgs.Count; i++)
@@ -864,6 +890,12 @@ public class GameFlow : MonoBehaviour
                 itemImgs[i].color = Color.white;
             }
             else itemImgs[i].color = cook.Tone(it);
+            var gfill = gaugeFills[i].rectTransform;
+            gfill.anchorMin = Vector2.zero;
+            gfill.anchorMax = new Vector2(Mathf.Clamp01(it.d / 100f), 1f);
+            gfill.offsetMin = Vector2.zero;
+            gfill.offsetMax = Vector2.zero;
+            gaugeFills[i].color = GaugeColor(it);
             if (i != draggingIndex) PlaceItem(i); // 드래그 중인 재료는 손 따라가게 두고 자리로 스냅시키지 않는다
         }
         if (cookArt)
