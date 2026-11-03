@@ -43,6 +43,13 @@ public static class Art
         return id == null ? null : Load(id + "_" + stages[(int)stage]);
     }
 
+    // 장보기 줄·장바구니 전용 아이콘(<id>_shop.png). 조리 중 쓰는 5단계 그림과는 다른 그림이다.
+    public static Sprite ShopIcon(Ingredient i)
+    {
+        string id = Id(i);
+        return id == null ? null : Load(id + "_shop");
+    }
+
     // 다섯 장이 모두 있어야 그림으로 그린다 (일부만 있으면 단색으로 대신해 어색한 화면을 막는다)
     public static bool HasSet(Ingredient i)
     {

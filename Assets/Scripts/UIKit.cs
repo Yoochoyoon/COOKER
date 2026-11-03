@@ -21,7 +21,33 @@ public static class UIKit
         return font;
     }
 
-    public static RectTransform Box(Transform parent, string name, float x0, float y0, float x1, float y1, Color? color = null)
+    // 모서리가 둥근 사각형을 코드로 만들어 9-slice로 쓴다. 그림 파일 없이도 카드/버튼이 둥글게 보인다.
+    static Sprite roundedSprite;
+    public static Sprite RoundedBox()
+    {
+        if (roundedSprite != null) return roundedSprite;
+        const int size = 64, r = 20;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+                tex.SetPixel(x, y, new Color(1f, 1f, 1f, CornerAlpha(x + 0.5f, y + 0.5f, size, r)));
+        tex.Apply();
+        roundedSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0,
+            SpriteMeshType.FullRect, new Vector4(r, r, r, r));
+        return roundedSprite;
+    }
+
+    static float CornerAlpha(float px, float py, int size, float r)
+    {
+        bool left = px < r, right = px > size - r, bottom = py < r, top = py > size - r;
+        if (!((left || right) && (bottom || top))) return 1f; // 모서리 바깥 네 귀퉁이가 아니면 꽉 채운다
+        float cx = left ? r : size - r, cy = bottom ? r : size - r;
+        float d = Mathf.Sqrt((px - cx) * (px - cx) + (py - cy) * (py - cy));
+        return Mathf.Clamp01(r - d + 0.5f);
+    }
+
+    public static RectTransform Box(Transform parent, string name, float x0, float y0, float x1, float y1, Color? color = null, bool rounded = false)
     {
         var go = new GameObject(name, typeof(RectTransform));
         go.transform.SetParent(parent, false);
@@ -34,6 +60,11 @@ public static class UIKit
         {
             var img = go.AddComponent<Image>();
             img.color = color.Value;
+            if (rounded)
+            {
+                img.sprite = RoundedBox();
+                img.type = Image.Type.Sliced;
+            }
         }
         return rt;
     }
@@ -58,9 +89,9 @@ public static class UIKit
     }
 
     public static Button Btn(Transform parent, string text, float x0, float y0, float x1, float y1, Action onClick,
-        Color? bg = null, int size = 44, bool enabled = true)
+        Color? bg = null, int size = 44, bool enabled = true, bool rounded = false)
     {
-        var rt = Box(parent, "Btn_" + text, x0, y0, x1, y1, bg ?? Accent);
+        var rt = Box(parent, "Btn_" + text, x0, y0, x1, y1, bg ?? Accent, rounded);
         var b = rt.gameObject.AddComponent<Button>();
         b.targetGraphic = rt.GetComponent<Image>();
         var cb = b.colors;
