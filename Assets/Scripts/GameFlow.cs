@@ -1156,7 +1156,7 @@ public class GameFlow : MonoBehaviour
     {
         Clear();
         string how = stages.Contains(Doneness.Burnt) ? "새까맣게 탄 " : "날것 그대로인 ";
-        Photo(root, 0.04f, 0.23f, 0.40f, 0.87f, used, stages, md.id);
+        Photo(root, 0.04f, 0.23f, 0.40f, 0.87f, used, stages, md.id, false); // 망친 요리는 AI 그림을 만들지 않는다
         UIKit.Label(root, how + md.verb + " " + string.Join(" ", used.Select(i => i.name)), 0.42f, 0.62f, 0.97f, 0.80f, 90, TextAnchor.MiddleCenter, UIKit.Bad);
         UIKit.Label(root, msg, 0.42f, 0.34f, 0.97f, 0.60f, 52);
         UIKit.Btn(root, btn + " [Enter]", 0.30f, 0.07f, 0.70f, 0.21f, next, UIKit.Good, 48);
@@ -1164,8 +1164,23 @@ public class GameFlow : MonoBehaviour
     }
 
     // 요리 그림 칸. 먼저 대체 그림을 보여 주고, AI 그림이 도착하면 바꿔 끼운다.
-    void Photo(Transform parent, float x0, float y0, float x1, float y1, Ingredient[] ings, Doneness[] stages, Method m)
+    // generate가 false면(망친 요리) AI에게 그리게 하지 않고 재료를 그 익힘 색으로 칠한 대체 그림만 보여 준다. AI 그림은 도감에 들어가는 요리만 만든다.
+    void Photo(Transform parent, float x0, float y0, float x1, float y1, Ingredient[] ings, Doneness[] stages, Method m, bool generate = true)
     {
+        if (!generate)
+        {
+            var plain = UIKit.Box(parent, "DishPhoto", x0, y0, x1, y1, Color.white);
+            plain.localRotation = Quaternion.Euler(0, 0, -2f);
+            var plainArea = UIKit.Box(plain, "PicArea", 0.04f, 0.04f, 0.96f, 0.97f);
+            var plainPic = UIKit.Box(plainArea, "Pic", 0, 0, 1, 1);
+            var plainFit = plainPic.gameObject.AddComponent<AspectRatioFitter>();
+            plainFit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            plainFit.aspectRatio = 1f;
+            var plainImg = plainPic.gameObject.AddComponent<RawImage>();
+            plainImg.raycastTarget = false;
+            plainImg.texture = DishPhoto.Placeholder(ings, stages);
+            return;
+        }
         var frame = UIKit.Box(parent, "DishPhoto", x0, y0, x1, y1, Color.white); // 폴라로이드 사진처럼 흰 테두리
         frame.localRotation = Quaternion.Euler(0, 0, -2f);
         var area = UIKit.Box(frame, "PicArea", 0.04f, 0.19f, 0.96f, 0.97f); // 비율 맞춤(FitInParent)은 부모 전체를 쓰므로 칸을 따로 둔다

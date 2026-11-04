@@ -17,7 +17,12 @@ public static class DishPhoto
 {
     const string OpenAiModel = "gpt-image-1";
     const int TimeoutSec = 90;
-    const string Style = "photo3"; // 화풍(프롬프트)을 바꾸면 이 값도 바꿔서 예전 저장 그림을 다시 쓰지 않게 한다
+    const string Style = "cute2"; // 화풍(프롬프트)을 바꾸면 이 값도 바꿔서 예전 저장 그림을 다시 쓰지 않게 한다
+
+    // 게임 속 그림(재료 아이콘·배경)과 같은 귀여운 일러스트 화풍. 키 없는 무료 서비스는 이 화풍을 잘 안 따르고, OpenAI/Pollinations 키가 있으면 잘 따른다.
+    const string Cute = "cute kawaii flat 2D cartoon food illustration for a mobile cooking game, thick dark brown outline, soft pastel colors, "
+        + "simple clean shading with a small white highlight, centered on a plain solid pale peach background, top-down view of the whole dish, "
+        + "no text, no people, no realistic photo.";
     const int Size = 768;
     const float Crop = 0.84f;    // Pollinations 그림 오른쪽 아래의 워터마크를 잘라내려고 가운데만 쓴다
 
@@ -33,7 +38,7 @@ public static class DishPhoto
         "slightly undercooked and pale",
         "perfectly cooked, golden and appetizing",
         "overcooked, dark brown with several blackened burnt spots and charred edges",
-        "burnt pitch black, carbonized, covered in black charcoal crust",
+        "the food is entirely jet-black charcoal, carbonized, no yellow or white left, covered in a black burnt crust",
     };
 
     // 이미지 모델이 익힘 상태를 무시하지 않도록 가장 나쁜 상태를 문장 맨 앞에 강조한다
@@ -43,12 +48,12 @@ public static class DishPhoto
         "A slightly undercooked homemade dish: ",
         "A delicious homemade dish: ",
         "A slightly burnt, overcooked homemade dish: ",
-        "A ruined, completely burnt inedible dish, black and smoking, burnt to charcoal: ",
+        "A ruined, completely BURNT inedible dish, everything is black charcoal, smoking, burnt to a crisp: ",
     };
     // 로딩바용 예상 소요 시간(초). 서버가 진행률을 알려 주지 않아 이 값으로 진행을 추정한다.
     public static float ExpectedSeconds
     {
-        get { return string.IsNullOrEmpty(Setting("OPENAI_API_KEY")) ? 15f : 30f; }
+        get { return PaidAllowed && (!string.IsNullOrEmpty(Setting("BAZE_API_KEY")) || !string.IsNullOrEmpty(Setting("OPENAI_API_KEY"))) ? 30f : 15f; }
     }
 
     static readonly Dictionary<string, Texture2D> cache = new Dictionary<string, Texture2D>();
@@ -57,10 +62,9 @@ public static class DishPhoto
     public static string Key(Ingredient[] ings, Doneness[] stages, Method m)
     {
         var parts = ings.Select((i, n) => (Art.Id(i) ?? "x") + "-" + stages[n].ToString().ToLower()).OrderBy(s => s);
-        return Style + "_" + string.Join("_", parts) + "_" + m;
+        return Style + (PaidAllowed ? "" : "-free") + "_" + string.Join("_", parts) + "_" + m; // 무료로 만든 그림이 유료 그림 자리에 재사용되지 않게 이름을 나눈다
     }
 
-    // 실사 음식 사진 (카툰 아이콘 화풍은 무료 생성 서비스에서 품질이 낮아 되돌렸다)
     // 실제 요리 이름이 있는 조합은 그 요리로 그리게 한다 (예: 볶은 달걀 -> 스크램블 에그). 키: 재료 id 정렬 + 방식
     static readonly Dictionary<string, string> dishes = new Dictionary<string, string>
     {
@@ -91,9 +95,8 @@ public static class DishPhoto
         if (dishes.TryGetValue(dishKey, out dish))
         {
             var worstStage = stages.Contains(Doneness.Burnt) ? Doneness.Burnt : stages.Contains(Doneness.Raw) ? Doneness.Raw : stages.Max();
-            return "Photorealistic food photograph. " + lead[(int)worstStage] + dish + ", " + look[(int)worstStage] + ", cooked by a college student living alone. "
-                + (m == Method.Boil ? "Served in a simple ceramic bowl" : "Served on a plain white ceramic plate") + " on a wooden table in a small studio apartment kitchen, 45-degree angle, soft natural window light, "
-                + "shallow depth of field, realistic textures, high detail, shot on a DSLR camera, no text, no people, no illustration.";
+            return lead[(int)worstStage] + dish + ", " + look[(int)worstStage] + ". "
+                + (m == Method.Boil ? "Served in a simple ceramic bowl. " : "Served on a plain white round plate. ") + Cute;
         }
         string how = m == Method.Grill ? "pan-grilled" : m == Method.Stirfry ? "stir-fried" : "boiled, served in a small bowl of soup";
         var what = ings.Select((i, n) =>
@@ -103,9 +106,7 @@ public static class DishPhoto
             return name + " that is " + look[(int)stages[n]];
         });
         var worst = stages.Contains(Doneness.Burnt) ? Doneness.Burnt : stages.Contains(Doneness.Raw) ? Doneness.Raw : stages.Max();
-        return "Photorealistic food photograph. " + lead[(int)worst] + how + " " + string.Join(", and ", what) + ", cooked by a college student living alone. "
-            + "Served on a plain white ceramic plate on a wooden table in a small studio apartment kitchen, 45-degree angle, soft natural window light, "
-            + "shallow depth of field, realistic textures, high detail, shot on a DSLR camera, no text, no people, no illustration.";
+        return lead[(int)worst] + how + " " + string.Join(", and ", what) + ". Served on a plain white round plate. " + Cute;
     }
     // ---- 생성 대기열
     // 같은 그림을 여러 곳에서 기다리면 한 번만 만든다. 요청은 한 번에 하나씩 보내 서비스 제한에 덜 걸리게 하고,
@@ -209,11 +210,114 @@ public static class DishPhoto
 
     delegate IEnumerator Provider(Job job, Action<byte[], float> done);
 
+    // 유료 서비스를 써도 되는지. 유니티 에디터에서 테스트하는 동안은 크레딧을 아끼려고 무료 서비스만 쓴다.
+    // 에디터에서도 유료 결과를 보고 싶으면 키 파일에 COOKER_PAID_IN_EDITOR=1 을 적는다. 빌드(실제 플레이)는 항상 유료를 쓴다.
+    static bool PaidAllowed
+    {
+        get { return !Application.isEditor || Setting("COOKER_PAID_IN_EDITOR") == "1"; }
+    }
+
     static IEnumerable<Provider> Providers()
     {
-        if (!string.IsNullOrEmpty(Setting("OPENAI_API_KEY"))) yield return OpenAi;
-        if (!string.IsNullOrEmpty(Setting("POLLINATIONS_API_KEY"))) yield return PollinationsKey;
+        if (PaidAllowed)
+        {
+            if (!string.IsNullOrEmpty(Setting("BAZE_API_KEY"))) yield return Baze;
+            if (!string.IsNullOrEmpty(Setting("OPENAI_API_KEY"))) yield return OpenAi;
+            if (!string.IsNullOrEmpty(Setting("HF_TOKEN"))) yield return HuggingFace;
+            if (!string.IsNullOrEmpty(Setting("POLLINATIONS_API_KEY"))) yield return PollinationsKey;
+        }
         yield return PollinationsFree;
+    }
+
+    // BAZE API Gateway. 모델은 BAZE_IMAGE_MODEL로 바꿀 수 있고, 기본은 gpt-image-2.5-sunburst(한 장 약 11크레딧, 탄 표현·화풍이 가장 좋았다).
+    // 가장 싼 모델은 fal-ai/fast-sdxl(5크레딧)이지만 "탄 요리"를 잘 못 그린다.
+    // 응답의 data[0].url은 base64 data URL이거나 https 주소다. fal 계열은 오래 걸리면 processing + operation_id로 오므로 완성될 때까지 물어본다.
+    const string BazeBase = "https://factchat-cloud.mindlogic.ai/v1/gateway/images/generate/";
+    [Serializable] class BazeItem { public string url; }
+    [Serializable] class BazeResp { public BazeItem[] data; public string status; public string operation_id; }
+
+    static IEnumerator Baze(Job job, Action<byte[], float> done)
+    {
+        string model = Setting("BAZE_IMAGE_MODEL");
+        if (string.IsNullOrEmpty(model)) model = "gpt-image-2.5-sunburst";
+        // GPT 이미지 모델은 size로, 나머지는 aspect_ratio로 정사각형을 요청한다 (기본은 가로로 긴 그림이라 사진 틀에서 찌그러진다)
+        string square = model.Contains("gpt-image") ? "\"size\":\"1024x1024\"" : "\"aspect_ratio\":\"1:1\"";
+        string body = "{\"model\":" + JsonString(model) + ",\"prompt\":" + JsonString(job.prompt) + "," + square + "}";
+        BazeResp resp = null;
+        using (var req = BazeRequest(BazeBase, "POST", body))
+        {
+            yield return req.SendWebRequest();
+            if (req.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogWarning("요리 그림 생성 실패 (BAZE): " + req.responseCode + " " + req.error);
+                done(null, RetryAfter(req));
+                yield break;
+            }
+            resp = JsonUtility.FromJson<BazeResp>(req.downloadHandler.text);
+        }
+        for (int poll = 0; poll < 30 && resp != null && (resp.data == null || resp.data.Length == 0) && !string.IsNullOrEmpty(resp.operation_id); poll++)
+        {
+            yield return new WaitForSecondsRealtime(2f);
+            using (var req = BazeRequest(BazeBase + resp.operation_id + "/?model=" + UnityWebRequest.EscapeURL(model), "GET", null))
+            {
+                yield return req.SendWebRequest();
+                if (req.result == UnityWebRequest.Result.Success) resp = JsonUtility.FromJson<BazeResp>(req.downloadHandler.text);
+            }
+        }
+        string url = resp != null && resp.data != null && resp.data.Length > 0 ? resp.data[0].url : null;
+        if (string.IsNullOrEmpty(url)) { Debug.LogWarning("요리 그림 생성 실패 (BAZE): 그림이 오지 않았다"); done(null, 0f); yield break; }
+        if (url.StartsWith("data:"))
+        {
+            int comma = url.IndexOf(',');
+            byte[] bytes = null;
+            try { bytes = Convert.FromBase64String(url.Substring(comma + 1)); } catch (Exception) { }
+            done(bytes, 0f);
+            yield break;
+        }
+        using (var req = UnityWebRequest.Get(url))
+            yield return Download(req, "BAZE 그림 내려받기", done);
+    }
+
+    static UnityWebRequest BazeRequest(string url, string method, string json)
+    {
+        var req = new UnityWebRequest(url, method);
+        if (json != null)
+        {
+            req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
+            req.SetRequestHeader("Content-Type", "application/json");
+        }
+        req.downloadHandler = new DownloadHandlerBuffer();
+        req.SetRequestHeader("Authorization", "Bearer " + Setting("BAZE_API_KEY"));
+        req.SetRequestHeader("User-Agent", "cooker-game/1.0");
+        req.timeout = TimeoutSec;
+        return req;
+    }
+
+    // Hugging Face (무료 토큰): FLUX.1-schnell. 화풍 지시를 잘 따른다. 무료는 속도 제한이 있어 실패하면 다음 서비스로 넘어간다.
+    static IEnumerator HuggingFace(Job job, Action<byte[], float> done)
+    {
+        string body = "{\"inputs\":" + JsonString(job.prompt) + ",\"parameters\":{\"width\":" + Size + ",\"height\":" + Size + ",\"seed\":" + Seed(job.key) + "}}";
+        using (var req = new UnityWebRequest("https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell", "POST"))
+        {
+            req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+            req.SetRequestHeader("Accept", "image/png");
+            req.SetRequestHeader("Authorization", "Bearer " + Setting("HF_TOKEN"));
+            yield return Download(req, "Hugging Face", done);
+        }
+    }
+
+    static string JsonString(string s)
+    {
+        var sb = new StringBuilder("\"");
+        foreach (char c in s)
+        {
+            if (c == '"' || c == '\\') sb.Append('\\').Append(c);
+            else if (c == '\n') sb.Append("\\n");
+            else sb.Append(c);
+        }
+        return sb.Append('"').ToString();
     }
 
     // API 키: 환경 변수, 또는 키 파일(에디터: UserSettings/CookerApiKeys.txt, 빌드: persistentDataPath/CookerApiKeys.txt)의 "이름=값" 줄
