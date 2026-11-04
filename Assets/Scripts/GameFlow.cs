@@ -685,7 +685,10 @@ public class GameFlow : MonoBehaviour
         {
             var area = cookArt ? UIKit.Box(root, "StirArea", 0.335f, 0.034f, 0.566f, 0.156f, UIKit.Card, true)
                 : UIKit.Box(root, "StirArea", 0.64f, 0.34f, 0.97f, 0.53f, UIKit.Card);
-            UIKit.Label(area, "마우스를 누른 채 좌우로\n또는 Space를 누른 채", 0.04f, 0.06f, 0.96f, 0.94f, cookArt ? 16 : 30);
+            var areaBtn = area.gameObject.AddComponent<Button>();
+            areaBtn.targetGraphic = area.GetComponent<Image>();
+            areaBtn.onClick.AddListener(() => stirTimer = 0.25f); // 클릭 연타로도 젓는다
+            UIKit.Label(area, "빠르게 연타!\n(클릭 또는 Space)", 0.04f, 0.06f, 0.96f, 0.94f, cookArt ? 16 : 30);
         }
         else
         {
@@ -748,11 +751,16 @@ public class GameFlow : MonoBehaviour
         float x0, x1, y0, y1;
         if (cookArt)
         {
-            // 그림이 있을 땐 실제 팬/트레이/접시 그림 영역(panRect 등) 가운데에, 크기를 고정해서 넣는다(영역을 꽉 채우지 않게).
+            // 그림이 있을 땐 실제 팬/트레이/접시 그림 영역(panRect 등) 안쪽으로 더 좁혀서(팬·접시는 둥글어서 모서리가 비어있다) 가운데에 놓는다.
             var zone = it.spot == Spot.Pan ? panRect : it.spot == Spot.Tray ? trayRect : plateRect;
             float zx0 = zone.anchorMin.x, zx1 = zone.anchorMax.x, zy0 = zone.anchorMin.y, zy1 = zone.anchorMax.y;
-            float itemW = it.spot == Spot.Tray ? 0.075f : 0.115f;
-            float itemH = it.spot == Spot.Tray ? 0.10f : 0.15f;
+            float insetX = it.spot == Spot.Tray ? 0.10f : 0.22f;
+            float insetY = it.spot == Spot.Tray ? 0.08f : 0.20f;
+            float zw = zx1 - zx0, zh = zy1 - zy0;
+            zx0 += zw * insetX; zx1 -= zw * insetX;
+            zy0 += zh * insetY; zy1 -= zh * insetY;
+            float itemW = it.spot == Spot.Tray ? 0.065f : 0.095f;
+            float itemH = it.spot == Spot.Tray ? 0.085f : 0.125f;
             float cy = (zy0 + zy1) * 0.5f;
             y0 = cy - itemH * 0.5f; y1 = cy + itemH * 0.5f;
             float slotW = (zx1 - zx0) / n;
@@ -841,14 +849,17 @@ public class GameFlow : MonoBehaviour
             bool held = mouse != null && mouse.leftButton.isPressed;
             bool lid = held && lidRect != null &&
                        RectTransformUtility.RectangleContainsScreenPoint(lidRect, mouse.position.ReadValue(), null);
-            if (held && Mathf.Abs(mouse.delta.ReadValue().x) > 2f) stirTimer = 0.25f;
-            else stirTimer -= Time.deltaTime;
+            stirTimer -= Time.deltaTime; // 젓기는 연타로 채운다(StirArea 클릭/Space 탭). 가만히 누르고만 있으면 식는다.
 
             if (kb != null)
             {
-                // 방식별 조작은 Space로 통일: 굽기는 누르기(뒤집기), 볶기/끓이기는 누르고 있기(젓기/뚜껑)
-                if (kb.spaceKey.wasPressedThisFrame && cook.flipAvailable) cook.Flip();
-                if (kb.spaceKey.isPressed) { stirTimer = 0.25f; lid = true; }
+                // 뒤집기·젓기는 Space를 "누를 때마다"(연타), 뚜껑은 Space를 "누르고 있는 동안"
+                if (kb.spaceKey.wasPressedThisFrame)
+                {
+                    if (cook.flipAvailable) cook.Flip();
+                    if (cook.m.id == Method.Stirfry) stirTimer = 0.25f;
+                }
+                if (kb.spaceKey.isPressed && cook.m.id == Method.Boil) lid = true;
                 int n = DigitPressed(kb);
                 if (n >= 1 && n <= 3) cook.SetFire(n - 1);
                 if (kb.zKey.wasPressedThisFrame) ItemClick(0);

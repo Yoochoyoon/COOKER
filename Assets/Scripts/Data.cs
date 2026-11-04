@@ -68,7 +68,7 @@ public static class Data
         new MethodDef { id = Method.Grill,   name = "굽기",   verb = "구운", speed = 6f,   lo = 60, hi = 75,
             guide = "굽기: 빨리 익는다. [뒤집기!] 버튼 뜰 때 안 누르면 한쪽만 익어서 탈 확률이 높아진다." },
         new MethodDef { id = Method.Stirfry, name = "볶기",   verb = "볶은", speed = 4f,   lo = 55, hi = 80,
-            guide = "볶기: 마우스를 누른 채 좌우로 흔들면 천천히 익는다. 쉬지 않고 계속 저어야 하고, 잠깐이라도 멈추면 눌어붙어 맛이 떨어진다." },
+            guide = "볶기: 빠르게 연타하면 천천히 익는다. 손을 멈추면 식어서, 쉬지 않고 계속 연타해야 하고 잠깐이라도 멈추면 눌어붙어 맛이 떨어진다." },
         new MethodDef { id = Method.Boil,    name = "끓이기", verb = "끓인", speed = 2.5f, lo = 50, hi = 90,
             guide = "끓이기: 거품이 올라오면 [뚜껑]을 꾹 눌러 가라앉히자. 너무 오래 두면 끓어넘쳐서 맛이 줄어든다." },
     };
