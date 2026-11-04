@@ -30,25 +30,21 @@ public class Cook
     public bool flipped, flipAvailable, flipMissed;
     public bool stirring, stirLapsed; // stirLapsed: 안 젓고 너무 오래 버텨서 눌어붙은 적이 있다(계속 저어야 한다)
     public bool bubble, hadOverflow;
-    public bool hadSplash;   // 튀기기: 기름이 튈 때 [건지기!]를 놓친 적이 있다(눅눅해진다). 건지기 창은 flipAvailable을 같이 쓴다
+    public bool hadSoggy;    // 튀기기: 약불로 오래 둬서 기름이 식어 눅눅해졌다
     public float lidProgress;
 
-    float bubbleTimer, bubbleActiveTime, stirIdleTime, splashTimer, splashActive;
+    float bubbleTimer, bubbleActiveTime, stirIdleTime, oilLowTime;
     float lo, hi, speed; // 이번 주 난이도(ease)를 반영한 적정 구간과 기본 속도
-    float baseBonus;     // 칭호 버프: 재료 기본 점수에 더하는 값(만족도 상한 상승)
 
     // ease 1 = 가장 쉬움(1주차), 0 = 원래 값. 구간을 넓히고 속도를 늦춘다.
-    // band/baseBonus는 장착한 칭호의 버프(적정 구간을 양쪽으로 넓히는 폭, 기본 점수 가산).
-    public Cook(Ingredient[] ings, MethodDef m, float ease = 0f, float band = 0f, float baseBonus = 0f)
+    public Cook(Ingredient[] ings, MethodDef m, float ease = 0f)
     {
         this.m = m;
-        this.baseBonus = baseBonus;
-        ease = Mathf.Clamp01(ease);
         // 굽기는 뒤집기 전까지 적정 구간 윗선이 좁다(한쪽만 익은 상태). 뒤집으면 0으로 풀린다.
         float startHiBonus = m.id == Method.Grill ? -Balance.FlipPenalty : 0f;
         items = ings.Select(i => new CookItem { ing = i, hiBonus = startHiBonus }).ToArray();
-        lo = m.lo - Balance.EaseBand * ease - band;
-        hi = m.hi + Balance.EaseBand * ease + band;
+        lo = m.lo - Balance.EaseBand * ease;
+        hi = m.hi + Balance.EaseBand * ease;
         speed = m.speed * (1f - Balance.EaseSpeed * ease);
     }
 
@@ -83,7 +79,6 @@ public class Cook
     public void Flip()
     {
         if (!flipAvailable) return;
-        if (m.id == Method.Fry) { flipAvailable = false; splashTimer = 0f; splashActive = 0f; return; } // 튀기기: 건져서 기름 튐을 넘긴다
         flipped = true;
         flipAvailable = false;
         foreach (var it in items) if (it.spot == Spot.Pan) it.hiBonus = 0f;
@@ -148,20 +143,11 @@ public class Cook
             flipAvailable = windowOpen && !flipped;
             if (wasAvailable && !flipAvailable && !flipped) flipMissed = true; // 창이 닫힐 때까지 안 눌렀다
         }
-        else if (m.id == Method.Fry)
+        else if (m.id == Method.Fry && AnyInPan && fire == 0)
         {
-            // 팬에 재료가 있는 동안 일정 주기로 기름이 튄다. 그때 [건지기!]를 제때 누르지 않으면 눅눅해진다.
-            if (!AnyInPan) { flipAvailable = false; splashTimer = 0f; splashActive = 0f; }
-            else if (!flipAvailable)
-            {
-                splashTimer += dt;
-                if (splashTimer >= Balance.SplashInterval) { flipAvailable = true; splashActive = 0f; }
-            }
-            else
-            {
-                splashActive += dt;
-                if (splashActive >= Balance.SplashGrace) { hadSplash = true; flipAvailable = false; splashTimer = 0f; }
-            }
+            // 기름 온도 유지: 팬에 재료가 있는 채로 약불에 오래 두면 기름이 식어 눅눅해진다(누적).
+            oilLowTime += dt;
+            if (oilLowTime >= Balance.OilGrace) hadSoggy = true;
         }
 
         if (t >= Balance.MaxCookTime) { TakeOutAll(); finished = true; }
@@ -181,7 +167,7 @@ public class Cook
         else coef = Mathf.Lerp(1f, 0.5f, (d - hi) / (99f - hi));
         if (m.id == Method.Stirfry && stirLapsed) coef *= Balance.NoStirCoef; // 쉬지 않고 계속 저어야 한다. 한 번이라도 너무 오래 쉬면 눌어붙는다
         if (m.id == Method.Boil && hadOverflow) coef *= Balance.BoilOverCoef;   // 끓어넘치게 두면 양·맛이 깎인다
-        if (m.id == Method.Fry && hadSplash) coef *= Balance.SplashCoef;        // 기름이 튈 때 건지지 않으면 눅눅해진다
+        if (m.id == Method.Fry && hadSoggy) coef *= Balance.SoggyCoef;          // 기름이 식으면 눅눅해져 맛이 깎인다
         return true;
     }
 
@@ -205,7 +191,7 @@ public class Cook
         {
             if (!it.ok) continue;
             float compat = it.ing.fits.Contains(m.id) ? 1f : Balance.NonFit;
-            sum += (it.ing.baseScore + baseBonus) * compat * it.coef;
+            sum += it.ing.baseScore * compat * it.coef;
         }
         float avg = sum / plated.Length;
         // 재료 2개를 섞어 모두 성공시키면 보너스

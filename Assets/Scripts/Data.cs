@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 
 // 재료/방식 데이터와 밸런스 수치. 수치는 docs/09재료와방식수치초안.md 기준이며, 플레이하면서 여기만 고치면 된다.
@@ -45,11 +46,8 @@ public static class Balance
     public const float NoStirCoef = 0.6f;          // 한 번이라도 눌어붙으면 만족도 배율
     public const float OverflowGrace = 2f;         // 거품이 올라온 뒤 이만큼 더 방치하면 끓어넘친 것으로 친다
     public const float BoilOverCoef = 0.7f;        // 끓어넘치면 만족도 배율(양·맛이 줄어서)
-    public const float SplashInterval = 6f;        // 튀기기: 기름이 튀는 주기. [건지기!]가 뜬다
-    public const float SplashGrace = 1.5f;         // 기름이 튄 뒤 이만큼 안 건지면 눅눅해진다
-    public const float SplashCoef = 0.8f;          // 한 번이라도 놓치면 만족도 배율(눅눅해서)
-    public const int FryUnlockWeek = 2;            // 튀기기와 튀김 메뉴가 열리는 주차
-    public static bool Unlocked(Method m, int week) { return m != Method.Fry || week >= FryUnlockWeek; }
+    public const float OilGrace = 1.5f;            // 튀기기: 팬에 재료가 있는 채로 약불에 이만큼 두면 기름이 식어 눅눅해진다 (누적)
+    public const float SoggyCoef = 0.7f;           // 눅눅해졌을 때 만족도 배율
     // 난이도: 1주차는 쉽고 4주차에 원래 값이 된다
     public const float EaseBand = 5f;              // 1주차에 적정 구간을 양쪽으로 넓히는 폭
     public const float EaseSpeed = 0.2f;           // 1주차에 방식 속도를 늦추는 비율
@@ -76,8 +74,8 @@ public static class Data
             guide = "볶기: 빠르게 연타하면 천천히 익는다. 손을 멈추면 식어서, 쉬지 않고 계속 연타해야 하고 잠깐이라도 멈추면 눌어붙어 맛이 떨어진다." },
         new MethodDef { id = Method.Boil,    name = "끓이기", verb = "끓인", speed = 2.5f, lo = 50, hi = 90,
             guide = "끓이기: 거품이 올라오면 [뚜껑]을 꾹 눌러 가라앉히자. 너무 오래 두면 끓어넘쳐서 맛이 줄어든다." },
-        new MethodDef { id = Method.Fry,     name = "튀기기", verb = "튀긴", speed = 5f,   lo = 62, hi = 76,
-            guide = "튀기기: 빨리 익고 구간이 좁다. 기름이 튀면 [건지기!]를 눌러야 눅눅해지지 않는다." },
+        new MethodDef { id = Method.Fry,     name = "튀기기", verb = "튀긴", speed = 5f,   lo = 65, hi = 85,
+            guide = "튀기기: 기름 온도를 유지하자. 불을 약불로 두면 기름이 식어 눅눅해지고 맛이 떨어진다." },
     };
 
     public static MethodDef GetMethod(Method m) { return Methods[(int)m]; }
@@ -86,6 +84,14 @@ public static class Data
     {
         name = "달걀", price = 500, shelf = 21, fits = new[] { Method.Grill, Method.Stirfry }, baseScore = 60, speedMod = 1.4f,
         raw = C(0.97f, 0.97f, 0.88f), cooked = C(1f, 0.8f, 0.1f), burnt = C(0.2f, 0.1f, 0.03f)
+    };
+
+    // 새우: 칭호 "자취 생존자"를 얻으면 상점에 나오고 튀김에만 어울린다 (docs/17). 해금 전에는 Active에 들어가지 않는다.
+    // All보다 먼저 선언해야 All이 만들어질 때 비어 있지 않다.
+    public static readonly Ingredient Shrimp = new Ingredient
+    {
+        name = "새우", price = 2000, shelf = 2, fits = new[] { Method.Fry }, baseScore = 80, speedMod = 1.1f,
+        raw = C(0.85f, 0.75f, 0.75f), cooked = C(1f, 0.55f, 0.35f), burnt = C(0.2f, 0.08f, 0.04f)
     };
 
     public static readonly Ingredient[] All =
@@ -101,7 +107,16 @@ public static class Data
             raw = C(1f, 0.55f, 0.6f), cooked = C(0.6f, 0.33f, 0.15f), burnt = C(0.1f, 0.05f, 0.02f) },
         new Ingredient { name = "김치", price = 1000, shelf = 60, fits = new[] { Method.Stirfry, Method.Boil }, baseScore = 65, speedMod = 0.8f,
             raw = C(1f, 0.3f, 0.15f), cooked = C(0.7f, 0.1f, 0.05f), burnt = C(0.12f, 0.05f, 0.03f) },
+        Shrimp,
     };
+
+    // 해금 여부. 튀기기와 새우는 칭호 "자취 생존자"를 얻은 뒤에 열린다.
+    public static bool Unlocked(Method m) { return m != Method.Fry || Titles.FryUnlocked; }
+    public static bool Unlocked(Ingredient i) { return i != Shrimp || Titles.FryUnlocked; }
+
+    // 지금 쓸 수 있는 재료와 방식 (장보기, 도감 칸, 방식 선택은 이 목록을 쓴다)
+    public static Ingredient[] Active { get { return All.Where(Unlocked).ToArray(); } }
+    public static MethodDef[] ActiveMethods { get { return Methods.Where(m => Unlocked(m.id)).ToArray(); } }
 
     public static string MomHint(Ingredient i)
     {
@@ -113,6 +128,7 @@ public static class Data
             case "감자": return "감자는 속까지 익으려면 시간이 좀 걸려.";
             case "돼지고기": return "고기는 비싼 만큼 정성이 필요하단다.";
             case "김치": return "김치는 어디에 넣어도 중심은 잡아줘.";
+            case "새우": return "새우는 금방 익는다. 기름 앞에서 눈 떼지 마라.";
         }
         return "";
     }
