@@ -1,7 +1,0 @@
-{
-  "anthropicKey": "여기에 Claude API 키를 넣고, 이 파일을 ai.local.json으로 복사해서 쓴다",
-  "anthropicModel": "claude-haiku-5-5",
-  "imageProvider": "none",
-  "imageKey": "",
-  "imageModel": ""
-}

@@ -165,6 +165,9 @@ public class Cook
     public Ingredient[] Used { get { return items.Where(it => it.spot == Spot.Plate).Select(it => it.ing).ToArray(); } }
     public Ingredient[] GoodIngredients { get { return items.Where(it => it.spot == Spot.Plate && it.ok).Select(it => it.ing).ToArray(); } }
     public Ingredient[] LostIngredients { get { return items.Where(it => it.spot == Spot.Plate && !it.ok).Select(it => it.ing).ToArray(); } }
+    // 위 배열과 순서가 같은 익힘 단계 (요리 그림에 쓴다)
+    public Doneness[] UsedStages { get { return items.Where(it => it.spot == Spot.Plate).Select(Stage).ToArray(); } }
+    public Doneness[] GoodStages { get { return items.Where(it => it.spot == Spot.Plate && it.ok).Select(Stage).ToArray(); } }
     public string FailText { get { var f = items.FirstOrDefault(it => it.spot == Spot.Plate && !it.ok); return f == null ? null : f.fail; } }
 
     // 접시에 올린 재료의 평균 만족도. 망친 재료는 0점으로 평균에 들어간다.
@@ -197,10 +200,11 @@ public class Cook
     }
 
     // 그림이 없을 때 쓰는 단계별 단색
-    public Color Tone(CookItem it)
+    public Color Tone(CookItem it) { return ToneOf(it.ing, Stage(it)); }
+
+    public static Color ToneOf(Ingredient i, Doneness stage)
     {
-        var i = it.ing;
-        switch (Stage(it))
+        switch (stage)
         {
             case Doneness.Raw: return i.raw;
             case Doneness.Under: return Color.Lerp(i.raw, i.cooked, 0.5f);
