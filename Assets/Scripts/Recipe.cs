@@ -31,12 +31,17 @@ public static class Recipes
         { "감자+두부/Boil", "감자두부국" }, { "감자+두부/Grill", "감자두부구이" },
         { "돼지고기+양파/Stirfry", "양파돼지볶음" }, { "감자+양파/Boil", "감자양파국" },
         { "달걀+돼지고기/Stirfry", "돼지고기달걀볶음" }, { "달걀+두부/Grill", "두부달걀부침" },
+        { "감자/Fry", "감자튀김" }, { "두부/Fry", "두부튀김" }, { "양파/Fry", "양파튀김" }, { "돼지고기/Fry", "돈가스" },
+        { "감자+돼지고기/Fry", "감자돈가스" }, { "두부+양파/Fry", "채소두부튀김" }, { "감자+양파/Fry", "감자양파튀김" },
     };
 
     static readonly Dictionary<Method, string> suffix = new Dictionary<Method, string>
     {
-        { Method.Grill, "구이" }, { Method.Stirfry, "볶음" }, { Method.Boil, "국" },
+        { Method.Grill, "구이" }, { Method.Stirfry, "볶음" }, { Method.Boil, "국" }, { Method.Fry, "튀김" },
     };
+
+    // 이름이 정해진 대표 요리인지 (칭호의 "대표 레시피 수집" 조건). key는 Dish.key와 같은 형식이다.
+    public static bool IsNamed(string key) { return names.ContainsKey(key); }
 
     public static string NameOf(Ingredient[] ings, Method m)
     {
@@ -46,7 +51,7 @@ public static class Recipes
     }
 
     // daysLeft: 오늘 포함 며칠 더 쓸 수 있는지 (1이면 오늘까지)
-    public static List<Recipe> Suggest(IEnumerable<Ingredient> owned, Func<Ingredient, int> daysLeft, int count = 3)
+    public static List<Recipe> Suggest(IEnumerable<Ingredient> owned, Func<Ingredient, int> daysLeft, int count = 3, Func<Method, bool> allowed = null)
     {
         var have = owned.ToArray();
         var combos = new List<Ingredient[]>();
@@ -59,6 +64,7 @@ public static class Recipes
         foreach (var c in combos)
             foreach (Method m in Enum.GetValues(typeof(Method)))
             {
+                if (allowed != null && !allowed(m)) continue; // 아직 열리지 않은 방식은 권하지 않는다
                 if (!c.All(i => i.fits.Contains(m))) continue; // 엄마는 안 맞는 방식은 권하지 않는다
                 int expected = (int)Math.Round(c.Average(i => (double)i.baseScore));
                 int soonest = c.Min(daysLeft);
@@ -116,6 +122,7 @@ public static class Recipes
 
         if (m == Method.Grill) s.Add("뒤집기 버튼이 뜨면 바로 뒤집어라. 놓치면 한쪽만 익는다.");
         else if (m == Method.Stirfry) s.Add("손 쉬지 말고 계속 저어라. 잠깐만 멈춰도 눌어붙는다.");
+        else if (m == Method.Fry) s.Add("기름이 튀면 바로 건지기 버튼을 눌러라. 놓치면 눅눅해진다.");
         else s.Add("거품이 올라오면 바로 뚜껑을 꾹 눌러라. 넘치면 맛이 줄어든다.");
 
         s.Add("게이지가 주황색일 때 바로 꺼내기! 빨개지면 늦은 거다.");

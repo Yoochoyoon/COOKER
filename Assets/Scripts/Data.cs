@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // 재료/방식 데이터와 밸런스 수치. 수치는 docs/09재료와방식수치초안.md 기준이며, 플레이하면서 여기만 고치면 된다.
-public enum Method { Grill, Stirfry, Boil }
+public enum Method { Grill, Stirfry, Boil, Fry }
 
 public class Ingredient
 {
@@ -45,6 +45,11 @@ public static class Balance
     public const float NoStirCoef = 0.6f;          // 한 번이라도 눌어붙으면 만족도 배율
     public const float OverflowGrace = 2f;         // 거품이 올라온 뒤 이만큼 더 방치하면 끓어넘친 것으로 친다
     public const float BoilOverCoef = 0.7f;        // 끓어넘치면 만족도 배율(양·맛이 줄어서)
+    public const float SplashInterval = 6f;        // 튀기기: 기름이 튀는 주기. [건지기!]가 뜬다
+    public const float SplashGrace = 1.5f;         // 기름이 튄 뒤 이만큼 안 건지면 눅눅해진다
+    public const float SplashCoef = 0.8f;          // 한 번이라도 놓치면 만족도 배율(눅눅해서)
+    public const int FryUnlockWeek = 2;            // 튀기기와 튀김 메뉴가 열리는 주차
+    public static bool Unlocked(Method m, int week) { return m != Method.Fry || week >= FryUnlockWeek; }
     // 난이도: 1주차는 쉽고 4주차에 원래 값이 된다
     public const float EaseBand = 5f;              // 1주차에 적정 구간을 양쪽으로 넓히는 폭
     public const float EaseSpeed = 0.2f;           // 1주차에 방식 속도를 늦추는 비율
@@ -71,6 +76,8 @@ public static class Data
             guide = "볶기: 빠르게 연타하면 천천히 익는다. 손을 멈추면 식어서, 쉬지 않고 계속 연타해야 하고 잠깐이라도 멈추면 눌어붙어 맛이 떨어진다." },
         new MethodDef { id = Method.Boil,    name = "끓이기", verb = "끓인", speed = 2.5f, lo = 50, hi = 90,
             guide = "끓이기: 거품이 올라오면 [뚜껑]을 꾹 눌러 가라앉히자. 너무 오래 두면 끓어넘쳐서 맛이 줄어든다." },
+        new MethodDef { id = Method.Fry,     name = "튀기기", verb = "튀긴", speed = 5f,   lo = 62, hi = 76,
+            guide = "튀기기: 빨리 익고 구간이 좁다. 기름이 튀면 [건지기!]를 눌러야 눅눅해지지 않는다." },
     };
 
     public static MethodDef GetMethod(Method m) { return Methods[(int)m]; }
@@ -84,13 +91,13 @@ public static class Data
     public static readonly Ingredient[] All =
     {
         Egg,
-        new Ingredient { name = "두부", price = 1600, shelf = 14, fits = new[] { Method.Grill, Method.Boil }, baseScore = 55, speedMod = 1.0f,
+        new Ingredient { name = "두부", price = 1600, shelf = 14, fits = new[] { Method.Grill, Method.Boil, Method.Fry }, baseScore = 55, speedMod = 1.0f,
             raw = C(0.98f, 0.98f, 0.98f), cooked = C(0.9f, 0.65f, 0.25f), burnt = C(0.15f, 0.08f, 0.03f) },
-        new Ingredient { name = "양파", price = 450, shelf = 21, fits = new[] { Method.Stirfry, Method.Boil }, baseScore = 40, speedMod = 0.9f,
+        new Ingredient { name = "양파", price = 450, shelf = 21, fits = new[] { Method.Stirfry, Method.Boil, Method.Fry }, baseScore = 40, speedMod = 0.9f,
             raw = C(0.95f, 0.88f, 0.9f), cooked = C(0.85f, 0.5f, 0.15f), burnt = C(0.15f, 0.07f, 0.03f) },
-        new Ingredient { name = "감자", price = 600, shelf = 21, fits = new[] { Method.Grill, Method.Boil }, baseScore = 50, speedMod = 0.6f,
+        new Ingredient { name = "감자", price = 600, shelf = 21, fits = new[] { Method.Grill, Method.Boil, Method.Fry }, baseScore = 50, speedMod = 0.6f,
             raw = C(0.85f, 0.8f, 0.5f), cooked = C(0.95f, 0.7f, 0.1f), burnt = C(0.15f, 0.08f, 0.03f) },
-        new Ingredient { name = "돼지고기", price = 4300, shelf = 4, fits = new[] { Method.Grill, Method.Stirfry }, baseScore = 90, speedMod = 0.7f,
+        new Ingredient { name = "돼지고기", price = 4300, shelf = 4, fits = new[] { Method.Grill, Method.Stirfry, Method.Fry }, baseScore = 90, speedMod = 0.7f,
             raw = C(1f, 0.55f, 0.6f), cooked = C(0.6f, 0.33f, 0.15f), burnt = C(0.1f, 0.05f, 0.02f) },
         new Ingredient { name = "김치", price = 1000, shelf = 60, fits = new[] { Method.Stirfry, Method.Boil }, baseScore = 65, speedMod = 0.8f,
             raw = C(1f, 0.3f, 0.15f), cooked = C(0.7f, 0.1f, 0.05f), burnt = C(0.12f, 0.05f, 0.03f) },
