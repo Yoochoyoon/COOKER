@@ -1627,14 +1627,18 @@ public class GameFlow : MonoBehaviour
         var panel = UIKit.Box(card, "Pic", 0.04f, 0.18f, 0.44f, 0.94f, Color.white);
         dtPic = UIKit.Box(panel, "Img", 0.04f, 0.10f, 0.96f, 0.96f);
         dtImgNote = UIKit.Label(panel, "", 0.04f, 0.01f, 0.96f, 0.10f, 26, TextAnchor.MiddleCenter, UIKit.Muted);
-        dtName = UIKit.Label(card, "", 0.48f, 0.76f, 0.96f, 0.94f, 64, TextAnchor.MiddleLeft);
-        UIKit.Label(card, string.Join(" ", d.ings.Select(i => Data.MomHint(i))), 0.48f, 0.56f, 0.96f, 0.76f, 30, TextAnchor.UpperLeft, UIKit.Muted); // 엄마 한마디
+        dtName = UIKit.Label(card, "", 0.48f, 0.80f, 0.96f, 0.95f, 60, TextAnchor.MiddleLeft);
 
         string ings = string.Join(", ", d.ings.Select((i, k) =>
             i.name + (d.stages != null && k < d.stages.Length ? "(" + StageName[(int)d.stages[k]] + ")" : "")).ToArray());
-        UIKit.Label(card, "재료  " + ings, 0.48f, 0.44f, 0.96f, 0.56f, 36, TextAnchor.MiddleLeft);
-        UIKit.Label(card, "방식  " + Data.GetMethod(d.method).name, 0.48f, 0.34f, 0.96f, 0.44f, 36, TextAnchor.MiddleLeft);
-        UIKit.Label(card, "최고 만족도  " + d.satisfaction + "   " + Stars(d.satisfaction), 0.48f, 0.22f, 0.96f, 0.34f, 40, TextAnchor.MiddleLeft, UIKit.Accent);
+        UIKit.Label(card, "재료  " + ings, 0.48f, 0.72f, 0.96f, 0.80f, 32, TextAnchor.MiddleLeft);
+        UIKit.Label(card, "방식  " + Data.GetMethod(d.method).name, 0.48f, 0.65f, 0.96f, 0.72f, 32, TextAnchor.MiddleLeft);
+        // 레시피: 엄마의 전언과 같은 요령 문구
+        var steps = Recipes.Steps(d.ings, d.method);
+        var sb = new System.Text.StringBuilder("레시피\n");
+        for (int k = 0; k < steps.Length; k++) sb.Append(k + 1).Append(". ").Append(steps[k]).Append('\n');
+        UIKit.Label(card, sb.ToString().TrimEnd(), 0.48f, 0.30f, 0.96f, 0.65f, 28, TextAnchor.UpperLeft, UIKit.Muted);
+        UIKit.Label(card, "최고 만족도  " + d.satisfaction + "   " + Stars(d.satisfaction), 0.48f, 0.19f, 0.96f, 0.30f, 38, TextAnchor.MiddleLeft, UIKit.Accent);
         if (!string.IsNullOrEmpty(d.note)) UIKit.Label(card, d.note, 0.04f, 0.08f, 0.62f, 0.18f, 28, TextAnchor.MiddleLeft, UIKit.Bad);
         UIKit.Btn(card, "닫기 [Esc]", 0.70f, 0.04f, 0.96f, 0.16f, CloseDexDetail, UIKit.Muted, 34);
         BuildDexPic(dtPic, d.ings, d, false, ready => { if (dtImgNote != null) dtImgNote.text = ready ? "" : "AI가 그림을 그리는 중..."; });
