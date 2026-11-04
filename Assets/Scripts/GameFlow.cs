@@ -37,11 +37,13 @@ public class GameFlow : MonoBehaviour
 {
     static GameFlow inst;
     static readonly Dictionary<string, Dish> dex = new Dictionary<string, Dish>(); // 도감은 판이 바뀌어도 유지
+    static readonly HashSet<string> dexNew = new HashSet<string>(); // 새로 등록됐지만 도감에서 아직 열어 보지 않은 요리
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot()
     {
         if (inst != null) return;
+        LoadDex();
         var go = new GameObject("COOKER");
         inst = go.AddComponent<GameFlow>();
     }
@@ -1013,10 +1015,14 @@ public class GameFlow : MonoBehaviour
         run.dishes.Add(dish);
         bool isNew = !dex.ContainsKey(dish.key);
         if (isNew || dex[dish.key].satisfaction < sat) dex[dish.key] = dish;
+        if (isNew) dexNew.Add(dish.key);
+        SaveDex();
         ShowMeal(dish, isNew);
         DishNamer.Request(this, ings, stages, md.id, name =>
         {
             dish.name = name;
+            Dish saved;
+            if (dex.TryGetValue(dish.key, out saved) && saved == dish) SaveDex(); // AI가 지은 이름이 도착하면 저장 파일도 갱신
             if (mealDish == dish && mealName != null) mealName.text = name; // 아직 그 식사 화면이면 바로 바꾼다
             RefreshDexDetail(dish);
         });
@@ -1267,6 +1273,70 @@ public class GameFlow : MonoBehaviour
     }
 
     static readonly string[] StageName = { "날것", "덜 익음", "알맞음", "너무 익음", "탐" };
+    // 도감 저장: 게임을 껐다 켜도 남도록 persistentDataPath/dex.json에 기록한다. 실패해도 게임은 계속된다.
+    [System.Serializable]
+    class DexEntry
+    {
+        public string key, name, note;
+        public int method, satisfaction;
+        public string[] ings;
+        public int[] stages;
+    }
+
+    [System.Serializable]
+    class DexSave
+    {
+        public List<DexEntry> dishes = new List<DexEntry>();
+        public List<string> isNew = new List<string>();
+    }
+
+    static string DexPath { get { return System.IO.Path.Combine(Application.persistentDataPath, "dex.json"); } }
+
+    static void SaveDex()
+    {
+        try
+        {
+            var save = new DexSave();
+            foreach (var d in dex.Values)
+                save.dishes.Add(new DexEntry
+                {
+                    key = d.key, name = d.name, note = d.note,
+                    method = (int)d.method, satisfaction = d.satisfaction,
+                    ings = d.ings.Select(i => i.name).ToArray(),
+                    stages = d.stages == null ? new int[0] : d.stages.Select(s => (int)s).ToArray(),
+                });
+            save.isNew.AddRange(dexNew);
+            System.IO.File.WriteAllText(DexPath, JsonUtility.ToJson(save));
+        }
+        catch (System.Exception e) { Debug.LogWarning("[도감] 저장 실패: " + e.Message); }
+    }
+
+    static void LoadDex()
+    {
+        try
+        {
+            if (!System.IO.File.Exists(DexPath)) return;
+            var save = JsonUtility.FromJson<DexSave>(System.IO.File.ReadAllText(DexPath));
+            if (save == null) return;
+            dex.Clear();
+            dexNew.Clear();
+            foreach (var e in save.dishes)
+            {
+                var ings = e.ings.Select(n => Data.All.FirstOrDefault(i => i.name == n)).Where(i => i != null).ToArray();
+                if (ings.Length == 0 || ings.Length != e.ings.Length) continue; // 재료가 바뀌어 읽을 수 없는 기록은 건너뛴다
+                var d = new Dish
+                {
+                    key = e.key, name = e.name, note = e.note, ings = ings,
+                    method = (Method)e.method, satisfaction = e.satisfaction,
+                    stages = e.stages.Select(s => (Doneness)s).ToArray(),
+                };
+                dex[d.key] = d;
+            }
+            foreach (var k in save.isNew) if (dex.ContainsKey(k)) dexNew.Add(k);
+        }
+        catch (System.Exception e) { Debug.LogWarning("[도감] 불러오기 실패: " + e.Message); }
+    }
+
 
     static string Stars(int sat)
     {
@@ -1466,13 +1536,25 @@ public class GameFlow : MonoBehaviour
         UIKit.Label(card, has ? Stars(d.satisfaction) + "  " + d.satisfaction : method, 0.04f, 0.02f, 0.96f, 0.20f, 30,
             TextAnchor.MiddleCenter, has ? UIKit.Accent : UIKit.Muted);
         if (!has) return;
+        GameObject badge = null;
+        if (dexNew.Contains(s.key)) // 새로 등록된 요리: 카드를 열어 보면 표시가 사라진다
+        {
+            var bg = UIKit.Box(card, "New", 0.60f, 0.88f, 1.0f, 1.0f, UIKit.Bad, true);
+            UIKit.Label(bg, "NEW", 0.05f, 0.05f, 0.95f, 0.95f, 28, TextAnchor.MiddleCenter, Color.white);
+            badge = bg.gameObject;
+        }
         var b = card.gameObject.AddComponent<Button>();
         b.targetGraphic = card.GetComponent<Image>();
         var cb = b.colors;
         cb.highlightedColor = new Color(1f, 0.92f, 0.7f);
         cb.pressedColor = new Color(0.9f, 0.8f, 0.55f);
         b.colors = cb;
-        b.onClick.AddListener(() => ShowDexDetail(d));
+        b.onClick.AddListener(() =>
+        {
+            if (dexNew.Remove(s.key)) SaveDex();
+            if (badge != null) Destroy(badge);
+            ShowDexDetail(d);
+        });
     }
 
     // 도감 상세 팝업. AI 이름이 늦게 오면 RefreshDexDetail이 열려 있는 팝업을 갱신한다.
