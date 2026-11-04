@@ -224,7 +224,7 @@ public class GameFlow : MonoBehaviour
         cart.Clear();
         sel.Clear();
         selMethod = null;
-        ShowShop();
+        Lobby.Show(root, run, Clear, ShowShop, ShowDex); // 타이틀 다음 로비 (Lobby.cs). [게임 시작]이면 장보기
     }
 
     // ---------------------------------------------------------------- 장보기
