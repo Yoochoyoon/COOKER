@@ -100,7 +100,7 @@ public static class Recipes
         return w + (final ? withFinal : without);
     }
 
-    static string[] Steps(Ingredient[] c, Method m)
+    public static string[] Steps(Ingredient[] c, Method m)
     {
         var s = new List<string>();
         var bySpeed = c.OrderBy(i => i.speedMod).ToArray();
