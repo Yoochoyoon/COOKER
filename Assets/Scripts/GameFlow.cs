@@ -732,6 +732,7 @@ public class GameFlow : MonoBehaviour
             lidImage = lidRect.GetComponent<Image>();
             UIKit.Label(lidRect, "뚜껑 (꾹 누르기)\n또는 Space를 누른 채", 0.05f, 0.05f, 0.95f, 0.95f, cookArt ? 18 : 32);
         }
+        CookTools.Attach(root, cook, panRect, cookArt, () => stirTimer = 0.25f); // 뒤집개(굽기·볶기)·뚜껑(끓이기) 도구 (CookTools.cs)
 
         scr = Scr.Cook;
     }

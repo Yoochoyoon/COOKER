@@ -83,6 +83,13 @@ public class Cook
         foreach (var it in items) if (it.spot == Spot.Pan) it.hiBonus = 0f;
     }
 
+    // 끓이기: 뚜껑을 떼면 넘치던 거품이 바로 가라앉는다 (CookTools의 뚜껑). 꾹 누르기(lidHeld)와 같은 결과를 한 번에 낸다.
+    public void OpenLid()
+    {
+        if (m.id != Method.Boil || !bubble) return;
+        bubble = false; bubbleTimer = 0f; lidProgress = 0f; bubbleActiveTime = 0f;
+    }
+
     public bool AnyInPan { get { return items.Any(it => it.spot == Spot.Pan); } }
     public bool AnyInTray { get { return items.Any(it => it.spot == Spot.Tray); } }
 

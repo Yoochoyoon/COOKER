@@ -66,11 +66,11 @@ public static class Data
     public static readonly MethodDef[] Methods =
     {
         new MethodDef { id = Method.Grill,   name = "굽기",   verb = "구운", speed = 6f,   lo = 60, hi = 75,
-            guide = "굽기: 빨리 익는다. [뒤집기!] 버튼 뜰 때 안 누르면 한쪽만 익어서 탈 확률이 높아진다." },
+            guide = "굽기: 빨리 익는다. 뒤집개를 집어 두고, 뒤집을 때가 오면 팬을 클릭! 안 뒤집으면 한쪽만 익어서 탈 확률이 높아진다." },
         new MethodDef { id = Method.Stirfry, name = "볶기",   verb = "볶은", speed = 4f,   lo = 55, hi = 80,
-            guide = "볶기: 빠르게 연타하면 천천히 익는다. 손을 멈추면 식어서, 쉬지 않고 계속 연타해야 하고 잠깐이라도 멈추면 눌어붙어 맛이 떨어진다." },
+            guide = "볶기: 뒤집개를 집어 팬 위에서 계속 휘저으면 천천히 익는다. 잠깐이라도 멈추면 눌어붙어 맛이 떨어진다. (Space 연타도 된다)" },
         new MethodDef { id = Method.Boil,    name = "끓이기", verb = "끓인", speed = 2.5f, lo = 50, hi = 90,
-            guide = "끓이기: 거품이 올라오면 [뚜껑]을 꾹 눌러 가라앉히자. 너무 오래 두면 끓어넘쳐서 맛이 줄어든다." },
+            guide = "끓이기: 끓어넘칠 것 같으면 냄비 뚜껑 손잡이를 클릭해서 떼자. 너무 오래 두면 끓어넘쳐서 맛이 줄어든다." },
     };
 
     public static MethodDef GetMethod(Method m) { return Methods[(int)m]; }
