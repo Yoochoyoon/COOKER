@@ -30,9 +30,10 @@ public class Cook
     public bool flipped, flipAvailable, flipMissed;
     public bool stirring, stirLapsed; // stirLapsed: 안 젓고 너무 오래 버텨서 눌어붙은 적이 있다(계속 저어야 한다)
     public bool bubble, hadOverflow;
+    public bool hadSoggy;    // 튀기기: 약불로 오래 둬서 기름이 식어 눅눅해졌다
     public float lidProgress;
 
-    float bubbleTimer, bubbleActiveTime, stirIdleTime;
+    float bubbleTimer, bubbleActiveTime, stirIdleTime, oilLowTime;
     float lo, hi, speed; // 이번 주 난이도(ease)를 반영한 적정 구간과 기본 속도
 
     // ease 1 = 가장 쉬움(1주차), 0 = 원래 값. 구간을 넓히고 속도를 늦춘다.
@@ -136,9 +137,18 @@ public class Cook
             if (m.id == Method.Grill && it.d >= 30f && it.d <= 40f) windowOpen = true;
             if (it.d >= Balance.BurnLimit) TakeOut(i); // 탄 재료는 그 재료만 접시로 넘어간다
         }
-        bool wasAvailable = flipAvailable;
-        flipAvailable = windowOpen && !flipped;
-        if (wasAvailable && !flipAvailable && !flipped) flipMissed = true; // 창이 닫힐 때까지 안 눌렀다
+        if (m.id == Method.Grill)
+        {
+            bool wasAvailable = flipAvailable;
+            flipAvailable = windowOpen && !flipped;
+            if (wasAvailable && !flipAvailable && !flipped) flipMissed = true; // 창이 닫힐 때까지 안 눌렀다
+        }
+        else if (m.id == Method.Fry && AnyInPan && fire == 0)
+        {
+            // 기름 온도 유지: 팬에 재료가 있는 채로 약불에 오래 두면 기름이 식어 눅눅해진다(누적).
+            oilLowTime += dt;
+            if (oilLowTime >= Balance.OilGrace) hadSoggy = true;
+        }
 
         if (t >= Balance.MaxCookTime) { TakeOutAll(); finished = true; }
         else if (!AnyInPan && !AnyInTray) finished = true;
@@ -157,6 +167,7 @@ public class Cook
         else coef = Mathf.Lerp(1f, 0.5f, (d - hi) / (99f - hi));
         if (m.id == Method.Stirfry && stirLapsed) coef *= Balance.NoStirCoef; // 쉬지 않고 계속 저어야 한다. 한 번이라도 너무 오래 쉬면 눌어붙는다
         if (m.id == Method.Boil && hadOverflow) coef *= Balance.BoilOverCoef;   // 끓어넘치게 두면 양·맛이 깎인다
+        if (m.id == Method.Fry && hadSoggy) coef *= Balance.SoggyCoef;          // 기름이 식으면 눅눅해져 맛이 깎인다
         return true;
     }
 

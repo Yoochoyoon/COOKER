@@ -29,7 +29,7 @@ public static class DishPhoto
     static readonly Dictionary<string, string> en = new Dictionary<string, string>
     {
         { "egg", "egg" }, { "tofu", "tofu" }, { "onion", "sliced onion" },
-        { "potato", "potato" }, { "pork", "pork" }, { "kimchi", "kimchi" },
+        { "potato", "potato" }, { "pork", "pork" }, { "kimchi", "kimchi" }, { "shrimp", "shrimp" },
     };
 
     static readonly string[] look =
@@ -86,6 +86,11 @@ public static class DishPhoto
         { "egg-kimchi/Stirfry", "scrambled eggs with stir-fried kimchi" },
         { "egg-tofu/Grill", "pan-fried tofu with a fried egg" },
         { "egg-pork/Stirfry", "stir-fried pork with scrambled eggs" },
+        { "potato/Fry", "crispy french fries" },
+        { "shrimp/Fry", "crispy deep-fried shrimp (saeu twigim)" },
+        { "tofu/Fry", "deep-fried tofu cubes (dubu twigim)" },
+        { "onion/Fry", "crispy fried onion rings" },
+        { "pork/Fry", "a breaded deep-fried pork cutlet (donkatsu)" },
     };
 
     public static string Prompt(Ingredient[] ings, Doneness[] stages, Method m)
@@ -98,7 +103,7 @@ public static class DishPhoto
             return lead[(int)worstStage] + dish + ", " + look[(int)worstStage] + ". "
                 + (m == Method.Boil ? "Served in a simple ceramic bowl. " : "Served on a plain white round plate. ") + Cute;
         }
-        string how = m == Method.Grill ? "pan-grilled" : m == Method.Stirfry ? "stir-fried" : "boiled, served in a small bowl of soup";
+        string how = m == Method.Grill ? "pan-grilled" : m == Method.Stirfry ? "stir-fried" : m == Method.Fry ? "deep-fried and crispy" : "boiled, served in a small bowl of soup";
         var what = ings.Select((i, n) =>
         {
             string id = Art.Id(i);

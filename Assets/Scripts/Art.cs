@@ -10,7 +10,7 @@ public static class Art
     static readonly Dictionary<string, string> ids = new Dictionary<string, string>
     {
         { "달걀", "egg" }, { "두부", "tofu" }, { "양파", "onion" },
-        { "감자", "potato" }, { "돼지고기", "pork" }, { "김치", "kimchi" },
+        { "감자", "potato" }, { "돼지고기", "pork" }, { "김치", "kimchi" }, { "새우", "shrimp" },
     };
 
     static readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();

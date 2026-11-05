@@ -37,11 +37,14 @@ public class GameFlow : MonoBehaviour
 {
     static GameFlow inst;
     static readonly Dictionary<string, Dish> dex = new Dictionary<string, Dish>(); // 도감은 판이 바뀌어도 유지
+    static readonly HashSet<string> dexNew = new HashSet<string>(); // 새로 등록됐지만 도감에서 아직 열어 보지 않은 요리
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot()
     {
         if (inst != null) return;
+        LoadDex();
+        Titles.Load();
         var go = new GameObject("COOKER");
         inst = go.AddComponent<GameFlow>();
     }
@@ -174,6 +177,7 @@ public class GameFlow : MonoBehaviour
             TitleHit(area, "StartHit", 0.23f, 0.2667f, 0.78f, 0.4208f, startImg, StartRun);
             TitleHit(area, "ExitHit", 0.26f, 0.09f, 0.775f, 0.2667f, exitImg, Quit);
             UIKit.Btn(root, "도감 [D]", 0.03f, 0.03f, 0.17f, 0.11f, ShowDex, UIKit.Muted, 30);
+            UIKit.Btn(root, "칭호 [T]", 0.18f, 0.03f, 0.32f, 0.11f, ShowTitles, UIKit.Muted, 30);
         }
         else
         {
@@ -181,6 +185,7 @@ public class GameFlow : MonoBehaviour
             UIKit.Label(root, "일주일치 장바구니로 최대한 오래 버텨라", 0.1f, 0.46f, 0.9f, 0.58f, 54);
             UIKit.Btn(root, "시작  [Enter]", 0.35f, 0.26f, 0.65f, 0.40f, StartRun);
             UIKit.Btn(root, "도감  [D]", 0.35f, 0.10f, 0.65f, 0.22f, ShowDex, UIKit.Muted, 40);
+            UIKit.Btn(root, "칭호  [T]", 0.68f, 0.10f, 0.90f, 0.22f, ShowTitles, UIKit.Muted, 40);
         }
         scr = Scr.Title;
         confirm = StartRun;
@@ -243,7 +248,7 @@ public class GameFlow : MonoBehaviour
         UIKit.Label(root, "남은 예산 " + left.ToString("N0") + "원", 0.30f, 0.88f, 0.525f, 0.96f, 44, TextAnchor.MiddleRight);
         UIKit.Label(root, run.week == 1 ? "6끼분 담기 · 첫날 달걀은 무료" : "7끼분 채우기 · 이월 재료 있음, 가격 인상",
             0.04f, 0.825f, 0.525f, 0.875f, 28, TextAnchor.MiddleLeft, UIKit.Ink);
-        UIKit.Label(root, "1~6 담기 · Shift+1~6 빼기 · Enter 확정",
+        UIKit.Label(root, "1~" + Data.Active.Length + " 담기 · Shift+1~" + Data.Active.Length + " 빼기 · Enter 확정",
             0.04f, 0.785f, 0.525f, 0.822f, 20, TextAnchor.MiddleLeft, UIKit.Muted);
 
         UIKit.Label(root, "재료", 0.10f, 0.725f, 0.235f, 0.785f, 30, TextAnchor.MiddleLeft, UIKit.Muted);
@@ -251,11 +256,12 @@ public class GameFlow : MonoBehaviour
         UIKit.Label(root, "유통기한", 0.325f, 0.725f, 0.395f, 0.785f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
         UIKit.Label(root, "수량", 0.405f, 0.725f, 0.525f, 0.785f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
 
-        for (int r = 0; r < Data.All.Length; r++)
+        var shopList = Data.Active; // 해금 전에는 새우가 상점에 나오지 않는다
+        for (int r = 0; r < shopList.Length; r++)
         {
-            var ing = Data.All[r];
+            var ing = shopList[r];
             float top = RowTop(r);
-            float bot = top - 0.08f;
+            float bot = top - (RowStep - 0.01f);
             UIKit.Box(root, "Row", 0.035f, bot, 0.53f, top, UIKit.Card, false);
             int qty;
             cart.TryGetValue(ing, out qty);
@@ -281,7 +287,8 @@ public class GameFlow : MonoBehaviour
 
     // ---- 장바구니 연출
     // 재료 줄의 위쪽 위치(0~1). 날아가는 재료의 출발점도 이 값으로 정한다.
-    static float RowTop(int r) { return 0.715f - r * 0.09f; }
+    static float RowStep { get { return Data.Active.Length > 6 ? 0.078f : 0.09f; } } // 재료가 7개가 되면 줄 간격을 줄인다
+    static float RowTop(int r) { return 0.715f - r * RowStep; }
     static readonly Vector2 BasketMouth = new Vector2(0.785f, 0.42f); // 재료가 떨어지는 장바구니 입구 (화면 비율)
 
     // 장바구니: shop_basket_back/front 그림이 둘 다 있으면 재료가 그 사이에 끼인 것처럼 그린다.
@@ -408,7 +415,7 @@ public class GameFlow : MonoBehaviour
         if (qty == 0) cart.Remove(ing); else cart[ing] = qty;
         if (qty != before)
         {
-            int r = System.Array.IndexOf(Data.All, ing);
+            int r = System.Array.IndexOf(Data.Active, ing);
             var rowPos = new Vector2(0.07f, RowTop(r) - 0.04f);
             if (delta > 0)
             {
@@ -513,14 +520,16 @@ public class GameFlow : MonoBehaviour
         // 오른쪽: 방식
         UIKit.Box(root, "Right", 0.52f, 0.47f, 0.97f, 0.87f, UIKit.Card);
         UIKit.Label(root, "조리 방식", 0.54f, 0.80f, 0.95f, 0.86f, 34, TextAnchor.MiddleLeft, UIKit.Muted);
-        for (int k = 0; k < Data.Methods.Length; k++)
+        var openMethods = Data.ActiveMethods; // 튀기기는 "자취 생존자"를 얻기 전에는 선택지에 나오지 않는다
+        for (int k = 0; k < openMethods.Length; k++)
         {
-            var md = Data.Methods[k];
-            float top = 0.79f - k * 0.105f;
-            float bot = top - 0.095f;
+            var md = openMethods[k];
+            float step = openMethods.Length > 3 ? 0.08f : 0.105f;
+            float top = 0.795f - k * step;
+            float bot = top - (step - 0.008f);
             bool on = selMethod == md.id;
-            UIKit.Btn(root, "[" + "QWE"[k] + "] " + md.name, 0.55f, bot, 0.94f, top, () => { selMethod = md.id; ShowDay(); },
-                on ? UIKit.Good : UIKit.Accent, 44, !guideMeal);
+            UIKit.Btn(root, "[" + "QWER"[k] + "] " + md.name, 0.55f, bot, 0.94f, top, () => { selMethod = md.id; ShowDay(); },
+                on ? UIKit.Good : UIKit.Accent, openMethods.Length > 3 ? 38 : 44, !guideMeal);
         }
 
         // 엄마 힌트
@@ -611,7 +620,9 @@ public class GameFlow : MonoBehaviour
             .Concat(new[] { MethodTip(md.id), "게이지가 주황색이 되면 바로 꺼내렴. 빨개지면 늦은 거다." }).ToArray();
 
         // 방식별 배경 그림(팬/웍/냄비 + 도마 + 접시)이 있으면 그걸로, 없으면 단색 칸으로 그린다.
-        string bgFile = md.id == Method.Grill ? "bg_cook_grill" : md.id == Method.Stirfry ? "bg_cook_wok" : "bg_cook_pot";
+        // 튀기기는 전용 배경 그림이 아직 없어 웍 그림을 임시로 쓴다 (bg_cook_fry.png를 넣으면 그것을 쓴다)
+        string bgFile = md.id == Method.Grill ? "bg_cook_grill" : md.id == Method.Stirfry ? "bg_cook_wok"
+            : md.id == Method.Fry ? (Art.Load("bg_cook_fry") != null ? "bg_cook_fry" : "bg_cook_wok") : "bg_cook_pot";
         cookArt = Art.Load(bgFile) != null;
         if (cookArt) SetBg(bgFile);
 
@@ -697,6 +708,7 @@ public class GameFlow : MonoBehaviour
         // 방식별 고유 조작 (버너바 오른쪽 칸)
         if (md.id == Method.Grill)
         {
+            const string flipText = "뒤집기! [Space]";
             if (cookArt)
             {
                 var fbRect = UIKit.Box(root, "FlipBtnBg", 0.335f, 0.034f, 0.566f, 0.156f);
@@ -707,11 +719,11 @@ public class GameFlow : MonoBehaviour
                 flipBtn.targetGraphic = fbImg;
                 flipBtn.onClick.AddListener(() => cook.Flip());
                 fbRect.gameObject.AddComponent<Bouncy>();
-                UIKit.Label(fbRect, "뒤집기! [Space]", 0.04f, 0.04f, 0.96f, 0.96f, 26, TextAnchor.MiddleCenter, Color.white);
+                UIKit.Label(fbRect, flipText, 0.04f, 0.04f, 0.96f, 0.96f, 26, TextAnchor.MiddleCenter, Color.white);
             }
             else
             {
-                flipBtn = UIKit.Btn(root, "뒤집기! [Space]", 0.64f, 0.34f, 0.97f, 0.53f, () => cook.Flip(), UIKit.Good, 48);
+                flipBtn = UIKit.Btn(root, flipText, 0.64f, 0.34f, 0.97f, 0.53f, () => cook.Flip(), UIKit.Good, 48);
             }
             flipBtn.gameObject.SetActive(false);
         }
@@ -849,6 +861,7 @@ public class GameFlow : MonoBehaviour
             return;
         }
         if (kb.dKey.wasPressedThisFrame && (scr == Scr.Title || scr == Scr.Day || scr == Scr.Result)) { ShowDex(); return; }
+        if (kb.tKey.wasPressedThisFrame && (scr == Scr.Title || scr == Scr.Result)) { ShowTitles(); return; }
         if (kb.mKey.wasPressedThisFrame && scr == Scr.Day && !guideMeal) { ShowMomRecipes(); return; }
         if (confirm != null && (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame))
         {
@@ -860,13 +873,14 @@ public class GameFlow : MonoBehaviour
 
         int n = DigitPressed(kb);
         bool shift = kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
-        if (scr == Scr.Shop && n >= 1 && n <= Data.All.Length) ChangeCart(Data.All[n - 1], shift ? -1 : 1);
+        if (scr == Scr.Shop && n >= 1 && n <= Data.Active.Length) ChangeCart(Data.Active[n - 1], shift ? -1 : 1);
         else if (scr == Scr.Day && !guideMeal)
         {
             if (n >= 1 && n <= dayList.Count) ToggleIngredient(dayList[n - 1]);
             else if (kb.qKey.wasPressedThisFrame) { selMethod = Method.Grill; ShowDay(); }
             else if (kb.wKey.wasPressedThisFrame) { selMethod = Method.Stirfry; ShowDay(); }
             else if (kb.eKey.wasPressedThisFrame) { selMethod = Method.Boil; ShowDay(); }
+            else if (kb.rKey.wasPressedThisFrame && Data.Unlocked(Method.Fry)) { selMethod = Method.Fry; ShowDay(); }
         }
     }
 
@@ -953,6 +967,8 @@ public class GameFlow : MonoBehaviour
         if (lidImage != null) lidImage.color = cook.bubble ? new Color(1f, 0.6f, 0.4f) : UIKit.Card;
         string warn = cook.bubble ? "거품이 넘친다! 뚜껑을 눌러!"
             : cook.flipAvailable ? "지금 뒤집어야 한다!"
+            : (cook.m.id == Method.Fry && cook.hadSoggy) ? "기름이 식어서 눅눅해졌다..."
+            : (cook.m.id == Method.Fry && cook.AnyInPan && cook.fire == 0) ? "불이 약하다! 기름이 식는다!"
             : (cook.m.id == Method.Stirfry && cook.AnyInPan && !cook.stirring) ? "안 저으면 눌어붙는다!"
             : (cook.m.id == Method.Grill && cook.flipMissed && !cook.flipped) ? "뒤집을 때를 놓쳤다... 한쪽만 익었다"
             : (cook.m.id == Method.Boil && cook.hadOverflow) ? "국이 끓어넘쳤다... 맛이 줄었다"
@@ -968,6 +984,7 @@ public class GameFlow : MonoBehaviour
     {
         return m == Method.Grill ? "뒤집기 버튼이 뜨면 놓치지 말고 바로 뒤집어라."
             : m == Method.Stirfry ? "손 쉬지 말고 계속 저어라. 멈추면 바로 눌어붙어."
+            : m == Method.Fry ? "기름 온도를 유지해라. 약불로 오래 두면 눅눅해져."
             : "거품이 올라오면 뚜껑을 꾹 눌러서 가라앉혀라.";
     }
 
@@ -1013,10 +1030,14 @@ public class GameFlow : MonoBehaviour
         run.dishes.Add(dish);
         bool isNew = !dex.ContainsKey(dish.key);
         if (isNew || dex[dish.key].satisfaction < sat) dex[dish.key] = dish;
+        if (isNew) dexNew.Add(dish.key);
+        SaveDex();
         ShowMeal(dish, isNew);
         DishNamer.Request(this, ings, stages, md.id, name =>
         {
             dish.name = name;
+            Dish saved;
+            if (dex.TryGetValue(dish.key, out saved) && saved == dish) SaveDex(); // AI가 지은 이름이 도착하면 저장 파일도 갱신
             if (mealDish == dish && mealName != null) mealName.text = name; // 아직 그 식사 화면이면 바로 바꾼다
             RefreshDexDetail(dish);
         });
@@ -1127,11 +1148,16 @@ public class GameFlow : MonoBehaviour
             + "남은 재료 " + Mathf.RoundToInt(left) + " (20%)  " + leftover + "개",
             0.40f, 0.52f, 0.97f, 0.84f, 44, TextAnchor.MiddleLeft);
         UIKit.Label(root, DishList(), 0.05f, 0.24f, 0.95f, 0.50f, 34, TextAnchor.UpperLeft);
-        UIKit.Btn(root, "도감 [D]", 0.2f, 0.05f, 0.45f, 0.19f, ShowDex, UIKit.Muted, 40);
+        UIKit.Btn(root, "도감 [D]", 0.2f, 0.05f, 0.35f, 0.19f, ShowDex, UIKit.Muted, 36);
+        UIKit.Btn(root, "칭호 [T]", 0.04f, 0.05f, 0.19f, 0.19f, ShowTitles, UIKit.Muted, 36);
+        var rep = Titles.Representative;
+        UIKit.Label(root, rep == null ? "대표 칭호 없음" : "대표 칭호\n[" + rep.name + "]", 0.36f, 0.05f, 0.51f, 0.19f, 24, TextAnchor.MiddleLeft, UIKit.Muted);
         UIKit.Label(root, "다음 주 예산 " + NextBudget(sat).ToString("N0") + "원 (재료값 +" + Mathf.RoundToInt((Balance.PriceGrowth - 1f) * 100f) + "%)", 0.05f, 0.195f, 0.95f, 0.245f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
         UIKit.Btn(root, "다음 주 [Enter]", 0.52f, 0.05f, 0.85f, 0.19f, NextWeek, UIKit.Good, 40);
         scr = Scr.Result;
         confirm = NextWeek;
+        var gained = Titles.Check(dex.Values.ToList()); // 칭호는 한 주가 끝나는 결산 때 판정한다
+        if (gained.Count > 0) ShowTitleGain(gained);
     }
 
     void ShowFail(string reason)
@@ -1144,6 +1170,8 @@ public class GameFlow : MonoBehaviour
             0.05f, 0.24f, 0.95f, 0.52f, 34, TextAnchor.UpperLeft);
         UIKit.Btn(root, "다시 하기 [Enter]", 0.30f, 0.05f, 0.70f, 0.19f, ShowTitle, UIKit.Good, 48);
         confirm = ShowTitle;
+        var gainedOnFail = Titles.Check(dex.Values.ToList()); // 굶어서 끝나는 결산에서도 판정한다
+        if (gainedOnFail.Count > 0) ShowTitleGain(gainedOnFail);
     }
 
     string DishList()
@@ -1237,17 +1265,17 @@ public class GameFlow : MonoBehaviour
     // 만들 수 있는 모든 조합(재료 1~2개 x 방식 3개)을 칸으로 보여 주고, 만든 것만 채운다.
     // 칸의 key는 요리를 만들 때 쓰는 Dish.key와 같은 규칙이다. 재료 3개 이상으로 만든 요리는 만든 뒤에 칸이 덧붙는다.
     class DexSlot { public string key; public Ingredient[] ings; public Method method; }
-    static List<DexSlot> dexSlots;
 
     static List<DexSlot> DexSlots()
     {
-        if (dexSlots != null) return dexSlots;
-        dexSlots = new List<DexSlot>();
+
+        var dexSlots = new List<DexSlot>(); // 해금된 재료·방식만. 튀김 칸은 해금 후에 나타난다
         var combos = new List<Ingredient[]>();
-        foreach (var a in Data.All) combos.Add(new[] { a });
-        for (int i = 0; i < Data.All.Length; i++)
-            for (int j = i + 1; j < Data.All.Length; j++) combos.Add(new[] { Data.All[i], Data.All[j] });
-        foreach (var md in Data.Methods)
+        var pool = Data.Active;
+        foreach (var a in pool) combos.Add(new[] { a });
+        for (int i = 0; i < pool.Length; i++)
+            for (int j = i + 1; j < pool.Length; j++) combos.Add(new[] { pool[i], pool[j] });
+        foreach (var md in Data.ActiveMethods)
             foreach (var c in combos)
                 dexSlots.Add(new DexSlot
                 {
@@ -1267,6 +1295,113 @@ public class GameFlow : MonoBehaviour
     }
 
     static readonly string[] StageName = { "날것", "덜 익음", "알맞음", "너무 익음", "탐" };
+    // ---------------------------------------------------------------- 칭호
+    // 칭호 목록. 도감 요리로 조건을 채우면 열리고, 하나만 장착한다. 장착은 타이틀·결산 화면에서만 바꿀 수 있다(주가 끝난 뒤).
+    void ShowTitles()
+    {
+        CloseModal();
+        bool canEquip = scr == Scr.Title || scr == Scr.Result;
+        var dishes = dex.Values.ToList();
+        modal = UIKit.Box(canvasRT, "Titles", 0.06f, 0.05f, 0.94f, 0.95f, UIKit.Card, true).gameObject;
+        var m = modal.transform;
+        UIKit.Label(m, "칭호 (" + Titles.EarnedCount + " / " + Titles.All.Length + ")", 0.04f, 0.88f, 0.5f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
+        var rep = Titles.Representative;
+        UIKit.Label(m, rep == null ? "대표 칭호가 없다" : "대표 칭호: [" + rep.name + "]", 0.45f, 0.88f, 0.74f, 0.98f, 30, TextAnchor.MiddleRight, UIKit.Muted);
+        UIKit.Btn(m, "닫기 [Esc]", 0.76f, 0.89f, 0.96f, 0.98f, CloseModal, UIKit.Muted, 34);
+        for (int i = 0; i < Titles.All.Length; i++)
+        {
+            var t = Titles.All[i];
+            bool has = Titles.Has(t.id);
+            float top = 0.86f - i * 0.1f, bot = top - 0.092f;
+            var row = UIKit.Box(m, "Row" + i, 0.03f, bot, 0.97f, top, has ? Color.white : new Color(0.88f, 0.8f, 0.64f), true);
+            UIKit.Label(row, t.name, 0.02f, 0.05f, 0.22f, 0.95f, 34, TextAnchor.MiddleLeft, has ? UIKit.Ink : UIKit.Muted);
+            UIKit.Label(row, t.cond + "\n" + (has ? "달성!" : "진행 " + Titles.ProgressOf(t, dishes)), 0.23f, 0.05f, 0.58f, 0.95f, 24, TextAnchor.MiddleLeft, UIKit.Muted);
+            UIKit.Label(row, "보상: " + t.reward, 0.59f, 0.05f, 0.80f, 0.95f, 24, TextAnchor.MiddleLeft, has && t.reward != "없음" ? UIKit.Good : UIKit.Muted);
+            bool on = Titles.IsRepresentative(t);
+            var tt = t;
+            UIKit.Btn(row, !has ? "잠김" : on ? "해제" : "대표로", 0.82f, 0.12f, 0.98f, 0.88f, () => { Titles.SetRepresentative(tt); ShowTitles(); },
+                on ? UIKit.Bad : UIKit.Good, 30, has && canEquip);
+        }
+        UIKit.Label(m, canEquip ? "대표 칭호는 하나만 고를 수 있다. 다시 누르면 해제된다." : "대표 칭호는 타이틀과 주 결산 화면에서 바꿀 수 있다.", 0.04f, 0.005f, 0.96f, 0.055f, 24, TextAnchor.MiddleCenter, UIKit.Muted);
+    }
+
+    // 결산 때 새로 얻은 칭호를 알린다. "자취 생존자"를 얻으면 튀김 해금도 함께 알린다.
+    void ShowTitleGain(List<TitleDef> gained)
+    {
+        CloseModal();
+        modal = UIKit.Box(canvasRT, "TitleGain", 0.15f, 0.22f, 0.85f, 0.78f, UIKit.Card, true).gameObject;
+        var m = modal.transform;
+        UIKit.Label(m, "칭호 획득!", 0.05f, 0.72f, 0.95f, 0.96f, 80, TextAnchor.MiddleCenter, UIKit.Good);
+        UIKit.Label(m, string.Join("   ", gained.Select(t => "[" + t.name + "]")), 0.05f, 0.46f, 0.95f, 0.72f, 56, TextAnchor.MiddleCenter, UIKit.Accent);
+        bool fry = gained.Any(t => t.id == Titles.Survivor);
+        UIKit.Label(m, fry ? "튀김 해금! 다음 장보기부터 새우가 나오고 튀기기를 고를 수 있다." : "", 0.05f, 0.26f, 0.95f, 0.46f, 34, TextAnchor.MiddleCenter, UIKit.Ink);
+        UIKit.Btn(m, "확인 [Enter]", 0.33f, 0.06f, 0.67f, 0.24f, CloseModal, UIKit.Good, 40);
+    }
+
+    // 도감 저장: 게임을 껐다 켜도 남도록 persistentDataPath/dex.json에 기록한다. 실패해도 게임은 계속된다.
+    [System.Serializable]
+    class DexEntry
+    {
+        public string key, name, note;
+        public int method, satisfaction;
+        public string[] ings;
+        public int[] stages;
+    }
+
+    [System.Serializable]
+    class DexSave
+    {
+        public List<DexEntry> dishes = new List<DexEntry>();
+        public List<string> isNew = new List<string>();
+    }
+
+    static string DexPath { get { return System.IO.Path.Combine(Application.persistentDataPath, "dex.json"); } }
+
+    static void SaveDex()
+    {
+        try
+        {
+            var save = new DexSave();
+            foreach (var d in dex.Values)
+                save.dishes.Add(new DexEntry
+                {
+                    key = d.key, name = d.name, note = d.note,
+                    method = (int)d.method, satisfaction = d.satisfaction,
+                    ings = d.ings.Select(i => i.name).ToArray(),
+                    stages = d.stages == null ? new int[0] : d.stages.Select(s => (int)s).ToArray(),
+                });
+            save.isNew.AddRange(dexNew);
+            System.IO.File.WriteAllText(DexPath, JsonUtility.ToJson(save));
+        }
+        catch (System.Exception e) { Debug.LogWarning("[도감] 저장 실패: " + e.Message); }
+    }
+
+    static void LoadDex()
+    {
+        try
+        {
+            if (!System.IO.File.Exists(DexPath)) return;
+            var save = JsonUtility.FromJson<DexSave>(System.IO.File.ReadAllText(DexPath));
+            if (save == null) return;
+            dex.Clear();
+            dexNew.Clear();
+            foreach (var e in save.dishes)
+            {
+                var ings = e.ings.Select(n => Data.All.FirstOrDefault(i => i.name == n)).Where(i => i != null).ToArray();
+                if (ings.Length == 0 || ings.Length != e.ings.Length) continue; // 재료가 바뀌어 읽을 수 없는 기록은 건너뛴다
+                var d = new Dish
+                {
+                    key = e.key, name = e.name, note = e.note, ings = ings,
+                    method = (Method)e.method, satisfaction = e.satisfaction,
+                    stages = e.stages.Select(s => (Doneness)s).ToArray(),
+                };
+                dex[d.key] = d;
+            }
+            foreach (var k in save.isNew) if (dex.ContainsKey(k)) dexNew.Add(k);
+        }
+        catch (System.Exception e) { Debug.LogWarning("[도감] 불러오기 실패: " + e.Message); }
+    }
+
 
     static string Stars(int sat)
     {
@@ -1365,19 +1500,21 @@ public class GameFlow : MonoBehaviour
 
         // 2줄: 재료 칩(여러 개 고르면 모두 들어간 요리) + 방식 칩
         UIKit.Label(m, "재료", 0.02f, 0.72f, 0.065f, 0.79f, 28, TextAnchor.MiddleCenter, UIKit.Muted);
-        for (int i = 0; i < Data.All.Length; i++)
+        var chipIngs = Data.Active; // 해금 전에는 새우·튀기기 칩이 없다
+        for (int i = 0; i < chipIngs.Length; i++)
         {
-            var ing = Data.All[i];
-            float x = 0.07f + i * 0.095f;
-            DexChip(m, ing.name, x, 0.72f, x + 0.09f, 0.79f, () => dexIngs.Contains(ing),
+            var ing = chipIngs[i];
+            float x = 0.07f + i * 0.08f;
+            DexChip(m, ing.name, x, 0.72f, x + 0.075f, 0.79f, () => dexIngs.Contains(ing),
                 () => { if (!dexIngs.Remove(ing)) dexIngs.Add(ing); });
         }
         UIKit.Label(m, "방식", 0.65f, 0.72f, 0.70f, 0.79f, 28, TextAnchor.MiddleCenter, UIKit.Muted);
-        for (int i = 0; i < Data.Methods.Length; i++)
+        var chipMethods = Data.ActiveMethods;
+        for (int i = 0; i < chipMethods.Length; i++)
         {
-            int mi = i;
-            float x = 0.71f + i * 0.095f;
-            DexChip(m, Data.Methods[i].name, x, 0.72f, x + 0.09f, 0.79f, () => dexMethod == mi, () => dexMethod = dexMethod == mi ? -1 : mi);
+            int mi = (int)chipMethods[i].id;
+            float x = 0.71f + i * 0.072f;
+            DexChip(m, chipMethods[i].name, x, 0.72f, x + 0.068f, 0.79f, () => dexMethod == mi, () => dexMethod = dexMethod == mi ? -1 : mi);
         }
 
         // 스크롤 영역: 5열 그리드
@@ -1466,13 +1603,25 @@ public class GameFlow : MonoBehaviour
         UIKit.Label(card, has ? Stars(d.satisfaction) + "  " + d.satisfaction : method, 0.04f, 0.02f, 0.96f, 0.20f, 30,
             TextAnchor.MiddleCenter, has ? UIKit.Accent : UIKit.Muted);
         if (!has) return;
+        GameObject badge = null;
+        if (dexNew.Contains(s.key)) // 새로 등록된 요리: 카드를 열어 보면 표시가 사라진다
+        {
+            var bg = UIKit.Box(card, "New", 0.60f, 0.88f, 1.0f, 1.0f, UIKit.Bad, true);
+            UIKit.Label(bg, "NEW", 0.05f, 0.05f, 0.95f, 0.95f, 28, TextAnchor.MiddleCenter, Color.white);
+            badge = bg.gameObject;
+        }
         var b = card.gameObject.AddComponent<Button>();
         b.targetGraphic = card.GetComponent<Image>();
         var cb = b.colors;
         cb.highlightedColor = new Color(1f, 0.92f, 0.7f);
         cb.pressedColor = new Color(0.9f, 0.8f, 0.55f);
         b.colors = cb;
-        b.onClick.AddListener(() => ShowDexDetail(d));
+        b.onClick.AddListener(() =>
+        {
+            if (dexNew.Remove(s.key)) SaveDex();
+            if (badge != null) Destroy(badge);
+            ShowDexDetail(d);
+        });
     }
 
     // 도감 상세 팝업. AI 이름이 늦게 오면 RefreshDexDetail이 열려 있는 팝업을 갱신한다.
@@ -1526,7 +1675,7 @@ public class GameFlow : MonoBehaviour
     void ShowMomRecipes()
     {
         CloseModal();
-        var list = Recipes.Suggest(run.inv.Keys, DaysLeft);
+        var list = Recipes.Suggest(run.inv.Keys, DaysLeft, 3, Data.Unlocked);
         modal = UIKit.Box(canvasRT, "MomRecipes", 0.05f, 0.06f, 0.95f, 0.94f, UIKit.Card).gameObject;
         var m = modal.transform;
         UIKit.Label(m, "엄마의 전언", 0.04f, 0.87f, 0.6f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
