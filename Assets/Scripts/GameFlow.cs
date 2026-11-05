@@ -50,7 +50,7 @@ public class GameFlow : MonoBehaviour
     }
 
     // 키보드 조작: 화면마다 Enter/Space로 누를 기본 동작을 정해 둔다.
-    enum Scr { None, Title, Shop, Day, Cook, Meal, Result, Other }
+    enum Scr { None, Title, Lobby, Shop, Day, Cook, Meal, Result, Other }
     Scr scr;
     System.Action confirm;
     readonly List<Ingredient> dayList = new List<Ingredient>();
@@ -229,7 +229,22 @@ public class GameFlow : MonoBehaviour
         cart.Clear();
         sel.Clear();
         selMethod = null;
-        Lobby.Show(root, run, Clear, ShowShop, ShowDex); // 타이틀 다음 로비 (Lobby.cs). [게임 시작]이면 장보기
+        ShowLobby(); // 타이틀 다음 로비
+    }
+
+    // 로비 (Lobby.cs). [게임 시작]이면 장보기. 주가 끝난 뒤 처음 들어올 때 새 칭호·해금을 알린다.
+    readonly List<TitleDef> pendingGain = new List<TitleDef>();
+    void ShowLobby()
+    {
+        Lobby.Show(root, run, Clear, ShowShop, ShowDex, ShowTitles);
+        scr = Scr.Lobby;
+        confirm = ShowShop;
+        if (pendingGain.Count > 0)
+        {
+            var g = new List<TitleDef>(pendingGain);
+            pendingGain.Clear();
+            ShowTitleGain(g);
+        }
     }
 
     // ---------------------------------------------------------------- 장보기
@@ -860,8 +875,8 @@ public class GameFlow : MonoBehaviour
                 kb.spaceKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame || kb.mKey.wasPressedThisFrame) CloseModal();
             return;
         }
-        if (kb.dKey.wasPressedThisFrame && (scr == Scr.Title || scr == Scr.Day || scr == Scr.Result)) { ShowDex(); return; }
-        if (kb.tKey.wasPressedThisFrame && (scr == Scr.Title || scr == Scr.Result)) { ShowTitles(); return; }
+        if (kb.dKey.wasPressedThisFrame && (scr == Scr.Title || scr == Scr.Lobby || scr == Scr.Day || scr == Scr.Result)) { ShowDex(); return; }
+        if (kb.tKey.wasPressedThisFrame && (scr == Scr.Title || scr == Scr.Lobby || scr == Scr.Result)) { ShowTitles(); return; }
         if (kb.mKey.wasPressedThisFrame && scr == Scr.Day && !guideMeal) { ShowMomRecipes(); return; }
         if (confirm != null && (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame))
         {
@@ -1116,7 +1131,7 @@ public class GameFlow : MonoBehaviour
         cart.Clear();
         sel.Clear();
         selMethod = null;
-        ShowShop();
+        ShowLobby(); // 정산 뒤에는 로비로 돌아온다
     }
 
     void NextDay()
@@ -1157,7 +1172,7 @@ public class GameFlow : MonoBehaviour
         scr = Scr.Result;
         confirm = NextWeek;
         var gained = Titles.Check(dex.Values.ToList()); // 칭호는 한 주가 끝나는 결산 때 판정한다
-        if (gained.Count > 0) ShowTitleGain(gained);
+        pendingGain.AddRange(gained); // 알림은 로비에 들어올 때 보여 준다
     }
 
     void ShowFail(string reason)
@@ -1171,7 +1186,7 @@ public class GameFlow : MonoBehaviour
         UIKit.Btn(root, "다시 하기 [Enter]", 0.30f, 0.05f, 0.70f, 0.19f, ShowTitle, UIKit.Good, 48);
         confirm = ShowTitle;
         var gainedOnFail = Titles.Check(dex.Values.ToList()); // 굶어서 끝나는 결산에서도 판정한다
-        if (gainedOnFail.Count > 0) ShowTitleGain(gainedOnFail);
+        pendingGain.AddRange(gainedOnFail);
     }
 
     string DishList()
@@ -1300,7 +1315,7 @@ public class GameFlow : MonoBehaviour
     void ShowTitles()
     {
         CloseModal();
-        bool canEquip = scr == Scr.Title || scr == Scr.Result;
+        bool canEquip = scr == Scr.Title || scr == Scr.Lobby || scr == Scr.Result;
         var dishes = dex.Values.ToList();
         modal = UIKit.Box(canvasRT, "Titles", 0.06f, 0.05f, 0.94f, 0.95f, UIKit.Card, true).gameObject;
         var m = modal.transform;
@@ -1322,7 +1337,7 @@ public class GameFlow : MonoBehaviour
             UIKit.Btn(row, !has ? "잠김" : on ? "해제" : "대표로", 0.82f, 0.12f, 0.98f, 0.88f, () => { Titles.SetRepresentative(tt); ShowTitles(); },
                 on ? UIKit.Bad : UIKit.Good, 30, has && canEquip);
         }
-        UIKit.Label(m, canEquip ? "대표 칭호는 하나만 고를 수 있다. 다시 누르면 해제된다." : "대표 칭호는 타이틀과 주 결산 화면에서 바꿀 수 있다.", 0.04f, 0.005f, 0.96f, 0.055f, 24, TextAnchor.MiddleCenter, UIKit.Muted);
+        UIKit.Label(m, canEquip ? "대표 칭호는 하나만 고를 수 있다. 다시 누르면 해제된다." : "대표 칭호는 타이틀·로비·주 결산 화면에서 바꿀 수 있다.", 0.04f, 0.005f, 0.96f, 0.055f, 24, TextAnchor.MiddleCenter, UIKit.Muted);
     }
 
     // 결산 때 새로 얻은 칭호를 알린다. "자취 생존자"를 얻으면 튀김 해금도 함께 알린다.
