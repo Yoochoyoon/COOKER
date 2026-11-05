@@ -732,6 +732,9 @@ public class GameFlow : MonoBehaviour
             lidImage = lidRect.GetComponent<Image>();
             UIKit.Label(lidRect, "뚜껑 (꾹 누르기)\n또는 Space를 누른 채", 0.05f, 0.05f, 0.95f, 0.95f, cookArt ? 18 : 32);
         }
+        FireFlame.Attach(root, cook, panRect, cookArt); // 불 세기에 따라 크기가 바뀌는 불꽃 (FireFlame.cs)
+        ItemZoom.Attach(root, cook, itemRects, itemDrags); // 팬·냄비 안 재료 크게 보기 (ItemZoom.cs)
+        CookHints.Attach(root, cook, panRect, cookArt); // 뒤집기·뚜껑 타이밍 큰 알림 + 엄마 말풍선 크게 (CookHints.cs)
         CookTools.Attach(root, cook, panRect, cookArt, () => stirTimer = 0.25f); // 뒤집개(굽기·볶기)·뚜껑(끓이기) 도구 (CookTools.cs)
 
         scr = Scr.Cook;
@@ -1096,7 +1099,7 @@ public class GameFlow : MonoBehaviour
         cart.Clear();
         sel.Clear();
         selMethod = null;
-        ShowShop();
+        Lobby.Show(root, run, Clear, ShowShop, ShowDex); // 결산 다음은 로비 (Lobby.cs). [게임 시작]이면 다음 주 장보기
     }
 
     void NextDay()

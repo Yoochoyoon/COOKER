@@ -49,6 +49,7 @@ public class CookTools : MonoBehaviour
     float sayTimer, lidOffTimer;
 
     const float LidOffTime = 1.2f; // 뚜껑을 뗐다가 다시 덮을 때까지
+    const float HeldScale = 1.6f;  // 손에 든 뒤집개 크기 배율
     const float RefW = 1920f, RefH = 1080f; // 기준 해상도 (픽셀로 계산한 뒤 화면 비율로 바꾼다)
 
     void Build(Transform root, bool cookArt)
@@ -67,6 +68,7 @@ public class CookTools : MonoBehaviour
                 c = new Vector2((panRect.anchorMin.x + panRect.anchorMax.x) * 0.5f * RefW, (panRect.anchorMin.y + panRect.anchorMax.y) * 0.5f * RefH);
                 size = Mathf.Min((panRect.anchorMax.x - panRect.anchorMin.x) * RefW, (panRect.anchorMax.y - panRect.anchorMin.y) * RefH) * 0.9f;
             }
+            PotBubbles.Attach(root, cook, c, size * 0.92f); // 끓어넘칠 때 거품 (뚜껑보다 아래에 그린다)
             lidRT = UIKit.Box(root, "LidTool", (c.x - size / 2f) / RefW, (c.y - size / 2f) / RefH, (c.x + size / 2f) / RefW, (c.y + size / 2f) / RefH);
             var fit = UIKit.Box(lidRT, "Fit", 0, 0, 1, 1);
             var f = fit.gameObject.AddComponent<AspectRatioFitter>();
@@ -80,7 +82,7 @@ public class CookTools : MonoBehaviour
             var b = knob.gameObject.AddComponent<Button>();
             b.transition = Selectable.Transition.None;
             b.onClick.AddListener(LiftLid);
-            hint = UIKit.Label(root, "", r.x + 0.005f, r.y, r.z - 0.005f, r.w, cookArt ? 26 : 32, TextAnchor.MiddleCenter, UIKit.Ink);
+            hint = UIKit.Label(root, "", r.x + 0.005f, r.y, r.z - 0.005f, r.w, cookArt ? 32 : 36, TextAnchor.MiddleCenter, UIKit.Ink);
             UIKit.Box(root, "LidNote", r.x, r.y, r.z, r.w, new Color(1f, 0.97f, 0.9f, 0.85f)).SetSiblingIndex(hint.transform.GetSiblingIndex());
             return;
         }
@@ -91,8 +93,9 @@ public class CookTools : MonoBehaviour
 
         restRT = UIKit.Box(root, "ToolRest", r.x, r.y, r.z, r.w, new Color(1f, 0.97f, 0.9f, 0.92f));
         hint = UIKit.Label(restRT, cook.m.id == Method.Stirfry ? "뒤집개를 집어 팬 위에서 휘젓기" : "뒤집개를 집고, 때가 되면 팬 클릭",
-            0.03f, 0.60f, 0.97f, 0.98f, cookArt ? 24 : 30, TextAnchor.MiddleCenter, UIKit.Ink);
-        spatulaRT = UIKit.ToolImage(restRT, "Spatula", UIKit.Spatula(), 0.08f, 0.04f, 0.92f, 0.60f);
+            0.02f, 0.58f, 0.98f, 0.99f, cookArt ? 30 : 34, TextAnchor.MiddleCenter, UIKit.Ink);
+        // 뒤집개는 조리대 칸보다 크게(칸 밖으로 조금 삐져나와도 된다) 그리고, 손에 들면 더 커진다 (Update)
+        spatulaRT = UIKit.ToolImage(restRT, "Spatula", UIKit.Spatula(), -0.04f, -0.30f, 1.04f, 0.66f);
         spatula = spatulaRT.gameObject.AddComponent<ToolHold>();
         spatula.onPickUp = () => blocker.gameObject.SetActive(true);
         spatula.onPutDown = () => blocker.gameObject.SetActive(false);
@@ -157,7 +160,8 @@ public class CookTools : MonoBehaviour
         {
             // 굽기: 뒤집을 때가 오면 뒤집개가 콩콩 뛴다
             bool call = cook.m.id == Method.Grill && cook.flipAvailable && !spatula.IsHeld;
-            spatulaRT.localScale = Vector3.one * (call ? 1f + Mathf.Abs(Mathf.Sin(Time.time * 8f)) * 0.15f : 1f);
+            float held = spatula.IsHeld ? HeldScale : 1f; // 손에 들었을 때는 팬 위에서 잘 보이게 크게
+            spatulaRT.localScale = Vector3.one * held * (call ? 1f + Mathf.Abs(Mathf.Sin(Time.time * 8f)) * 0.15f : 1f);
             if (spatula.IsHeld && cook.m.id == Method.Stirfry && Mouse.current != null && Mouse.current.delta.ReadValue().magnitude < 2f)
                 spatulaRT.localRotation = Quaternion.identity;
             if (sayTimer > 0f) hint.text = sayText;
