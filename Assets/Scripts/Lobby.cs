@@ -26,7 +26,9 @@ public static class Lobby
         UIKit.Label(screen, run.budget.ToString("N0") + "원", 0.55f, 0.63f, 0.93f, 0.75f, 52, TextAnchor.MiddleLeft);
 
         // 후순위 자리: 주인공 캐릭터(머리 위 칭호, 누르면 칭호 목록) · 냉장고 버튼(가진 재료 목록)
-        Placeholder(screen, "주인공 캐릭터 자리\n(칭호 표시 · 준비 중)", 0.05f, 0.24f, 0.47f, 0.57f);
+        // 캐릭터가 생기기 전까지는 대표 칭호를 글자로 보여 준다.
+        var rep = Titles.Representative;
+        Placeholder(screen, "주인공 캐릭터 자리 (준비 중)\n\n대표 칭호: " + (rep == null ? "없음" : "[" + rep.name + "]"), 0.05f, 0.24f, 0.47f, 0.57f);
         Placeholder(screen, "냉장고 버튼 자리\n(가진 재료 · 준비 중)", 0.53f, 0.24f, 0.95f, 0.57f);
 
         UIKit.Btn(screen, "도감 [D]", 0.05f, 0.05f, 0.24f, 0.19f, openDex, UIKit.Muted, 40);
