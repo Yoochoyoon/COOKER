@@ -49,6 +49,7 @@ public class Cook
     }
 
     public float Lo { get { return lo; } }
+    public float StirIdle { get { return stirIdleTime; } } // 볶기: 안 저은 채로 흐른 시간 (화면 경고용)
     public float Hi(CookItem it) { return hi + it.hiBonus; }
 
     public void SetFire(int level) { fire = Mathf.Clamp(level, 0, 2); }
