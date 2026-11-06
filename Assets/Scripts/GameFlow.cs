@@ -236,7 +236,7 @@ public class GameFlow : MonoBehaviour
     readonly List<TitleDef> pendingGain = new List<TitleDef>();
     void ShowLobby()
     {
-        Lobby.Show(root, run, Clear, ShowShop, ShowDex, ShowTitles);
+        Lobby.Show(root, run, Clear, ShowShop, ShowDex, ShowTitles, ShowFridge);
         scr = Scr.Lobby;
         confirm = ShowShop;
         if (pendingGain.Count > 0)
@@ -1341,6 +1341,25 @@ public class GameFlow : MonoBehaviour
     }
 
     // 결산 때 새로 얻은 칭호를 알린다. "자취 생존자"를 얻으면 튀김 해금도 함께 알린다.
+    // 냉장고: 지금 가진 재료와 남은 유통기한 (로비의 냉장고 그림을 누르면)
+    void ShowFridge()
+    {
+        CloseModal();
+        modal = UIKit.Box(canvasRT, "Fridge", 0.25f, 0.15f, 0.75f, 0.85f, UIKit.Card, true).gameObject;
+        var m = modal.transform;
+        UIKit.Label(m, "냉장고", 0.05f, 0.84f, 0.95f, 0.98f, 64, TextAnchor.MiddleCenter, UIKit.Accent);
+        var lines = new List<string>();
+        foreach (var kv in run.inv)
+        {
+            if (kv.Value <= 0) continue;
+            int last;
+            string left = run.expire.TryGetValue(kv.Key, out last) ? (Mathf.Max(0, last - run.Abs + 1) + "일 남음") : "";
+            lines.Add(kv.Key.name + " × " + kv.Value + "   " + left);
+        }
+        UIKit.Label(m, lines.Count == 0 ? "텅 비었다.\n장보기에서 재료를 사 오자." : string.Join("\n", lines), 0.08f, 0.2f, 0.92f, 0.82f, 44, TextAnchor.MiddleCenter, UIKit.Ink);
+        UIKit.Btn(m, "닫기", 0.33f, 0.04f, 0.67f, 0.18f, CloseModal, UIKit.Muted, 40);
+    }
+
     void ShowTitleGain(List<TitleDef> gained)
     {
         CloseModal();
@@ -1659,13 +1678,12 @@ public class GameFlow : MonoBehaviour
 
         string ings = string.Join(", ", d.ings.Select((i, k) =>
             i.name + (d.stages != null && k < d.stages.Length ? "(" + StageName[(int)d.stages[k]] + ")" : "")).ToArray());
-        UIKit.Label(card, "재료  " + ings, 0.48f, 0.72f, 0.96f, 0.80f, 32, TextAnchor.MiddleLeft);
-        UIKit.Label(card, "방식  " + Data.GetMethod(d.method).name, 0.48f, 0.65f, 0.96f, 0.72f, 32, TextAnchor.MiddleLeft);
-        // 레시피: 엄마의 전언과 같은 요령 문구
-        var steps = Recipes.Steps(d.ings, d.method);
+        UIKit.Label(card, "재료  " + ings + "   |   방식  " + Data.GetMethod(d.method).name, 0.48f, 0.74f, 0.96f, 0.81f, 30, TextAnchor.MiddleLeft);
+        // 레시피: 실제로 이 요리를 만드는 순서 (게임 요령은 엄마의 전언에서)
+        var steps = Recipes.Real(d.ings, d.method);
         var sb = new System.Text.StringBuilder("레시피\n");
         for (int k = 0; k < steps.Length; k++) sb.Append(k + 1).Append(". ").Append(steps[k]).Append('\n');
-        UIKit.Label(card, sb.ToString().TrimEnd(), 0.48f, 0.30f, 0.96f, 0.65f, 28, TextAnchor.UpperLeft, UIKit.Muted);
+        UIKit.Label(card, sb.ToString().TrimEnd(), 0.48f, 0.30f, 0.96f, 0.74f, 28, TextAnchor.UpperLeft, UIKit.Muted);
         UIKit.Label(card, "최고 만족도  " + d.satisfaction + "   " + Stars(d.satisfaction), 0.48f, 0.19f, 0.96f, 0.30f, 38, TextAnchor.MiddleLeft, UIKit.Accent);
         if (!string.IsNullOrEmpty(d.note)) UIKit.Label(card, d.note, 0.04f, 0.08f, 0.62f, 0.18f, 28, TextAnchor.MiddleLeft, UIKit.Bad);
         UIKit.Btn(card, "닫기 [Esc]", 0.70f, 0.04f, 0.96f, 0.16f, CloseDexDetail, UIKit.Muted, 34);

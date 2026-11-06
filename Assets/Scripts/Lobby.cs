@@ -1,44 +1,109 @@
 using System;
 using UnityEngine;
+using UnityEngine.UI;
 
-// 로비: 한 판의 거점 화면 (docs/17). 타이틀 다음에 뜨고, [게임 시작]을 누르면 장보기로 간다.
-// 지금은 구성만 있다: 현재 일차, 보유 금액, 도감 버튼, 게임 시작 버튼. 디자인은 나중에 입힌다.
-// 주인공 캐릭터(칭호 표시)와 냉장고 버튼은 후순위라 자리만 비워 둔다.
-// GameFlow는 화면 지우기·장보기·도감·칭호를 넘겨주기만 하고, 로비 화면 내용은 이 파일에서 그린다.
+// 로비: 한 판의 거점 화면 (docs/17, docs/18). 타이틀 다음, 그리고 한 주 정산이 끝날 때마다 돌아온다.
+// 디자인 시안(이미지요소/로비화면/로비_전체화면.png)의 위치 그대로 그림 조각을 올린다.
+//   배경 → 냉장고(재료 보관함 버튼) → 캐릭터(칭호 버튼) → 책상 → 칭호 표시 → 주차·금액 → 도감 · 게임 시작
+// 그림(Resources/Art/lobby_*.png)이 없으면 글자만 있는 기본 화면으로 보인다.
+// GameFlow는 화면 지우기·장보기·도감·칭호·냉장고를 넘겨주기만 하고, 로비 화면 내용은 이 파일에서 그린다.
 // 키보드(Enter/Space 시작, D 도감, T 칭호)는 GameFlow의 공통 메뉴 키 처리(Scr.Lobby)가 맡는다.
 public static class Lobby
 {
-    // root: 화면을 그릴 곳, run: 진행 중인 판(일차·예산을 읽는다), clear: 이전 화면 지우기
-    public static void Show(Transform root, Run run, Action clear, Action startGame, Action openDex, Action openTitles)
+    const float RefW = 1920f, RefH = 1080f; // 시안 크기. 아래 위치는 모두 이 크기의 픽셀 (왼쪽 위가 0,0)
+    static readonly Color Brown = new Color(0.29f, 0.2f, 0.17f);
+
+    // root: 화면을 그릴 곳, run: 진행 중인 판(주차·예산을 읽는다), clear: 이전 화면 지우기
+    public static void Show(Transform root, Run run, Action clear, Action startGame, Action openDex, Action openTitles, Action openFridge)
     {
         clear();
         var screen = UIKit.Box(root, "Lobby", 0, 0, 1, 1);
 
-        UIKit.Label(screen, "로비", 0.03f, 0.86f, 0.5f, 0.98f, 72, TextAnchor.MiddleLeft, UIKit.Accent);
+        // 창 비율이 16:9가 아니어도 시안과 똑같이 보이도록, 16:9 영역 안에 놓는다
+        var fit = UIKit.Box(screen, "Stage", 0, 0, 1, 1);
+        var f = fit.gameObject.AddComponent<AspectRatioFitter>();
+        f.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+        f.aspectRatio = RefW / RefH;
 
-        // 현재 일차 / 보유 금액 (새 게임 직전이면 1일 차와 시작 예산)
-        UIKit.Box(screen, "DayCard", 0.05f, 0.62f, 0.47f, 0.82f, UIKit.Card);
-        UIKit.Label(screen, "현재 일차", 0.07f, 0.75f, 0.45f, 0.81f, 32, TextAnchor.MiddleLeft, UIKit.Muted);
-        UIKit.Label(screen, run.week + "주차 " + run.day + "일 차  (총 " + run.Abs + "일 차)", 0.07f, 0.63f, 0.45f, 0.75f, 52, TextAnchor.MiddleLeft);
+        if (Art.Load("lobby_bg") == null) { Fallback(screen, run, startGame, openDex, openTitles, openFridge); return; }
 
-        UIKit.Box(screen, "MoneyCard", 0.53f, 0.62f, 0.95f, 0.82f, UIKit.Card);
-        UIKit.Label(screen, "보유 금액", 0.55f, 0.75f, 0.93f, 0.81f, 32, TextAnchor.MiddleLeft, UIKit.Muted);
-        UIKit.Label(screen, run.budget.ToString("N0") + "원", 0.55f, 0.63f, 0.93f, 0.75f, 52, TextAnchor.MiddleLeft);
+        Piece(fit, "Bg", "lobby_bg", 0, 0, RefW, RefH, null);
+        Piece(fit, "Fridge", "lobby_fridge", 1091, 146, 716, 934, openFridge);
+        Piece(fit, "Character", "lobby_character", 150, 242, 917, 838, openTitles);
+        Piece(fit, "Desk", "lobby_desk", 0, 945, 1835, 135, null);
 
-        // 후순위 자리: 주인공 캐릭터(머리 위 칭호, 누르면 칭호 목록) · 냉장고 버튼(가진 재료 목록)
-        // 캐릭터가 생기기 전까지는 대표 칭호를 글자로 보여 준다.
+        // 대표 칭호: 캐릭터 머리 위. 눌러도 칭호 목록이 열린다
         var rep = Titles.Representative;
-        Placeholder(screen, "주인공 캐릭터 자리 (준비 중)\n\n대표 칭호: " + (rep == null ? "없음" : "[" + rep.name + "]"), 0.05f, 0.24f, 0.47f, 0.57f);
-        Placeholder(screen, "냉장고 버튼 자리\n(가진 재료 · 준비 중)", 0.53f, 0.24f, 0.95f, 0.57f);
+        Piece(fit, "TitleTag", "lobby_titletag", 481, 177, 295, 119, openTitles);
+        var tag = Text(fit, rep == null ? "칭호 없음" : rep.name, 541, 210, 175, 66, 44, Color.white, TextAnchor.MiddleCenter);
+        var o = tag.gameObject.AddComponent<Outline>();
+        o.effectColor = new Color(0.78f, 0.36f, 0.27f);
+        o.effectDistance = new Vector2(3f, -3f);
 
-        UIKit.Btn(screen, "도감 [D]", 0.05f, 0.05f, 0.24f, 0.19f, openDex, UIKit.Muted, 40);
-        UIKit.Btn(screen, "칭호 [T]", 0.27f, 0.05f, 0.46f, 0.19f, openTitles, UIKit.Muted, 40);
-        UIKit.Btn(screen, "게임 시작 [Enter]", 0.55f, 0.05f, 0.95f, 0.19f, startGame, UIKit.Good, 48);
+        // 현재 주차 / 보유 금액 (새 게임 직전이면 1주차와 시작 예산)
+        Piece(fit, "WeekCard", "lobby_day", 40, 30, 276, 109, null);
+        Text(fit, run.week + "주차", 140, 36, 170, 96, 56, Brown, TextAnchor.MiddleLeft);
+        Piece(fit, "MoneyCard", "lobby_money", 1555, 30, 333, 109, null);
+        Text(fit, run.budget.ToString("N0"), 1645, 36, 225, 96, 56, Brown, TextAnchor.MiddleLeft);
+
+        Piece(fit, "Dex", "lobby_dex", 36, 852, 380, 207, openDex);
+        Piece(fit, "Start", "lobby_start", 1316, 868, 557, 155, startGame);
     }
 
-    static void Placeholder(Transform parent, string text, float x0, float y0, float x1, float y1)
+    // 시안 픽셀(왼쪽 위 기준)을 화면 비율로 바꿔 상자를 만든다
+    static RectTransform Rect(Transform parent, string name, float x, float y, float w, float h)
     {
-        UIKit.Box(parent, "Slot", x0, y0, x1, y1, new Color(1f, 1f, 1f, 0.35f), false);
-        UIKit.Label(parent, text, x0, y0, x1, y1, 34, TextAnchor.MiddleCenter, UIKit.Muted);
+        return UIKit.Box(parent, name, x / RefW, 1f - (y + h) / RefH, (x + w) / RefW, 1f - y / RefH);
+    }
+
+    // 그림 조각 하나. onClick이 있으면 누를 수 있다 (올리면 살짝 어두워진다)
+    static void Piece(Transform parent, string name, string file, float x, float y, float w, float h, Action onClick)
+    {
+        var s = Art.Load(file);
+        if (s == null) return;
+        var rt = Rect(parent, name, x, y, w, h);
+        var img = rt.gameObject.AddComponent<Image>();
+        img.sprite = s;
+        img.raycastTarget = onClick != null;
+        if (onClick == null) return;
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = img;
+        b.transition = Selectable.Transition.None; // 효과는 LobbyHover가 준다 (확대 + 눌림)
+        b.onClick.AddListener(() => onClick());
+        var hv = rt.gameObject.AddComponent<LobbyHover>();
+        hv.img = img;
+        hv.hoverScale = w * h > 300000f ? 1.025f : 1.08f; // 큰 그림(캐릭터·냉장고)은 살짝만
+    }
+
+    static Text Text(Transform parent, string text, float x, float y, float w, float h, int size, Color color, TextAnchor anchor)
+    {
+        var rt = Rect(parent, "Text", x, y, w, h);
+        var t = rt.gameObject.AddComponent<Text>();
+        t.font = UIKit.GetFont();
+        t.text = text;
+        t.fontSize = size;
+        t.alignment = anchor;
+        t.color = color;
+        t.resizeTextForBestFit = true;
+        t.resizeTextMinSize = 12;
+        t.resizeTextMaxSize = size;
+        t.horizontalOverflow = HorizontalWrapMode.Wrap;
+        t.verticalOverflow = VerticalWrapMode.Truncate;
+        t.raycastTarget = false;
+        return t;
+    }
+
+    // 그림이 아직 없을 때: 글자만 있는 화면 (아래 Fallback)
+    static void Fallback(Transform screen, Run run, Action startGame, Action openDex, Action openTitles, Action openFridge)
+    {
+        UIKit.Label(screen, "로비", 0.03f, 0.86f, 0.5f, 0.98f, 72, TextAnchor.MiddleLeft, UIKit.Accent);
+        UIKit.Box(screen, "DayCard", 0.05f, 0.62f, 0.47f, 0.82f, UIKit.Card);
+        UIKit.Label(screen, run.week + "주차 " + run.day + "일 차", 0.07f, 0.63f, 0.45f, 0.81f, 52, TextAnchor.MiddleLeft);
+        UIKit.Box(screen, "MoneyCard", 0.53f, 0.62f, 0.95f, 0.82f, UIKit.Card);
+        UIKit.Label(screen, run.budget.ToString("N0") + "원", 0.55f, 0.63f, 0.93f, 0.81f, 52, TextAnchor.MiddleLeft);
+        UIKit.Btn(screen, "도감 [D]", 0.05f, 0.05f, 0.24f, 0.19f, openDex, UIKit.Muted, 40);
+        UIKit.Btn(screen, "칭호 [T]", 0.27f, 0.05f, 0.46f, 0.19f, openTitles, UIKit.Muted, 40);
+        UIKit.Btn(screen, "냉장고", 0.27f, 0.24f, 0.46f, 0.34f, openFridge, UIKit.Muted, 40);
+        UIKit.Btn(screen, "게임 시작 [Enter]", 0.55f, 0.05f, 0.95f, 0.19f, startGame, UIKit.Good, 48);
     }
 }

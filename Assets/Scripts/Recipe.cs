@@ -129,4 +129,77 @@ public static class Recipes
         s.Add("게이지가 주황색일 때 바로 꺼내기! 빨개지면 늦은 거다.");
         return s.ToArray();
     }
+
+    // ---- 진짜 레시피 (도감 상세): 실제로 이 요리를 만들 때 하는 순서. 게임 요령(Steps)과는 다르다.
+    // 재료 손질 → 조리 → 간 → 담기. 재료·방식 조합마다 손질과 조리 문장을 이어 붙인다.
+    static string Prep(string ing, Method m)
+    {
+        switch (ing)
+        {
+            case "감자":
+                return m == Method.Grill ? "감자는 껍질을 벗겨 0.5cm 두께로 썰고, 찬물에 5분 담가 전분기를 뺀 뒤 물기를 닦는다."
+                    : m == Method.Fry ? "감자는 껍질을 벗겨 길쭉하게 썰고, 찬물에 담가 전분기를 뺀 뒤 물기를 완전히 닦는다."
+                    : "감자는 껍질을 벗겨 한입 크기로 깍둑썬다.";
+            case "두부":
+                return m == Method.Boil ? "두부는 큼직하게 깍둑썬다."
+                    : m == Method.Fry ? "두부는 한입 크기로 썰어 물기를 빼고 전분가루를 얇게 묻힌다."
+                    : "두부는 1cm 두께로 썰어 키친타월로 물기를 꼼꼼히 닦고 소금을 살짝 뿌린다.";
+            case "양파":
+                return m == Method.Boil ? "양파는 큼직하게 썬다."
+                    : m == Method.Fry ? "양파는 1cm 두께로 둥글게 썰어 튀김가루를 묻힌다."
+                    : "양파는 껍질을 벗겨 0.5cm 두께로 채 썬다.";
+            case "달걀":
+                return m == Method.Stirfry ? "달걀은 그릇에 풀어 소금을 한 꼬집 넣는다." : "달걀은 껍데기 조각이 안 들어가게 깨서 그릇에 담아 둔다.";
+            case "김치":
+                return m == Method.Boil ? "김치는 한입 크기로 썬다." : "김치는 송송 썰어 국물을 살짝 짠다.";
+            case "돼지고기":
+                return m == Method.Fry ? "돼지고기는 방망이로 두들겨 얇게 펴고 소금·후추로 밑간한 뒤, 밀가루 → 달걀물 → 빵가루 순서로 입힌다."
+                    : m == Method.Stirfry ? "돼지고기는 얇게 썰어 간장 1숟가락과 후추로 10분 재운다."
+                    : "돼지고기는 1cm 두께로 썰어 소금·후추로 밑간한다.";
+            case "새우":
+                return "새우는 껍질과 내장을 빼고 소금·후추로 밑간한 뒤, 튀김옷(튀김가루+찬물)을 입힌다.";
+        }
+        return ing + "을(를) 먹기 좋게 손질한다.";
+    }
+
+    // 실제 요리 레시피. 한 줄에 한 단계.
+    public static string[] Real(Ingredient[] c, Method m)
+    {
+        var s = new List<string>();
+        foreach (var i in c) s.Add(Prep(i.name, m));
+
+        bool egg = c.Any(i => i.name == "달걀"), kimchi = c.Any(i => i.name == "김치");
+        var slow = c.OrderBy(i => i.speedMod).First();   // 늦게 익는 재료는 먼저 넣는다
+        var fast = c.OrderBy(i => i.speedMod).Last();
+        bool order = c.Length == 2 && Math.Abs(slow.speedMod - fast.speedMod) >= 0.2f;
+        string orderTip = order ? " " + J(slow.name, "을", "를") + " 먼저 넣고 " + J(fast.name, "은", "는") + " 조금 뒤에 넣는다." : "";
+
+        switch (m)
+        {
+            case Method.Grill:
+                s.Add("팬에 식용유를 얇게 두르고 중불로 달군다. 재료를 올려 한쪽 면이 노릇해지면(2~3분) 뒤집어 반대쪽도 굽는다." + orderTip);
+                s.Add("소금이나 후추로 간을 맞춘다.");
+                break;
+            case Method.Stirfry:
+                if (egg)
+                {
+                    s.Add("팬에 기름을 두르고 중불에서 " + (c.Length == 2 ? J(c.First(i => i.name != "달걀").name, "을", "를") + " 먼저 볶는다. 반쯤 익으면 " : "") + "달걀물을 부어 젓가락으로 저으며 몽글하게 익힌다.");
+                }
+                else s.Add("팬을 센 불로 달궈 기름을 두르고, 재료를 넣어 쉬지 않고 저으며 2~3분 볶는다." + orderTip);
+                s.Add(kimchi ? "김치가 들어가 간이 되니, 싱거우면 설탕 한 꼬집과 참기름을 넣는다." : "간장 1숟가락이나 소금으로 간하고 불을 끈다.");
+                break;
+            case Method.Boil:
+                if (kimchi) s.Add("냄비에 참기름 한 숟가락을 두르고 김치를 2분 먼저 볶아 신맛을 눌러 준다.");
+                s.Add("냄비에 물 2컵(약 400ml)을 붓고 끓으면 재료를 넣어 중불에서 8~10분 끓인다." + orderTip + " 끓어넘치면 뚜껑을 열거나 불을 줄인다.");
+                s.Add(kimchi ? "김치 국물로 간이 되니 싱거울 때만 소금을 더한다." : "국간장이나 소금으로 간을 맞춘다.");
+                break;
+            case Method.Fry:
+                s.Add("냄비에 기름을 재료가 잠길 만큼(3~4cm) 붓고 170~180℃로 달군다. 튀김옷을 떨어뜨려 바로 떠오르면 알맞다.");
+                s.Add("재료를 하나씩 넣어 노릇해질 때까지 3~4분 튀긴다. 한꺼번에 많이 넣으면 기름이 식으니 나눠서 튀긴다." + orderTip);
+                s.Add("건져서 기름을 빼고 소금을 살짝 뿌린다.");
+                break;
+        }
+        s.Add("접시에 담아 뜨거울 때 먹는다.");
+        return s.ToArray();
+    }
 }
