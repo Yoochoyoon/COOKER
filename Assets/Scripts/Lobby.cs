@@ -35,7 +35,7 @@ public static class Lobby
         // 대표 칭호: 캐릭터 머리 위. 눌러도 칭호 목록이 열린다
         var rep = Titles.Representative;
         Piece(fit, "TitleTag", "lobby_titletag", 481, 177, 295, 119, openTitles);
-        var tag = Text(fit, rep == null ? "칭호 없음" : rep.name, 541, 210, 175, 66, 44, Color.white, TextAnchor.MiddleCenter);
+        var tag = Text(fit, rep == null ? "칭호 없음" : rep.name, 541, 226, 175, 62, 42, Color.white, TextAnchor.MiddleCenter);
         tagText = tag;
         var o = tag.gameObject.AddComponent<Outline>();
         o.effectColor = new Color(0.78f, 0.36f, 0.27f);
@@ -44,11 +44,20 @@ public static class Lobby
         // 현재 주차 / 보유 금액 (새 게임 직전이면 1주차와 시작 예산)
         Piece(fit, "WeekCard", "lobby_day", 40, 30, 276, 109, null);
         Text(fit, run.week + "주차", 140, 36, 170, 96, 56, Brown, TextAnchor.MiddleLeft);
-        Piece(fit, "MoneyCard", "lobby_money", 1555, 30, 333, 109, null);
-        Text(fit, run.budget.ToString("N0"), 1645, 36, 225, 96, 56, Brown, TextAnchor.MiddleLeft);
+        // 금액 칸: 오른쪽 끝(1888)을 고정하고, 금액 글자 길이에 맞춰 왼쪽으로 늘어난다 (동전 그림이 있는 왼쪽 100px과 오른쪽 여백은 그대로)
+        string money = run.budget.ToString("N0");
+        float textW = 0f;
+        foreach (char ch in money) textW += ch == ',' ? 16f : 32f; // 글자 크기 56에서 숫자·쉼표의 대략 너비
+        float cardW = Mathf.Max(260f, 100f + textW + 34f);
+        float cardX = 1888f - cardW;
+        var moneyCard = Piece(fit, "MoneyCard", "lobby_money", cardX, 30, cardW, 109, null);
+        if (moneyCard != null) moneyCard.GetComponent<Image>().type = Image.Type.Sliced;
+        Text(fit, money, cardX + 100f, 36, cardW - 100f - 24f, 96, 56, Brown, TextAnchor.MiddleLeft);
 
         Piece(fit, "Dex", "lobby_dex", 36, 852, 380, 207, openDex);
-        Piece(fit, "Start", "lobby_start", 1316, 868, 557, 155, startGame);
+        // 게임 시작: 글자 없는 버튼 그림(lobby_start) 위에 코드로 글자를 올린다. 같은 그림·글자 모양을 다른 화면의 주요 버튼도 쓴다 (UIKit.PrimaryBtn)
+        var start = Piece(fit, "Start", "lobby_start", 1316, 868, 557, 155, startGame);
+        if (start != null) UIKit.PrimaryLabel(start, "게임 시작", 72, true);
     }
 
     static Text tagText; // 캐릭터 머리 위 대표 칭호 글자
@@ -68,15 +77,15 @@ public static class Lobby
     }
 
     // 그림 조각 하나. onClick이 있으면 누를 수 있다 (올리면 살짝 어두워진다)
-    static void Piece(Transform parent, string name, string file, float x, float y, float w, float h, Action onClick)
+    static RectTransform Piece(Transform parent, string name, string file, float x, float y, float w, float h, Action onClick)
     {
         var s = Art.Load(file);
-        if (s == null) return;
+        if (s == null) return null;
         var rt = Rect(parent, name, x, y, w, h);
         var img = rt.gameObject.AddComponent<Image>();
         img.sprite = s;
         img.raycastTarget = onClick != null;
-        if (onClick == null) return;
+        if (onClick == null) return rt;
         var b = rt.gameObject.AddComponent<Button>();
         b.targetGraphic = img;
         b.transition = Selectable.Transition.None; // 효과는 LobbyHover가 준다 (확대 + 눌림)
@@ -85,10 +94,11 @@ public static class Lobby
         if (w * h > 300000f)
         {
             rt.gameObject.AddComponent<HoverScale>(); // 큰 그림(캐릭터·냉장고)은 올리면 아주 살짝 커지는 것뿐
-            return;
+            return rt;
         }
         rt.gameObject.AddComponent<LobbyHover>().img = img;
         rt.gameObject.AddComponent<PressDown>().depth = 5f;
+        return rt;
     }
 
     static Text Text(Transform parent, string text, float x, float y, float w, float h, int size, Color color, TextAnchor anchor)

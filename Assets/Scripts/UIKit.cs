@@ -7,13 +7,13 @@ using UnityEngine.UI;
 // 게임 느낌: 둥근 모서리 + 진한 외곽선 + 아래 그림자, 버튼은 눌리는 두께와 마우스 반응이 있다.
 public static class UIKit
 {
-    public static readonly Color Bg = new Color(1f, 0.82f, 0.36f);
-    public static readonly Color Ink = new Color(0.23f, 0.12f, 0.06f);
-    public static readonly Color Accent = new Color(0.91f, 0.35f, 0.05f);
-    public static readonly Color Card = new Color(1f, 0.95f, 0.8f);
-    public static readonly Color Muted = new Color(0.62f, 0.45f, 0.3f);
-    public static readonly Color Good = new Color(0.12f, 0.55f, 0.2f);
-    public static readonly Color Bad = new Color(0.8f, 0.1f, 0.1f);
+    public static readonly Color Bg = new Color(0.976f, 0.863f, 0.827f);   // 팔레트 A (파스텔 핑크): 로비·장보기 그림과 같은 톤
+    public static readonly Color Ink = new Color(0.29f, 0.173f, 0.165f);
+    public static readonly Color Accent = new Color(0.914f, 0.408f, 0.31f);
+    public static readonly Color Card = new Color(1f, 0.965f, 0.925f);
+    public static readonly Color Muted = new Color(0.651f, 0.486f, 0.427f);
+    public static readonly Color Good = new Color(0.357f, 0.655f, 0.478f);
+    public static readonly Color Bad = new Color(0.851f, 0.325f, 0.31f);
 
     // 게임 글씨는 주아체(Assets/Resources/Fonts, OFL 라이선스). 파일이 없으면 OS 폰트로 대신한다.
     static Font font;
@@ -456,6 +456,86 @@ public static class UIKit
         if (onClick != null) b.onClick.AddListener(() => onClick());
         b.interactable = enabled;
         rt.gameObject.AddComponent<PressDown>().depth = 4f; // 효과는 눌렀을 때 살짝 내려앉는 것뿐 (커지고 줄어드는 반응은 없다)
+        return b;
+    }
+
+    // 아이콘 버튼: 버튼 안에 흰색 아이콘(Resources/Art/icon_*.png)을 넣는다. text가 있으면 아이콘 오른쪽에 글자도 같이 쓴다.
+    // 아이콘 그림이 없으면 글자(없으면 빈칸) 버튼으로 대신한다.
+    public static Button IconBtn(Transform parent, string icon, string text, float x0, float y0, float x1, float y1, Action onClick,
+        Color? bg = null, int size = 30, bool enabled = true)
+    {
+        var sprite = Art.Load(icon);
+        bool hasText = !string.IsNullOrEmpty(text);
+        var b = Btn(parent, sprite == null || hasText ? text : "", x0, y0, x1, y1, onClick, bg, size, enabled);
+        if (sprite == null) return b;
+        var rt = (RectTransform)b.transform;
+        var ir = Box(rt, "Icon", hasText ? 0.06f : 0.16f, 0.14f, hasText ? 0.30f : 0.84f, 0.86f);
+        var img = ir.gameObject.AddComponent<Image>();
+        img.sprite = sprite;
+        img.preserveAspect = true;
+        img.raycastTarget = false;
+        img.color = enabled ? Color.white : new Color(1f, 1f, 1f, 0.6f);
+        if (hasText)
+        {
+            var label = b.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                var lr = label.rectTransform;
+                lr.anchorMin = new Vector2(0.30f, 0.08f);
+                lr.anchorMax = new Vector2(0.96f, 0.92f);
+                lr.offsetMin = Vector2.zero; lr.offsetMax = Vector2.zero;
+            }
+        }
+        return b;
+    }
+
+    // 주요 버튼의 글자 모양 (로비 "게임 시작" 원본 그림의 글자를 본뜬 것): 흰 글자 + 갈색 주황 테두리 + 아래로 옅은 그림자
+    public static Text PrimaryLabel(Transform parent, string text, int size, bool enabled = true)
+    {
+        var rt = Box(parent, "Label", 0.07f, 0.10f, 0.93f, 0.90f);
+        var t = rt.gameObject.AddComponent<Text>();
+        t.font = GetFont();
+        t.text = text;
+        t.fontSize = size;
+        t.alignment = TextAnchor.MiddleCenter;
+        t.color = enabled ? Color.white : new Color(1f, 1f, 1f, 0.7f);
+        t.resizeTextForBestFit = true;
+        t.resizeTextMinSize = 12;
+        t.resizeTextMaxSize = size;
+        t.horizontalOverflow = HorizontalWrapMode.Wrap;
+        t.verticalOverflow = VerticalWrapMode.Truncate;
+        t.raycastTarget = false;
+        var o = rt.gameObject.AddComponent<Outline>();
+        o.effectColor = enabled ? new Color(0.76f, 0.42f, 0.17f) : new Color(0.7f, 0.55f, 0.42f);
+        o.effectDistance = new Vector2(Mathf.Max(3f, size * 0.05f), Mathf.Max(3f, size * 0.05f));
+        var sh = rt.gameObject.AddComponent<Shadow>();
+        sh.effectColor = new Color(0.45f, 0.22f, 0.05f, 0.28f);
+        sh.effectDistance = new Vector2(0f, -Mathf.Max(4f, size * 0.07f));
+        return t;
+    }
+
+    // 주요 버튼(조리 시작·구매 확정·다음 날 같은 "다음으로 가는" 버튼): 글자 없는 버튼 그림(lobby_start)을 늘려 쓰고 글자는 코드로 올린다.
+    // 그림이 없으면 일반 버튼으로 대신한다. 못 누르는 상태는 그림이 연해진다.
+    public static Button PrimaryBtn(Transform parent, string text, float x0, float y0, float x1, float y1, Action onClick, int size = 44, bool enabled = true)
+    {
+        var s = Art.Load("lobby_start");
+        if (s == null) return Btn(parent, text, x0, y0, x1, y1, onClick, Good, size, enabled);
+        var rt = Box(parent, "Btn_" + text, x0, y0, x1, y1);
+        var img = rt.gameObject.AddComponent<Image>();
+        img.sprite = s;
+        img.type = Image.Type.Sliced; // 모서리는 그대로, 가운데만 늘어난다
+        img.color = enabled ? Color.white : new Color(0.72f, 0.72f, 0.72f, 0.65f);
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = img;
+        b.transition = Selectable.Transition.None;
+        if (onClick != null) b.onClick.AddListener(() => onClick());
+        b.interactable = enabled;
+        if (enabled)
+        {
+            rt.gameObject.AddComponent<LobbyHover>().img = img;
+            rt.gameObject.AddComponent<PressDown>().depth = 5f;
+        }
+        PrimaryLabel(rt, text, size, enabled);
         return b;
     }
 
