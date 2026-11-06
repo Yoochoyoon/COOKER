@@ -27,6 +27,8 @@
 *.VC.db
 
 # Build outputs
+# API 키 파일은 어디에 있든 절대 올리지 않는다 (빌드할 때 빌드 폴더에도 복사된다)
+CookerApiKeys.txt
 *.apk
 *.aab
 *.unitypackage

@@ -325,7 +325,9 @@ public static class DishPhoto
         return sb.Append('"').ToString();
     }
 
-    // API 키: 환경 변수, 또는 키 파일(에디터: UserSettings/CookerApiKeys.txt, 빌드: persistentDataPath/CookerApiKeys.txt)의 "이름=값" 줄
+    // API 키: 환경 변수, 또는 키 파일의 "이름=값" 줄.
+    // 에디터: 프로젝트의 UserSettings/CookerApiKeys.txt / 빌드: 실행 파일 옆 UserSettings/CookerApiKeys.txt
+    // (빌드할 때 Editor/CopyApiKeysOnBuild.cs가 자동으로 복사한다) 또는 persistentDataPath/CookerApiKeys.txt
     static Dictionary<string, string> fileKeys;
     public static string Setting(string name)
     {
