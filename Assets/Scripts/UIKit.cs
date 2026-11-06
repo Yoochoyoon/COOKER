@@ -417,34 +417,65 @@ public static class UIKit
         return t;
     }
 
+    // 버튼. 기본은 장보기 시안 스타일(색 바탕 + 아래로 두꺼운 그림자, 눌리면 내려앉고, 못 누르면 연하게).
+    // classic이 true면 예전 스타일(외곽선 + 글자 테두리)이다. 로비·타이틀처럼 그림으로 꾸민 화면의 대체 버튼이 쓴다.
     public static Button Btn(Transform parent, string text, float x0, float y0, float x1, float y1, Action onClick,
-        Color? bg = null, int size = 44, bool enabled = true)
+        Color? bg = null, int size = 44, bool enabled = true, bool classic = false)
     {
         var c = bg ?? Accent;
+        if (!classic && !enabled) c = new Color(c.r, c.g, c.b, 0.35f); // 못 누르는 버튼은 35% 투명
         var rt = Box(parent, "Btn_" + text, x0, y0, x1, y1, c, false);
-        // 버튼 두께: 아래로 진한 같은 색 그림자 + 외곽선
-        var lip = rt.gameObject.AddComponent<Shadow>();
-        lip.effectColor = Darker(c, 0.6f);
-        lip.effectDistance = new Vector2(0f, -9f);
-        var o = rt.gameObject.AddComponent<Outline>();
-        o.effectColor = Ink;
-        o.effectDistance = new Vector2(3f, 3f);
+        if (classic || enabled)
+        {
+            // 버튼 두께: 아래로 진한 같은 색 그림자
+            var lip = rt.gameObject.AddComponent<Shadow>();
+            lip.effectColor = Darker(c, classic ? 0.6f : 0.62f);
+            lip.effectDistance = new Vector2(0f, classic ? -9f : -7f);
+        }
+        if (classic)
+        {
+            var o = rt.gameObject.AddComponent<Outline>();
+            o.effectColor = Ink;
+            o.effectDistance = new Vector2(3f, 3f);
+        }
 
         var b = rt.gameObject.AddComponent<Button>();
         b.targetGraphic = rt.GetComponent<Image>();
         var cb = b.colors;
         cb.highlightedColor = new Color(1f, 1f, 1f, 1f);
         cb.pressedColor = new Color(0.85f, 0.85f, 0.85f, 1f);
-        cb.disabledColor = new Color(0.6f, 0.6f, 0.6f, 0.6f);
+        cb.disabledColor = classic ? new Color(0.6f, 0.6f, 0.6f, 0.6f) : Color.white; // 새 스타일은 색에 이미 35%가 들어 있다
         b.colors = cb;
-        var label = Label(rt, text, 0.05f, 0.08f, 0.95f, 0.92f, size, TextAnchor.MiddleCenter, Color.white);
-        var to = label.gameObject.AddComponent<Outline>();
-        to.effectColor = new Color(Ink.r, Ink.g, Ink.b, 0.8f);
-        to.effectDistance = new Vector2(2f, 2f);
+        var label = Label(rt, text, 0.05f, 0.08f, 0.95f, 0.92f, size, TextAnchor.MiddleCenter, !classic && !enabled ? new Color(1f, 1f, 1f, 0.4f) : Color.white);
+        if (classic)
+        {
+            var to = label.gameObject.AddComponent<Outline>();
+            to.effectColor = new Color(Ink.r, Ink.g, Ink.b, 0.8f);
+            to.effectDistance = new Vector2(2f, 2f);
+        }
         if (onClick != null) b.onClick.AddListener(() => onClick());
         b.interactable = enabled;
-        rt.gameObject.AddComponent<Bouncy>();
+        rt.gameObject.AddComponent<PressDown>().depth = 4f; // 효과는 눌렀을 때 살짝 내려앉는 것뿐 (커지고 줄어드는 반응은 없다)
         return b;
+    }
+
+    // 도감 버튼: 로비의 도감 그림(lobby_dex.png)을 어디서나 쓴다. 그림 비율(380x207)에 맞춰 높이가 정해진다.
+    // x0,y0은 왼쪽 아래 모서리, w는 화면 너비에 대한 비율. 그림이 없으면 글자 버튼으로 대신한다.
+    public static void DexBtn(Transform parent, float x0, float y0, float w, Action onClick)
+    {
+        var s = Art.Load("lobby_dex");
+        float h = w * (1920f / 1080f) / (380f / 207f);
+        if (s == null) { Btn(parent, "도감 [D]", x0, y0, x0 + w, y0 + h, onClick, Muted, 36); return; }
+        var rt = Box(parent, "DexBtn", x0, y0, x0 + w, y0 + h);
+        var img = rt.gameObject.AddComponent<Image>();
+        img.sprite = s;
+        img.preserveAspect = true;
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = img;
+        b.transition = Selectable.Transition.None;
+        b.onClick.AddListener(() => onClick());
+        rt.gameObject.AddComponent<LobbyHover>().img = img;
+        rt.gameObject.AddComponent<PressDown>().depth = 5f;
     }
 
     // 투명한 클릭 영역 (그림에 이미 그려진 버튼 위에 놓는다). 마우스를 올리면 살짝 밝아진다.

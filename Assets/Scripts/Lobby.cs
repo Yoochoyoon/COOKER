@@ -36,6 +36,7 @@ public static class Lobby
         var rep = Titles.Representative;
         Piece(fit, "TitleTag", "lobby_titletag", 481, 177, 295, 119, openTitles);
         var tag = Text(fit, rep == null ? "칭호 없음" : rep.name, 541, 210, 175, 66, 44, Color.white, TextAnchor.MiddleCenter);
+        tagText = tag;
         var o = tag.gameObject.AddComponent<Outline>();
         o.effectColor = new Color(0.78f, 0.36f, 0.27f);
         o.effectDistance = new Vector2(3f, -3f);
@@ -48,6 +49,16 @@ public static class Lobby
 
         Piece(fit, "Dex", "lobby_dex", 36, 852, 380, 207, openDex);
         Piece(fit, "Start", "lobby_start", 1316, 868, 557, 155, startGame);
+    }
+
+    static Text tagText; // 캐릭터 머리 위 대표 칭호 글자
+
+    // 로비 위에서 대표 칭호를 바꿨을 때 뒤에 있는 로비 글자를 새로 고친다
+    public static void RefreshTitle()
+    {
+        if (tagText == null) return;
+        var rep = Titles.Representative;
+        tagText.text = rep == null ? "칭호 없음" : rep.name;
     }
 
     // 시안 픽셀(왼쪽 위 기준)을 화면 비율로 바꿔 상자를 만든다
@@ -70,9 +81,14 @@ public static class Lobby
         b.targetGraphic = img;
         b.transition = Selectable.Transition.None; // 효과는 LobbyHover가 준다 (확대 + 눌림)
         b.onClick.AddListener(() => onClick());
-        var hv = rt.gameObject.AddComponent<LobbyHover>();
-        hv.img = img;
-        hv.hoverScale = w * h > 300000f ? 1.025f : 1.08f; // 큰 그림(캐릭터·냉장고)은 살짝만
+        b.transition = Selectable.Transition.None;
+        if (w * h > 300000f)
+        {
+            rt.gameObject.AddComponent<HoverScale>(); // 큰 그림(캐릭터·냉장고)은 올리면 아주 살짝 커지는 것뿐
+            return;
+        }
+        rt.gameObject.AddComponent<LobbyHover>().img = img;
+        rt.gameObject.AddComponent<PressDown>().depth = 5f;
     }
 
     static Text Text(Transform parent, string text, float x, float y, float w, float h, int size, Color color, TextAnchor anchor)
@@ -101,9 +117,9 @@ public static class Lobby
         UIKit.Label(screen, run.week + "주차 " + run.day + "일 차", 0.07f, 0.63f, 0.45f, 0.81f, 52, TextAnchor.MiddleLeft);
         UIKit.Box(screen, "MoneyCard", 0.53f, 0.62f, 0.95f, 0.82f, UIKit.Card);
         UIKit.Label(screen, run.budget.ToString("N0") + "원", 0.55f, 0.63f, 0.93f, 0.81f, 52, TextAnchor.MiddleLeft);
-        UIKit.Btn(screen, "도감 [D]", 0.05f, 0.05f, 0.24f, 0.19f, openDex, UIKit.Muted, 40);
-        UIKit.Btn(screen, "칭호 [T]", 0.27f, 0.05f, 0.46f, 0.19f, openTitles, UIKit.Muted, 40);
-        UIKit.Btn(screen, "냉장고", 0.27f, 0.24f, 0.46f, 0.34f, openFridge, UIKit.Muted, 40);
-        UIKit.Btn(screen, "게임 시작 [Enter]", 0.55f, 0.05f, 0.95f, 0.19f, startGame, UIKit.Good, 48);
+        UIKit.Btn(screen, "도감 [D]", 0.05f, 0.05f, 0.24f, 0.19f, openDex, UIKit.Muted, 40, true, true);
+        UIKit.Btn(screen, "칭호 [T]", 0.27f, 0.05f, 0.46f, 0.19f, openTitles, UIKit.Muted, 40, true, true);
+        UIKit.Btn(screen, "냉장고", 0.27f, 0.24f, 0.46f, 0.34f, openFridge, UIKit.Muted, 40, true, true);
+        UIKit.Btn(screen, "게임 시작 [Enter]", 0.55f, 0.05f, 0.95f, 0.19f, startGame, UIKit.Good, 48, true, true);
     }
 }

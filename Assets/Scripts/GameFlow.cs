@@ -115,6 +115,9 @@ public class GameFlow : MonoBehaviour
         bgImg.enabled = false;
         root = UIKit.Box(canvasRT, "Screen", 0, 0, 1, 1);
         flyLayer = UIKit.Box(canvasRT, "Fly", 0, 0, 1, 1); // 화면이 다시 그려져도 남는, 날아가는 재료용 층
+        // 어디서든 로비로 돌아가는 버튼. 화면이 바뀌어도 남아 있고, 판 도중 화면에서만 보인다 (Update)
+        lobbyBtn = UIKit.Btn(canvasRT, "로비", 0.925f, 0.92f, 0.995f, 0.995f, GoLobby, UIKit.Accent, 30).gameObject;
+        lobbyBtn.SetActive(false);
 
         if (FindFirstObjectByType<EventSystem>() == null)
         {
@@ -176,16 +179,12 @@ public class GameFlow : MonoBehaviour
             // 두 그림이 겹치므로 눌리는 영역은 글자 높이에서 위아래로 나눈다.
             TitleHit(area, "StartHit", 0.23f, 0.2667f, 0.78f, 0.4208f, startImg, StartRun);
             TitleHit(area, "ExitHit", 0.26f, 0.09f, 0.775f, 0.2667f, exitImg, Quit);
-            UIKit.Btn(root, "도감 [D]", 0.03f, 0.03f, 0.17f, 0.11f, ShowDex, UIKit.Muted, 30);
-            UIKit.Btn(root, "칭호 [T]", 0.18f, 0.03f, 0.32f, 0.11f, ShowTitles, UIKit.Muted, 30);
         }
         else
         {
             UIKit.Label(root, "COOKER", 0.1f, 0.58f, 0.9f, 0.88f, 150, TextAnchor.MiddleCenter, UIKit.Accent);
             UIKit.Label(root, "일주일치 장바구니로 최대한 오래 버텨라", 0.1f, 0.46f, 0.9f, 0.58f, 54);
-            UIKit.Btn(root, "시작  [Enter]", 0.35f, 0.26f, 0.65f, 0.40f, StartRun);
-            UIKit.Btn(root, "도감  [D]", 0.35f, 0.10f, 0.65f, 0.22f, ShowDex, UIKit.Muted, 40);
-            UIKit.Btn(root, "칭호  [T]", 0.68f, 0.10f, 0.90f, 0.22f, ShowTitles, UIKit.Muted, 40);
+            UIKit.Btn(root, "시작  [Enter]", 0.35f, 0.26f, 0.65f, 0.40f, StartRun, null, 44, true, true);
         }
         scr = Scr.Title;
         confirm = StartRun;
@@ -248,6 +247,11 @@ public class GameFlow : MonoBehaviour
     }
 
     // ---------------------------------------------------------------- 장보기
+    // 장보기 왼쪽 패널 색 (시안 HTML: 노란 카드 #fef08a, 갈색 #451a03, 주황 #ea580c)
+    static readonly Color ShopYellow = new Color(0.996f, 0.941f, 0.541f);
+    static readonly Color ShopBrown = new Color(0.27f, 0.10f, 0.01f);
+    static readonly Color ShopOrange = new Color(0.918f, 0.345f, 0.047f);
+
     void ShowShop()
     {
         Clear();
@@ -257,19 +261,23 @@ public class GameFlow : MonoBehaviour
         int units = cart.Values.Sum();
         int left = run.budget - spent;
 
-        // 왼쪽: 장보기 표
-        UIKit.Box(root, "Panel", 0.02f, 0.03f, 0.545f, 0.97f, new Color(1f, 0.88f, 0.45f, 0.97f));
-        UIKit.Label(root, run.week + "주차 장보기", 0.04f, 0.88f, 0.30f, 0.96f, 52, TextAnchor.MiddleLeft, UIKit.Accent);
-        UIKit.Label(root, "남은 예산 " + left.ToString("N0") + "원", 0.30f, 0.88f, 0.525f, 0.96f, 44, TextAnchor.MiddleRight);
+        // 왼쪽: 장보기 표 (노란 메뉴 카드 + 연한 줄 카드. 색은 장보기 시안 HTML을 따른다)
+        var shopCard = UIKit.Box(root, "Panel", 0.02f, 0.03f, 0.545f, 0.97f, ShopYellow);
+        shopCard.GetComponent<Outline>().effectColor = ShopBrown;
+        shopCard.GetComponent<Outline>().effectDistance = new Vector2(4f, 4f);
+        UIKit.Label(root, run.week + "주차 장보기", 0.04f, 0.88f, 0.30f, 0.96f, 52, TextAnchor.MiddleLeft, ShopOrange);
+        UIKit.Label(root, "남은 예산 <color=#ea580c>" + left.ToString("N0") + "원</color>", 0.30f, 0.88f, 0.525f, 0.96f, 44, TextAnchor.MiddleRight, ShopBrown);
         UIKit.Label(root, run.week == 1 ? "6끼분 담기 · 첫날 달걀은 무료" : "7끼분 채우기 · 이월 재료 있음, 가격 인상",
-            0.04f, 0.825f, 0.525f, 0.875f, 28, TextAnchor.MiddleLeft, UIKit.Ink);
+            0.04f, 0.825f, 0.525f, 0.875f, 28, TextAnchor.MiddleLeft, new Color(0.47f, 0.21f, 0.06f, 0.85f));
         UIKit.Label(root, "1~" + Data.Active.Length + " 담기 · Shift+1~" + Data.Active.Length + " 빼기 · Enter 확정",
-            0.04f, 0.785f, 0.525f, 0.822f, 20, TextAnchor.MiddleLeft, UIKit.Muted);
+            0.04f, 0.785f, 0.525f, 0.822f, 20, TextAnchor.MiddleLeft, new Color(0.57f, 0.25f, 0.05f, 0.6f));
 
-        UIKit.Label(root, "재료", 0.10f, 0.725f, 0.235f, 0.785f, 30, TextAnchor.MiddleLeft, UIKit.Muted);
-        UIKit.Label(root, "가격", 0.235f, 0.725f, 0.325f, 0.785f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
-        UIKit.Label(root, "유통기한", 0.325f, 0.725f, 0.395f, 0.785f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
-        UIKit.Label(root, "수량", 0.405f, 0.725f, 0.525f, 0.785f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
+        Color head = new Color(0.47f, 0.21f, 0.06f, 0.75f);
+        UIKit.Label(root, "재료", 0.10f, 0.725f, 0.235f, 0.785f, 30, TextAnchor.MiddleLeft, head);
+        UIKit.Label(root, "가격", 0.235f, 0.725f, 0.325f, 0.785f, 30, TextAnchor.MiddleCenter, head);
+        UIKit.Label(root, "유통기한", 0.325f, 0.725f, 0.395f, 0.785f, 30, TextAnchor.MiddleCenter, head);
+        UIKit.Label(root, "수량", 0.405f, 0.725f, 0.525f, 0.785f, 30, TextAnchor.MiddleCenter, head);
+        UIKit.Box(root, "HeadLine", 0.035f, 0.722f, 0.53f, 0.726f, new Color(0.99f, 0.83f, 0.3f, 0.7f), false); // 표 머리글 아래 줄
 
         var shopList = Data.Active; // 해금 전에는 새우가 상점에 나오지 않는다
         for (int r = 0; r < shopList.Length; r++)
@@ -277,27 +285,70 @@ public class GameFlow : MonoBehaviour
             var ing = shopList[r];
             float top = RowTop(r);
             float bot = top - (RowStep - 0.01f);
-            UIKit.Box(root, "Row", 0.035f, bot, 0.53f, top, UIKit.Card, false);
+            var rowBox = UIKit.Box(root, "Row", 0.035f, bot, 0.53f, top, new Color(1f, 0.98f, 0.92f), false);
+            var rowLine = rowBox.gameObject.AddComponent<Outline>(); // 연한 테두리
+            rowLine.effectColor = new Color(0.99f, 0.95f, 0.78f);
+            rowLine.effectDistance = new Vector2(2f, 2f);
             int qty;
             cart.TryGetValue(ing, out qty);
             int own;
             run.inv.TryGetValue(ing, out own);
             SetIcon(UIKit.Box(root, "Icon", 0.045f, bot + 0.008f, 0.095f, top - 0.008f).gameObject.AddComponent<Image>(), ing);
-            UIKit.Label(root, "[" + (r + 1) + "] " + ing.name + (own > 0 ? " (보유 " + own + ")" : ""), 0.10f, bot, 0.235f, top, 34, TextAnchor.MiddleLeft);
-            UIKit.Label(root, Price(ing).ToString("N0") + "원", 0.235f, bot, 0.325f, top, 34);
-            UIKit.Label(root, ing.shelf + "일", 0.325f, bot, 0.395f, top, 34);
-            UIKit.Btn(root, "-", 0.405f, bot + 0.012f, 0.445f, top - 0.012f, () => ChangeCart(ing, -1), UIKit.Muted, 44, qty > 0);
-            UIKit.Label(root, qty.ToString(), 0.445f, bot, 0.485f, top, 38);
-            UIKit.Btn(root, "+", 0.485f, bot + 0.012f, 0.525f, top - 0.012f, () => ChangeCart(ing, 1), UIKit.Accent, 44, Price(ing) <= left);
+            UIKit.Label(root, "<color=#78350fb3><size=24>[" + (r + 1) + "]</size></color> " + ing.name + (own > 0 ? " <color=#047857><size=24>보유 " + own + "개</size></color>" : ""),
+                0.10f, bot, 0.235f, top, 34, TextAnchor.MiddleLeft, ShopBrown);
+            UIKit.Label(root, Price(ing).ToString("N0") + "원", 0.235f, bot, 0.325f, top, 34, TextAnchor.MiddleCenter, ShopBrown);
+            UIKit.Label(root, ing.shelf + "일", 0.325f, bot, 0.395f, top, 34, TextAnchor.MiddleCenter, new Color(0.47f, 0.21f, 0.06f, 0.85f));
+            ShopBtn("−", 0.405f, bot + 0.012f, 0.445f, top - 0.012f, () => ChangeCart(ing, -1), new Color(0.267f, 0.2f, 0.161f), new Color(0.149f, 0.11f, 0.086f),
+                new Color(0.996f, 0.953f, 0.78f), 44, qty > 0, 5f);
+            UIKit.Label(root, qty.ToString(), 0.445f, bot, 0.485f, top, 38, TextAnchor.MiddleCenter, qty > 0 ? ShopOrange : ShopBrown);
+            ShopBtn("+", 0.485f, bot + 0.012f, 0.525f, top - 0.012f, () => ChangeCart(ing, 1), new Color(0.902f, 0.318f, 0f), new Color(0.604f, 0.204f, 0.071f),
+                Color.white, 44, Price(ing) <= left, 5f);
         }
 
-        UIKit.Label(root, "담은 재료 " + units + "개", 0.04f, 0.04f, 0.25f, 0.16f, 38, TextAnchor.MiddleLeft);
+        UIKit.Box(root, "FootLine", 0.035f, 0.172f, 0.53f, 0.176f, new Color(0.99f, 0.83f, 0.3f, 0.6f), false); // 아래 영역 구분선
+        UIKit.Label(root, "담은 재료 <color=#ea580c>" + units + "</color>개", 0.04f, 0.04f, 0.25f, 0.16f, 38, TextAnchor.MiddleLeft, ShopBrown);
         bool ok = units >= Need();
-        UIKit.Btn(root, ok ? "구매 확정  [Enter]" : "최소 " + Need() + "개 필요", 0.27f, 0.05f, 0.525f, 0.15f, ConfirmShop, UIKit.Good, 40, ok);
+        // 확정 가능: 밝은 초록 / 아직 못 누름: 어두운 초록 + 연두 글자 (시안과 같은 색)
+        var confirmBtn = ShopBtn(ok ? "구매 확정  [Enter]" : "최소 " + Need() + "개 필요", 0.27f, 0.05f, 0.525f, 0.15f, ConfirmShop,
+            ok ? new Color(0.086f, 0.639f, 0.29f) : new Color(0.078f, 0.325f, 0.176f), new Color(0.02f, 0.18f, 0.086f),
+            ok ? Color.white : new Color(0.525f, 0.937f, 0.675f), 40, true, 8f, ok ? new Color(0.078f, 0.325f, 0.176f) : new Color(0.02f, 0.18f, 0.086f));
+        confirmBtn.interactable = ok;
 
         DrawBasket();
         scr = Scr.Shop;
         confirm = ok ? (System.Action)ConfirmShop : null;
+    }
+
+    // 장보기 시안의 버튼: 색 바탕 + 아래로 두꺼운 그림자(눌리면 내려앉는다). enabled가 false면 연하게(투명 35%) 보이고 그림자도 없다.
+    Button ShopBtn(string text, float x0, float y0, float x1, float y1, System.Action onClick, Color bg, Color lip, Color textColor,
+        int size, bool enabled, float lipDepth, Color? border = null)
+    {
+        var rt = UIKit.Box(root, "Btn_" + text, x0, y0, x1, y1, enabled ? bg : new Color(bg.r, bg.g, bg.b, 0.35f), false);
+        if (enabled)
+        {
+            var sh = rt.gameObject.AddComponent<Shadow>();
+            sh.effectColor = lip;
+            sh.effectDistance = new Vector2(0f, -lipDepth);
+        }
+        if (border.HasValue)
+        {
+            var o = rt.gameObject.AddComponent<Outline>();
+            o.effectColor = border.Value;
+            o.effectDistance = new Vector2(3f, 3f);
+        }
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = rt.GetComponent<Image>();
+        var cb = b.colors;
+        cb.highlightedColor = new Color(1.0f, 1.0f, 1.0f);
+        cb.pressedColor = new Color(0.9f, 0.9f, 0.9f);
+        cb.disabledColor = Color.white;
+        b.colors = cb;
+        b.interactable = enabled;
+        b.onClick.AddListener(() => onClick());
+        rt.gameObject.AddComponent<PressDown>().depth = lipDepth * 0.6f;
+        var tc = enabled ? textColor : new Color(textColor.r, textColor.g, textColor.b, 0.35f);
+        UIKit.Label(rt, text, 0.04f, 0.04f, 0.96f, 0.96f, size, TextAnchor.MiddleCenter, tc);
+        return b;
     }
 
     // ---- 장바구니 연출
@@ -418,7 +469,13 @@ public class GameFlow : MonoBehaviour
     // 이번 주 재료 가격: 매주 오른다
     int Price(Ingredient i) { return Mathf.RoundToInt(i.price * Mathf.Pow(Balance.PriceGrowth, run.week - 1) / 10f) * 10; }
     // 이번 주 장보기에서 최소로 담아야 하는 개수. 이월된 재료만큼 줄어든다.
-    int Need() { return run.week == 1 ? Balance.MinUnits : Mathf.Max(0, Balance.Days - run.inv.Values.Sum()); }
+    // 주를 취소하고 돌아온 경우(돈을 이미 썼을 수 있다)에도 막히지 않게, 살 수 있는 만큼으로 줄인다.
+    int Need()
+    {
+        int need = Mathf.Max(0, (run.week == 1 ? Balance.MinUnits : Balance.Days) - run.inv.Values.Sum());
+        int cheapest = Data.Active.Min(i => Price(i));
+        return Mathf.Min(need, run.budget / Mathf.Max(1, cheapest));
+    }
 
     void ChangeCart(Ingredient ing, int delta)
     {
@@ -492,7 +549,7 @@ public class GameFlow : MonoBehaviour
 
         Clear();
         UIKit.Label(root, run.week + "주차 " + run.day + "일차 / " + Balance.Days + "일", 0.03f, 0.88f, 0.55f, 0.98f, 56, TextAnchor.MiddleLeft, UIKit.Accent);
-        UIKit.Label(root, "비상 라면 " + (Balance.Lifelines - run.strikes) + "/" + Balance.Lifelines + "   먹은 끼니 " + run.dishes.Count + "개", 0.55f, 0.88f, 0.97f, 0.98f, 40, TextAnchor.MiddleRight);
+        UIKit.Label(root, "비상 라면 " + (Balance.Lifelines - run.strikes) + "/" + Balance.Lifelines + "   먹은 끼니 " + run.dishes.Count + "개", 0.50f, 0.88f, 0.915f, 0.98f, 40, TextAnchor.MiddleRight);
 
         // 왼쪽: 식탁(보유 재료) -> 도마(요리할 재료). 끌어다 놓아서 고르고, 도마에서 식탁으로 끌어 빼낸다
         UIKit.Tablecloth(root, 0.03f, 0.25f, 0.50f, 0.87f);
@@ -560,7 +617,7 @@ public class GameFlow : MonoBehaviour
         string summary = sel.Count == 0 ? "재료를 골라 주세요" : string.Join(" + ", sel.Select(i => i.name));
         summary += selMethod.HasValue ? "  /  " + Data.GetMethod(selMethod.Value).name : "  /  방식을 골라 주세요";
         UIKit.Label(root, summary, 0.03f, 0.07f, 0.55f, 0.20f, 40, TextAnchor.MiddleLeft);
-        UIKit.Btn(root, "도감 [D]", 0.57f, 0.07f, 0.70f, 0.20f, ShowDex, UIKit.Muted, 30);
+        UIKit.DexBtn(root, 0.57f, 0.07f, 0.13f, ShowDex);
         bool canCook = sel.Count > 0 && selMethod.HasValue;
         UIKit.Btn(root, "조리 시작 [Enter]", 0.72f, 0.05f, 0.97f, 0.22f, StartCook, UIKit.Good, 40, canCook);
         scr = Scr.Day;
@@ -643,9 +700,9 @@ public class GameFlow : MonoBehaviour
 
         if (cookArt)
         {
-            UIKit.Box(root, "TopNote", 0.185f, 0.83f, 0.975f, 0.98f, new Color(1f, 0.97f, 0.9f, 0.92f)); // 배경 그림 위에서도 글자가 읽히게
-            UIKit.Label(root, md.name + " 중", 0.20f, 0.905f, 0.97f, 0.975f, 40, TextAnchor.MiddleLeft, UIKit.Accent);
-            UIKit.Label(root, (guideMeal ? "[첫날 가이드] " : "") + md.guide + "  (모두 꺼내기 [Enter])", 0.20f, 0.84f, 0.97f, 0.90f, 20, TextAnchor.MiddleLeft, new Color(0.3f, 0.2f, 0.1f));
+            UIKit.Box(root, "TopNote", 0.185f, 0.83f, 0.915f, 0.98f, new Color(1f, 0.97f, 0.9f, 0.92f)); // 배경 그림 위에서도 글자가 읽히게 (오른쪽 끝은 로비 버튼 자리)
+            UIKit.Label(root, md.name + " 중", 0.20f, 0.905f, 0.905f, 0.975f, 40, TextAnchor.MiddleLeft, UIKit.Accent);
+            UIKit.Label(root, (guideMeal ? "[첫날 가이드] " : "") + md.guide + "  (모두 꺼내기 [Enter])", 0.20f, 0.84f, 0.905f, 0.90f, 20, TextAnchor.MiddleLeft, new Color(0.3f, 0.2f, 0.1f));
 
             panRect = UIKit.Box(root, "Pan", 0.056f, 0.247f, 0.500f, 0.975f);
             trayRect = UIKit.Box(root, "Tray", 0.576f, 0.602f, 0.971f, 0.977f);
@@ -875,8 +932,8 @@ public class GameFlow : MonoBehaviour
                 kb.spaceKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame || kb.mKey.wasPressedThisFrame) CloseModal();
             return;
         }
-        if (kb.dKey.wasPressedThisFrame && (scr == Scr.Title || scr == Scr.Lobby || scr == Scr.Day || scr == Scr.Result)) { ShowDex(); return; }
-        if (kb.tKey.wasPressedThisFrame && (scr == Scr.Title || scr == Scr.Lobby || scr == Scr.Result)) { ShowTitles(); return; }
+        if (kb.dKey.wasPressedThisFrame && (scr == Scr.Lobby || scr == Scr.Day || scr == Scr.Result)) { ShowDex(); return; }
+        if (kb.tKey.wasPressedThisFrame && (scr == Scr.Lobby || scr == Scr.Result)) { ShowTitles(); return; }
         if (kb.mKey.wasPressedThisFrame && scr == Scr.Day && !guideMeal) { ShowMomRecipes(); return; }
         if (confirm != null && (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame))
         {
@@ -899,12 +956,54 @@ public class GameFlow : MonoBehaviour
         }
     }
 
+    // 로비 버튼: 판 도중(장보기·하루 선택·조리·식사)에만 보이고, 팝업이 열려 있으면 숨긴다.
+    // 누르면 바로 가지 않고 확인 창을 띄운다. 가기로 하면 이번 주차가 취소된다 (CancelWeekToLobby).
+    GameObject lobbyBtn;
+
+    void GoLobby()
+    {
+        if (scr != Scr.Shop && scr != Scr.Day && scr != Scr.Cook && scr != Scr.Meal) return;
+        CloseModal();
+        bool cooking = cook != null && !guideMeal;
+        modal = UIKit.Box(canvasRT, "ConfirmLobby", 0, 0, 1, 1, new Color(0f, 0f, 0f, 0.55f), false).gameObject; // 뒤의 화면을 못 누르게 막는다
+        var card = UIKit.Box(modal.transform, "Card", 0.22f, 0.25f, 0.78f, 0.75f, UIKit.Card);
+        UIKit.Label(card, "로비로 갈까요?", 0.05f, 0.74f, 0.95f, 0.96f, 64, TextAnchor.MiddleCenter, UIKit.Bad);
+        UIKit.Label(card, run.week + "주차 진행이 <b>취소</b>되고 1일 차부터 다시 시작한다.\n지금까지 쓴 돈과 재료는 되돌려 받지 못한다."
+            + (cooking ? "\n<color=#c0392b>지금 조리 중인 재료도 복구되지 않는다.</color>" : ""),
+            0.06f, 0.32f, 0.94f, 0.74f, 34, TextAnchor.MiddleCenter, UIKit.Ink);
+        UIKit.Btn(card, "계속 하기 [Esc]", 0.06f, 0.07f, 0.48f, 0.27f, CloseModal, UIKit.Muted, 36);
+        UIKit.Btn(card, "로비로 가기", 0.52f, 0.07f, 0.94f, 0.27f, CancelWeekToLobby, UIKit.Bad, 36);
+    }
+
+    // 주차 취소: 이번 주 진행(일차·먹은 요리·비상 라면·장바구니)을 처음으로 돌린다.
+    // 쓴 돈과 가진 재료는 그대로이고, 조리 중이던 재료는 사라진다(첫날 가이드는 공짜라 제외).
+    void CancelWeekToLobby()
+    {
+        CloseModal();
+        if (cook != null && !guideMeal) Consume(cook.items.Select(it => it.ing).ToArray());
+        run.day = 1;
+        run.strikes = 0;
+        run.dishes.Clear();
+        cart.Clear();
+        flyingIn.Clear();
+        sel.Clear();
+        selMethod = null;
+        ShowLobby();
+    }
+
     void Update()
     {
         var kb = Keyboard.current;
+        if (lobbyBtn != null)
+            lobbyBtn.SetActive((scr == Scr.Shop || scr == Scr.Day || scr == Scr.Cook || scr == Scr.Meal) && modal == null && dexDetail == null);
         if (cook == null)
         {
             if (kb != null) HandleMenuKeys(kb);
+            return;
+        }
+        if (modal != null) // 확인 창이 떠 있는 동안 조리는 멈춘다
+        {
+            if (kb != null && kb.escapeKey.wasPressedThisFrame) CloseModal();
             return;
         }
         if (!cook.finished) // [꺼내기] 버튼은 finished만 켜므로, 아래 FinishCook은 항상 한 번 실행된다
@@ -1163,7 +1262,7 @@ public class GameFlow : MonoBehaviour
             + "남은 재료 " + Mathf.RoundToInt(left) + " (20%)  " + leftover + "개",
             0.40f, 0.52f, 0.97f, 0.84f, 44, TextAnchor.MiddleLeft);
         UIKit.Label(root, DishList(), 0.05f, 0.24f, 0.95f, 0.50f, 34, TextAnchor.UpperLeft);
-        UIKit.Btn(root, "도감 [D]", 0.2f, 0.05f, 0.35f, 0.19f, ShowDex, UIKit.Muted, 36);
+        UIKit.DexBtn(root, 0.2f, 0.05f, 0.15f, ShowDex);
         UIKit.Btn(root, "칭호 [T]", 0.04f, 0.05f, 0.19f, 0.19f, ShowTitles, UIKit.Muted, 36);
         var rep = Titles.Representative;
         UIKit.Label(root, rep == null ? "대표 칭호 없음" : "대표 칭호\n[" + rep.name + "]", 0.36f, 0.05f, 0.51f, 0.19f, 24, TextAnchor.MiddleLeft, UIKit.Muted);
@@ -1319,25 +1418,29 @@ public class GameFlow : MonoBehaviour
         var dishes = dex.Values.ToList();
         modal = UIKit.Box(canvasRT, "Titles", 0.06f, 0.05f, 0.94f, 0.95f, UIKit.Card, true).gameObject;
         var m = modal.transform;
-        UIKit.Label(m, "칭호 (" + Titles.EarnedCount + " / " + Titles.All.Length + ")", 0.04f, 0.88f, 0.5f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
+        // 아직 해금되지 않은 튀김 관련 칭호는 목록에 보이지 않는다
+        var shownTitles = Titles.All.Where(t => t.id != "frypro" || Data.Unlocked(Method.Fry)).ToArray();
+        UIKit.Label(m, "칭호 (" + Titles.EarnedCount + " / " + shownTitles.Length + ")", 0.04f, 0.88f, 0.5f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
         var rep = Titles.Representative;
         UIKit.Label(m, rep == null ? "대표 칭호가 없다" : "대표 칭호: [" + rep.name + "]", 0.45f, 0.88f, 0.74f, 0.98f, 30, TextAnchor.MiddleRight, UIKit.Muted);
         UIKit.Btn(m, "닫기 [Esc]", 0.76f, 0.89f, 0.96f, 0.98f, CloseModal, UIKit.Muted, 34);
-        for (int i = 0; i < Titles.All.Length; i++)
+        for (int i = 0; i < shownTitles.Length; i++)
         {
-            var t = Titles.All[i];
+            var t = shownTitles[i];
             bool has = Titles.Has(t.id);
             float top = 0.86f - i * 0.1f, bot = top - 0.092f;
             var row = UIKit.Box(m, "Row" + i, 0.03f, bot, 0.97f, top, has ? Color.white : new Color(0.88f, 0.8f, 0.64f), true);
             UIKit.Label(row, t.name, 0.02f, 0.05f, 0.22f, 0.95f, 34, TextAnchor.MiddleLeft, has ? UIKit.Ink : UIKit.Muted);
             UIKit.Label(row, t.cond + "\n" + (has ? "달성!" : "진행 " + Titles.ProgressOf(t, dishes)), 0.23f, 0.05f, 0.58f, 0.95f, 24, TextAnchor.MiddleLeft, UIKit.Muted);
-            UIKit.Label(row, "보상: " + t.reward, 0.59f, 0.05f, 0.80f, 0.95f, 24, TextAnchor.MiddleLeft, has && t.reward != "없음" ? UIKit.Good : UIKit.Muted);
+            // 튀김 해금 보상은 얻기 전에는 무엇인지 숨긴다
+            string rewardText = !has && t.id == Titles.Survivor ? "???" : t.reward;
+            UIKit.Label(row, "보상: " + rewardText, 0.59f, 0.05f, 0.80f, 0.95f, 24, TextAnchor.MiddleLeft, has && t.reward != "없음" ? UIKit.Good : UIKit.Muted);
             bool on = Titles.IsRepresentative(t);
             var tt = t;
-            UIKit.Btn(row, !has ? "잠김" : on ? "해제" : "대표로", 0.82f, 0.12f, 0.98f, 0.88f, () => { Titles.SetRepresentative(tt); ShowTitles(); },
+            UIKit.Btn(row, !has ? "잠김" : on ? "해제" : "대표로", 0.82f, 0.12f, 0.98f, 0.88f, () => { Titles.SetRepresentative(tt); ShowTitles(); Lobby.RefreshTitle(); },
                 on ? UIKit.Bad : UIKit.Good, 30, has && canEquip);
         }
-        UIKit.Label(m, canEquip ? "대표 칭호는 하나만 고를 수 있다. 다시 누르면 해제된다." : "대표 칭호는 타이틀·로비·주 결산 화면에서 바꿀 수 있다.", 0.04f, 0.005f, 0.96f, 0.055f, 24, TextAnchor.MiddleCenter, UIKit.Muted);
+        UIKit.Label(m, canEquip ? "대표 칭호는 하나만 고를 수 있다. 다시 누르면 해제된다." : "대표 칭호는 로비·주 결산 화면에서 바꿀 수 있다.", 0.04f, 0.005f, 0.96f, 0.055f, 24, TextAnchor.MiddleCenter, UIKit.Muted);
     }
 
     // 결산 때 새로 얻은 칭호를 알린다. "자취 생존자"를 얻으면 튀김 해금도 함께 알린다.
@@ -1348,16 +1451,26 @@ public class GameFlow : MonoBehaviour
         modal = UIKit.Box(canvasRT, "Fridge", 0.25f, 0.15f, 0.75f, 0.85f, UIKit.Card, true).gameObject;
         var m = modal.transform;
         UIKit.Label(m, "냉장고", 0.05f, 0.84f, 0.95f, 0.98f, 64, TextAnchor.MiddleCenter, UIKit.Accent);
-        var lines = new List<string>();
-        foreach (var kv in run.inv)
+        // 재료마다 한 줄: 재료 그림, 이름 × 개수, 남은 유통기한 (급한 것부터)
+        var have = run.inv.Where(kv => kv.Value > 0)
+            .Select(kv => { int last; return new { ing = kv.Key, qty = kv.Value, left = run.expire.TryGetValue(kv.Key, out last) ? Mathf.Max(0, last - run.Abs + 1) : 99 }; })
+            .OrderBy(x => x.left).ToList();
+        if (have.Count == 0)
+            UIKit.Label(m, "텅 비었다.\n장보기에서 재료를 사 오자.", 0.08f, 0.2f, 0.92f, 0.82f, 44, TextAnchor.MiddleCenter, UIKit.Ink);
+        float rowStep = have.Count > 6 ? 0.092f : 0.105f;
+        for (int k = 0; k < have.Count; k++)
         {
-            if (kv.Value <= 0) continue;
-            int last;
-            string left = run.expire.TryGetValue(kv.Key, out last) ? (Mathf.Max(0, last - run.Abs + 1) + "일 남음") : "";
-            lines.Add(kv.Key.name + " × " + kv.Value + "   " + left);
+            var x = have[k];
+            float top = 0.82f - k * rowStep, bot = top - (rowStep - 0.012f);
+            var row = UIKit.Box(m, "Row", 0.06f, bot, 0.94f, top, new Color(1f, 0.98f, 0.92f), false);
+            var rowLine = row.gameObject.AddComponent<Outline>();
+            rowLine.effectColor = new Color(0.99f, 0.95f, 0.78f);
+            rowLine.effectDistance = new Vector2(2f, 2f);
+            SetIcon(UIKit.Box(row, "Icon", 0.02f, 0.06f, 0.14f, 0.94f).gameObject.AddComponent<Image>(), x.ing);
+            UIKit.Label(row, x.ing.name + "  ×" + x.qty, 0.17f, 0f, 0.62f, 1f, 38, TextAnchor.MiddleLeft, UIKit.Ink);
+            UIKit.Label(row, x.left >= 99 ? "" : x.left <= 1 ? "오늘까지!" : x.left + "일 남음", 0.60f, 0f, 0.97f, 1f, 32, TextAnchor.MiddleRight, x.left <= 1 ? UIKit.Bad : UIKit.Muted);
         }
-        UIKit.Label(m, lines.Count == 0 ? "텅 비었다.\n장보기에서 재료를 사 오자." : string.Join("\n", lines), 0.08f, 0.2f, 0.92f, 0.82f, 44, TextAnchor.MiddleCenter, UIKit.Ink);
-        UIKit.Btn(m, "닫기", 0.33f, 0.04f, 0.67f, 0.18f, CloseModal, UIKit.Muted, 40);
+        UIKit.Btn(m, "닫기", 0.33f, 0.03f, 0.67f, 0.14f, CloseModal, UIKit.Muted, 40);
     }
 
     void ShowTitleGain(List<TitleDef> gained)
@@ -1516,10 +1629,10 @@ public class GameFlow : MonoBehaviour
         dexInfo = UIKit.Label(m, "", 0.40f, 0.88f, 0.74f, 0.98f, 28, TextAnchor.MiddleRight, UIKit.Muted);
         UIKit.Btn(m, "닫기 [Esc]", 0.76f, 0.89f, 0.96f, 0.98f, CloseModal, UIKit.Muted, 34);
 
-        // 1줄: 정렬 버튼 + 검색창
-        DexChip(m, "만족도 높은 순", 0.02f, 0.80f, 0.17f, 0.87f, () => dexSort == 1, () => dexSort = dexSort == 1 ? 0 : 1);
-        DexChip(m, "만족도 낮은 순", 0.175f, 0.80f, 0.325f, 0.87f, () => dexSort == 2, () => dexSort = dexSort == 2 ? 0 : 2);
-        var fieldRT = UIKit.Box(m, "Search", 0.35f, 0.80f, 0.98f, 0.87f, Color.white);
+        // 1줄: 검색창 + 필터 토글. 정렬·재료·방식 필터는 토글을 켜야 펼쳐진다 (켠 필터 수가 버튼에 보인다)
+        System.Action applyFilter = null;
+        bool filterOpen = false;
+        var fieldRT = UIKit.Box(m, "Search", 0.02f, 0.80f, 0.72f, 0.87f, Color.white);
         dexSearch = fieldRT.gameObject.AddComponent<InputField>();
         var txt = UIKit.Label(fieldRT, "", 0.02f, 0.05f, 0.98f, 0.95f, 32, TextAnchor.MiddleLeft);
         txt.resizeTextForBestFit = false;
@@ -1532,27 +1645,52 @@ public class GameFlow : MonoBehaviour
         dexSearch.lineType = InputField.LineType.SingleLine;
         dexSearch.onValueChanged.AddListener(v => { dexQuery = v; RebuildDexGrid(); });
 
-        // 2줄: 재료 칩(여러 개 고르면 모두 들어간 요리) + 방식 칩
-        UIKit.Label(m, "재료", 0.02f, 0.72f, 0.065f, 0.79f, 28, TextAnchor.MiddleCenter, UIKit.Muted);
-        var chipIngs = Data.Active; // 해금 전에는 새우·튀기기 칩이 없다
+        var toggleBtn = UIKit.Btn(m, "필터", 0.74f, 0.80f, 0.98f, 0.87f, () => { filterOpen = !filterOpen; applyFilter(); }, UIKit.Muted, 30);
+        var toggleImg = toggleBtn.GetComponent<Image>();
+        var toggleText = toggleBtn.GetComponentInChildren<Text>();
+
+        // 펼쳐지는 필터 칸. 칩은 이 칸 안의 비율(0~1)로 놓는다 (x는 도감 창 기준 값을 칸 기준으로 바꾼다)
+        var panel = UIKit.Box(m, "Filters", 0.02f, 0.625f, 0.98f, 0.795f, new Color(1f, 1f, 1f, 0.55f), false);
+        System.Func<float, float> rx = x => (x - 0.02f) / 0.96f;
+        // 윗줄: 재료 칩 (여러 개 고르면 모두 들어간 요리)
+        UIKit.Label(panel, "재료", rx(0.02f), 0.54f, rx(0.065f), 0.95f, 28, TextAnchor.MiddleCenter, UIKit.Muted);
+        var chipIngs = Data.Active; // 해금 전에는 새우 칩이 없다
         for (int i = 0; i < chipIngs.Length; i++)
         {
             var ing = chipIngs[i];
             float x = 0.07f + i * 0.08f;
-            DexChip(m, ing.name, x, 0.72f, x + 0.075f, 0.79f, () => dexIngs.Contains(ing),
+            DexChip(panel, ing.name, rx(x), 0.54f, rx(x + 0.075f), 0.94f, () => dexIngs.Contains(ing),
                 () => { if (!dexIngs.Remove(ing)) dexIngs.Add(ing); });
         }
-        UIKit.Label(m, "방식", 0.65f, 0.72f, 0.70f, 0.79f, 28, TextAnchor.MiddleCenter, UIKit.Muted);
-        var chipMethods = Data.ActiveMethods;
+        // 아랫줄: 방식 칩 + 정렬 칩
+        UIKit.Label(panel, "방식", rx(0.02f), 0.06f, rx(0.065f), 0.46f, 28, TextAnchor.MiddleCenter, UIKit.Muted);
+        var chipMethods = Data.ActiveMethods; // 해금 전에는 튀기기 칩이 없다
         for (int i = 0; i < chipMethods.Length; i++)
         {
             int mi = (int)chipMethods[i].id;
-            float x = 0.71f + i * 0.072f;
-            DexChip(m, chipMethods[i].name, x, 0.72f, x + 0.068f, 0.79f, () => dexMethod == mi, () => dexMethod = dexMethod == mi ? -1 : mi);
+            float x = 0.07f + i * 0.072f;
+            DexChip(panel, chipMethods[i].name, rx(x), 0.06f, rx(x + 0.068f), 0.46f, () => dexMethod == mi, () => dexMethod = dexMethod == mi ? -1 : mi);
         }
+        UIKit.Label(panel, "정렬", rx(0.45f), 0.06f, rx(0.495f), 0.46f, 28, TextAnchor.MiddleCenter, UIKit.Muted);
+        DexChip(panel, "만족도 높은 순", rx(0.50f), 0.06f, rx(0.65f), 0.46f, () => dexSort == 1, () => dexSort = dexSort == 1 ? 0 : 1);
+        DexChip(panel, "만족도 낮은 순", rx(0.655f), 0.06f, rx(0.805f), 0.46f, () => dexSort == 2, () => dexSort = dexSort == 2 ? 0 : 2);
 
-        // 스크롤 영역: 5열 그리드
-        var view = UIKit.Box(m, "Scroll", 0.02f, 0.02f, 0.98f, 0.70f);
+        // 스크롤 영역: 5열 그리드 (필터를 접으면 넓어진다)
+        var view = UIKit.Box(m, "Scroll", 0.02f, 0.02f, 0.98f, 0.79f);
+        System.Action refreshToggle = () =>
+        {
+            int n = dexIngs.Count + (dexMethod >= 0 ? 1 : 0) + (dexSort != 0 ? 1 : 0);
+            toggleText.text = (filterOpen ? "필터 접기" : "필터") + (n > 0 ? " (" + n + ")" : "");
+            toggleImg.color = filterOpen || n > 0 ? UIKit.Accent : UIKit.Muted;
+        };
+        dexRestyle.Add(refreshToggle);
+        applyFilter = () =>
+        {
+            panel.gameObject.SetActive(filterOpen);
+            view.anchorMax = new Vector2(view.anchorMax.x, filterOpen ? 0.615f : 0.79f);
+            refreshToggle();
+        };
+        applyFilter();
         var sr = view.gameObject.AddComponent<ScrollRect>();
         var vp = UIKit.Box(view, "Viewport", 0, 0, 1, 1, new Color(1f, 1f, 1f, 0.01f), false);
         vp.gameObject.AddComponent<RectMask2D>();
