@@ -148,7 +148,8 @@
 ### AI 키 설정
 키는 코드나 레포에 넣지 않는다. 환경 변수나 아래 파일에 `이름=값`으로 한 줄씩 적는다 (`UserSettings/`는 깃에 올라가지 않는다).
 - 에디터: `UserSettings/CookerApiKeys.txt` / 빌드: `persistentDataPath/CookerApiKeys.txt`
-- **이미지** 서비스 순서: `BAZE_API_KEY`(기본 모델 `gpt-image-2.5-sunburst`, 바꾸려면 `BAZE_IMAGE_MODEL`) → `OPENAI_API_KEY` → `HF_TOKEN` → `POLLINATIONS_API_KEY` → 키 없는 무료 Pollinations. 앞이 없거나 실패하면 다음으로 넘어간다.
+- **이미지**: 빌드에서는 명전 챗봇 `BAZE_API_KEY`가 있으면 **고퀄 모델 `gpt-image-2.5-sunburst`만** 쓴다(실패하면 다른 서비스로 넘어가지 않고 같은 모델로 다시 시도). 빌드할 때 키 파일이 빌드 폴더로 자동 복사된다(`Assets/Editor/CopyApiKeysOnBuild.cs`). 키가 없을 때만 `OPENAI_API_KEY` → `HF_TOKEN` → `POLLINATIONS_API_KEY` → 무료 Pollinations 순으로 쓴다. 에디터에서는 모델 비교용 `BAZE_IMAGE_MODEL`을 쓸 수 있다.
+- 플레이 기록(도감·칭호·요리 이름)은 에디터와 빌드가 따로 저장한다(`SaveDir.cs`, 에디터는 `EditorTest` 하위 폴더). AI 사진 캐시만 같이 쓴다.
 - **유니티 에디터에서 테스트하는 동안은 무료 서비스만 쓴다** (크레딧을 아끼려고). 에디터에서도 유료를 쓰려면 `COOKER_PAID_IN_EDITOR=1`. 빌드는 항상 유료를 쓴다. 무료와 유료 그림은 저장 이름이 달라 섞이지 않는다.
 - **이름** 서비스 순서: `ANTHROPIC_API_KEY` → `OPENAI_API_KEY` → 키 없는 무료 Pollinations 텍스트.
 

@@ -224,6 +224,13 @@ public static class DishPhoto
 
     static IEnumerable<Provider> Providers()
     {
+        // 빌드(또는 에디터에서 유료를 켠 경우)에 명전 챗봇(BAZE) 키가 있으면 그 고퀄 모델만 쓴다.
+        // 실패해도 품질이 낮은 다른 서비스로 넘어가지 않고, Work()가 잠시 기다렸다가 같은 모델로 다시 시도한다.
+        if (PaidAllowed && !string.IsNullOrEmpty(Setting("BAZE_API_KEY")))
+        {
+            yield return Baze;
+            yield break;
+        }
         if (PaidAllowed)
         {
             if (!string.IsNullOrEmpty(Setting("BAZE_API_KEY"))) yield return Baze;
@@ -243,7 +250,8 @@ public static class DishPhoto
 
     static IEnumerator Baze(Job job, Action<byte[], float> done)
     {
-        string model = Setting("BAZE_IMAGE_MODEL");
+        // 빌드는 늘 고퀄 모델(gpt-image-2.5-sunburst)로 고정. 다른 모델 비교는 에디터에서만 BAZE_IMAGE_MODEL로 한다
+        string model = Application.isEditor ? Setting("BAZE_IMAGE_MODEL") : null;
         if (string.IsNullOrEmpty(model)) model = "gpt-image-2.5-sunburst";
         // GPT 이미지 모델은 size로, 나머지는 aspect_ratio로 정사각형을 요청한다 (기본은 가로로 긴 그림이라 사진 틀에서 찌그러진다)
         string square = model.Contains("gpt-image") ? "\"size\":\"1024x1024\"" : "\"aspect_ratio\":\"1:1\"";

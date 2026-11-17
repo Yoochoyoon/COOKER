@@ -15,7 +15,7 @@ public static class DishNamer
 {
     const int TimeoutSec = 15;
     static readonly Dictionary<string, string> cache = new Dictionary<string, string>();
-    static string CachePath { get { return Path.Combine(Application.persistentDataPath, "DishNames.txt"); } }
+    static string CachePath { get { return SaveDir.File("DishNames.txt"); } } // 에디터 테스트 기록과 빌드 기록을 나눈다 (SaveDir)
 
     static readonly string[] stageWord = { "날것", "덜 익음", "알맞게 익음", "많이 익음", "탐" };
 

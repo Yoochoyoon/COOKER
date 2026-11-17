@@ -1934,7 +1934,7 @@ public class GameFlow : MonoBehaviour
         public List<string> isNew = new List<string>();
     }
 
-    static string DexPath { get { return System.IO.Path.Combine(Application.persistentDataPath, "dex.json"); } }
+    static string DexPath { get { return SaveDir.File("dex.json"); } } // 에디터 테스트 기록과 빌드 기록을 나눈다 (SaveDir)
 
     static void SaveDex()
     {

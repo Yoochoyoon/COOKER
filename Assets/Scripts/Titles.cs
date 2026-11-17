@@ -101,7 +101,7 @@ public static class Titles
         public string representative;
     }
 
-    static string Path { get { return System.IO.Path.Combine(Application.persistentDataPath, "titles.json"); } }
+    static string Path { get { return SaveDir.File("titles.json"); } } // 에디터 테스트 기록과 빌드 기록을 나눈다 (SaveDir)
 
     static void Save()
     {
