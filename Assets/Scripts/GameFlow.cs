@@ -1951,7 +1951,7 @@ public class GameFlow : MonoBehaviour
         return new string('★', n) + new string('☆', 5 - n);
     }
 
-    // 요리 그림. 먼저 재료 그림을 가로로 나란히 놓고, 만든 요리면 AI 요리 사진(저장해 둔 것)이 오면 바꿔 끼운다.
+    // 요리 그림. 먼저 재료 그림을 가로로 나란히 놓고, 만든 요리면 미리 만들어 둔 요리 사진(Resources/AiDishes)이 있으면 바꿔 끼운다.
     // 그림 파일이 없으면 그 재료의 색 사각형으로 대신한다. silhouette이면 아직 못 만든 요리라서 어두운 실루엣으로 보여 준다.
     static void BuildDexPic(Transform parent, Ingredient[] ings, Dish d, bool silhouette, System.Action<bool> photoState = null)
     {
@@ -2220,7 +2220,7 @@ public class GameFlow : MonoBehaviour
         UIKit.Label(card, "최고 만족도  " + d.satisfaction + "   " + Stars(d.satisfaction), 0.48f, 0.19f, 0.96f, 0.30f, 38, TextAnchor.MiddleLeft, UIKit.Accent);
         if (!string.IsNullOrEmpty(d.note)) UIKit.Label(card, d.note, 0.04f, 0.08f, 0.62f, 0.18f, 28, TextAnchor.MiddleLeft, UIKit.Bad);
         UIKit.IconBtn(card, "icon_close", "닫기", 0.74f, 0.04f, 0.96f, 0.16f, CloseDexDetail, UIKit.Muted, 34);
-        BuildDexPic(dtPic, d.ings, d, false, ready => { if (dtImgNote != null) dtImgNote.text = ready ? "" : "AI가 그림을 그리는 중..."; });
+        BuildDexPic(dtPic, d.ings, d, false);
         RefreshDexDetail(d);
     }
 

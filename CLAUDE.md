@@ -37,7 +37,7 @@
 | `GameFlow.Cook.cs` (조리 화면) | 영은 |
 | `GameFlow.Dex.cs` (도감, 칭호 목록, 냉장고) | 윤혁진 |
 | `Cook.cs` (판정과 수치) | 유초윤 |
-| `Data.cs`, `UIKit.cs`, `DishPhoto.cs`, `DishNamer.cs` | 유초윤 |
+| `Data.cs`, `UIKit.cs`, `DishArt.cs` | 유초윤 |
 | `Lobby.cs`, `FireFlame.cs`, `Sound.cs` | 영은 |
 | `Titles.cs`, `Settings.cs`, `Help.cs` | 윤혁진 |
 | `SampleScene.unity`, 데이터 에셋 | 유초윤 |
