@@ -25,43 +25,6 @@ public class MethodDef
     public string guide;
 }
 
-public static class Balance
-{
-    public const int Budget = 10000;               // 16000이면 예산이 제약이 안 돼서 낮춤 (docs/09 시뮬레이션 참고)
-    public const int MinUnits = 6;                 // 첫날 한 끼는 엄마가 보내준 달걀이라 6끼분이 필요
-    public const int Days = 7;
-    public const float MaxCookTime = 45f;          // 40이면 끓이기+감자+약불이 구간에 못 닿는 함정이 생겨 45로 늘림
-    public static readonly float[] Fire = { 0.6f, 1.0f, 1.5f };
-    public static readonly string[] FireName = { "약불", "중불", "강불" };
-    public const float NonFit = 0.6f;
-    public const float MixBonus = 0.10f; // 재료 2개를 모두 성공시키면 평균 만족도에 더하는 비율
-    public const float RawLimit = 40f;             // 이 미만에 꺼내면 날것(실패)
-    public const float BurnLimit = 100f;           // 이 이상이면 탄 것(실패)
-    public const float BubbleInterval = 5f;
-    public const float LidHoldTime = 0.5f;
-    public const float StirSlow = 0.7f;
-    public const float BubbleFast = 1.2f;
-    public const float FlipPenalty = 10f;          // 뒤집기 타이밍을 놓치면 적정 구간 윗선이 이만큼 좁아진다(한쪽만 익어서)
-    public const float StirGrace = 1.2f;           // 볶기 중 이만큼 안 저으면 눌어붙은 것으로 친다(계속 저어야 한다)
-    public const float NoStirCoef = 0.6f;          // 한 번이라도 눌어붙으면 만족도 배율
-    public const float OverflowGrace = 2f;         // 거품이 올라온 뒤 이만큼 더 방치하면 끓어넘친 것으로 친다
-    public const float BoilOverCoef = 0.7f;        // 끓어넘치면 만족도 배율(양·맛이 줄어서)
-    public const float OilGrace = 1.5f;            // 튀기기: 팬에 재료가 있는 채로 약불에 이만큼 두면 기름이 식어 눅눅해진다 (누적)
-    public const float SoggyCoef = 0.7f;           // 눅눅해졌을 때 만족도 배율
-    // 난이도: 1주차는 쉽고 4주차에 원래 값이 된다
-    public const float EaseBand = 5f;              // 1주차에 적정 구간을 양쪽으로 넓히는 폭
-    public const float EaseSpeed = 0.2f;           // 1주차에 방식 속도를 늦추는 비율
-    public static float Ease(int week) { return Mathf.Clamp01(1f - (week - 1) / 3f); }
-    // 주차 진행
-    public const float PriceGrowth = 1.08f;        // 재료 가격이 매주 오르는 배율
-    public const int BudgetBase = 6000, BudgetMin = 6000, BudgetMax = 12000;
-    public const int BudgetPerSat = 60;            // 다음 주 예산 = BudgetBase + 평균 만족도 x 이 값
-    public const int Lifelines = 1;                // 주마다 봐주는 굶음 횟수(엄마 비상 라면)
-    public const int RamenSat = 20;
-    // 등급 컷 (임시)
-    public const float GradeS = 85f, GradeA = 70f, GradeB = 55f;
-}
-
 public static class Data
 {
     // 재료와 조리 방식은 Assets/Resources/Data/ 아래 에셋에서 읽는다. 수치는 인스펙터에서 고친다 (CLAUDE.md).

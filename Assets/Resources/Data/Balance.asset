@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ef6d33d18be35048a605132fcd23528, type: 3}
+  m_Name: Balance
+  m_EditorClassIdentifier: Assembly-CSharp::BalanceData
+  budget: 10000
+  minUnits: 6
+  days: 7
+  maxCookTime: 45
+  nonFit: 0.6
+  mixBonus: 0.1
+  rawLimit: 40
+  burnLimit: 100
+  bubbleInterval: 5
+  lidHoldTime: 0.5
+  stirSlow: 0.7
+  bubbleFast: 1.2
+  flipPenalty: 10
+  stirGrace: 1.2
+  noStirCoef: 0.6
+  overflowGrace: 2
+  boilOverCoef: 0.7
+  oilGrace: 1.5
+  soggyCoef: 0.7
+  easeBand: 5
+  easeSpeed: 0.2
+  priceGrowth: 1.08
+  budgetBase: 6000
+  budgetMin: 6000
+  budgetMax: 12000
+  budgetPerSat: 60
+  lifelines: 1
+  ramenSat: 20
+  gradeS: 85
+  gradeA: 70
+  gradeB: 55
+  fire:
+  - 0.6
+  - 1
+  - 1.5
+  fireName:
+  - "\uC57D\uBD88"
+  - "\uC911\uBD88"
+  - "\uAC15\uBD88"
