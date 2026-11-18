@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdfa927820579444f9b113eed481ccb3, type: 3}
+  m_Name: "6_\uC0C8\uC6B0"
+  m_EditorClassIdentifier: Assembly-CSharp::IngredientData
+  order: 6
+  ingredientName: "\uC0C8\uC6B0"
+  price: 2000
+  shelf: 2
+  fits: 03000000
+  baseScore: 80
+  speedMod: 1.1
+  raw: {r: 0.85, g: 0.75, b: 0.75, a: 1}
+  cooked: {r: 1, g: 0.55, b: 0.35, a: 1}
+  burnt: {r: 0.2, g: 0.08, b: 0.04, a: 1}

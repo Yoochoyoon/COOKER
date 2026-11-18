@@ -64,51 +64,30 @@ public static class Balance
 
 public static class Data
 {
-    static Color C(float r, float g, float b) { return new Color(r, g, b); }
-
-    public static readonly MethodDef[] Methods =
+    // 재료와 조리 방식은 Assets/Resources/Data/ 아래 에셋에서 읽는다. 수치는 인스펙터에서 고친다 (CLAUDE.md).
+    static MethodDef[] LoadMethods()
     {
-        new MethodDef { id = Method.Grill,   name = "굽기",   verb = "구운", speed = 6f,   lo = 60, hi = 75,
-            guide = "굽기: 빨리 익는다. [뒤집기!] 버튼 뜰 때 안 누르면 한쪽만 익어서 탈 확률이 높아진다." },
-        new MethodDef { id = Method.Stirfry, name = "볶기",   verb = "볶은", speed = 4f,   lo = 55, hi = 80,
-            guide = "볶기: 빠르게 연타하면 천천히 익는다. 손을 멈추면 식어서, 쉬지 않고 계속 연타해야 하고 잠깐이라도 멈추면 눌어붙어 맛이 떨어진다." },
-        new MethodDef { id = Method.Boil,    name = "끓이기", verb = "끓인", speed = 2.5f, lo = 50, hi = 90,
-            guide = "끓이기: 거품이 올라오면 [뚜껑]을 꾹 눌러 가라앉히자. 너무 오래 두면 끓어넘쳐서 맛이 줄어든다." },
-        new MethodDef { id = Method.Fry,     name = "튀기기", verb = "튀긴", speed = 5f,   lo = 65, hi = 85,
-            guide = "튀기기: 기름 온도를 유지하자. 불을 약불로 두면 기름이 식어 눅눅해지고 맛이 떨어진다." },
-    };
+        var list = Resources.LoadAll<MethodData>("Data/Methods").OrderBy(d => (int)d.id).Select(d => d.ToMethodDef()).ToArray();
+        if (list.Length != 4) Debug.LogError("조리 방식 에셋이 4개가 아니다: " + list.Length + "개 (Assets/Resources/Data/Methods)");
+        return list;
+    }
+
+    static Ingredient[] LoadIngredients()
+    {
+        var list = Resources.LoadAll<IngredientData>("Data/Ingredients").OrderBy(d => d.order).Select(d => d.ToIngredient()).ToArray();
+        if (list.Length == 0) Debug.LogError("재료 에셋이 없다 (Assets/Resources/Data/Ingredients)");
+        return list;
+    }
+
+    public static readonly MethodDef[] Methods = LoadMethods();
 
     public static MethodDef GetMethod(Method m) { return Methods[(int)m]; }
 
-    public static readonly Ingredient Egg = new Ingredient
-    {
-        name = "달걀", price = 500, shelf = 21, fits = new[] { Method.Grill, Method.Stirfry }, baseScore = 60, speedMod = 1.4f,
-        raw = C(0.97f, 0.97f, 0.88f), cooked = C(1f, 0.8f, 0.1f), burnt = C(0.2f, 0.1f, 0.03f)
-    };
-
+    // 전체 재료 목록 (순서는 IngredientData.order). 달걀과 새우는 이름으로 찾는다.
+    public static readonly Ingredient[] All = LoadIngredients();
+    public static readonly Ingredient Egg = All.First(i => i.name == "달걀");
     // 새우: 칭호 "자취 생존자"를 얻으면 상점에 나오고 튀김에만 어울린다 (docs/17). 해금 전에는 Active에 들어가지 않는다.
-    // All보다 먼저 선언해야 All이 만들어질 때 비어 있지 않다.
-    public static readonly Ingredient Shrimp = new Ingredient
-    {
-        name = "새우", price = 2000, shelf = 2, fits = new[] { Method.Fry }, baseScore = 80, speedMod = 1.1f,
-        raw = C(0.85f, 0.75f, 0.75f), cooked = C(1f, 0.55f, 0.35f), burnt = C(0.2f, 0.08f, 0.04f)
-    };
-
-    public static readonly Ingredient[] All =
-    {
-        Egg,
-        new Ingredient { name = "두부", price = 1600, shelf = 14, fits = new[] { Method.Grill, Method.Boil, Method.Fry }, baseScore = 55, speedMod = 1.0f,
-            raw = C(0.98f, 0.98f, 0.98f), cooked = C(0.9f, 0.65f, 0.25f), burnt = C(0.15f, 0.08f, 0.03f) },
-        new Ingredient { name = "양파", price = 450, shelf = 21, fits = new[] { Method.Stirfry, Method.Boil, Method.Fry }, baseScore = 40, speedMod = 0.9f,
-            raw = C(0.95f, 0.88f, 0.9f), cooked = C(0.85f, 0.5f, 0.15f), burnt = C(0.15f, 0.07f, 0.03f) },
-        new Ingredient { name = "감자", price = 600, shelf = 21, fits = new[] { Method.Grill, Method.Boil, Method.Fry }, baseScore = 50, speedMod = 0.6f,
-            raw = C(0.85f, 0.8f, 0.5f), cooked = C(0.95f, 0.7f, 0.1f), burnt = C(0.15f, 0.08f, 0.03f) },
-        new Ingredient { name = "돼지고기", price = 4300, shelf = 4, fits = new[] { Method.Grill, Method.Stirfry, Method.Fry }, baseScore = 90, speedMod = 0.7f,
-            raw = C(1f, 0.55f, 0.6f), cooked = C(0.6f, 0.33f, 0.15f), burnt = C(0.1f, 0.05f, 0.02f) },
-        new Ingredient { name = "김치", price = 1000, shelf = 60, fits = new[] { Method.Stirfry, Method.Boil }, baseScore = 65, speedMod = 0.8f,
-            raw = C(1f, 0.3f, 0.15f), cooked = C(0.7f, 0.1f, 0.05f), burnt = C(0.12f, 0.05f, 0.03f) },
-        Shrimp,
-    };
+    public static readonly Ingredient Shrimp = All.First(i => i.name == "새우");
 
     // 해금 여부. 튀기기와 새우는 칭호 "자취 생존자"를 얻은 뒤에 열린다.
     public static bool Unlocked(Method m) { return m != Method.Fry || Titles.FryUnlocked; }

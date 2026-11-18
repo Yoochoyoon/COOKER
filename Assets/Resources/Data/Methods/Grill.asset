@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9cfc8a6b5c5b91e4ab148aca43cdcf69, type: 3}
+  m_Name: Grill
+  m_EditorClassIdentifier: Assembly-CSharp::MethodData
+  id: 0
+  methodName: "\uAD7D\uAE30"
+  verb: "\uAD6C\uC6B4"
+  speed: 6
+  lo: 60
+  hi: 75
+  guide: "\uAD7D\uAE30: \uBE68\uB9AC \uC775\uB294\uB2E4. [\uB4A4\uC9D1\uAE30!] \uBC84\uD2BC
+    \uB730 \uB54C \uC548 \uB204\uB974\uBA74 \uD55C\uCABD\uB9CC \uC775\uC5B4\uC11C
+    \uD0C8 \uD655\uB960\uC774 \uB192\uC544\uC9C4\uB2E4."
