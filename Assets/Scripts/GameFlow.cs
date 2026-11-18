@@ -1499,15 +1499,7 @@ public class GameFlow : MonoBehaviour
         if (isNew || dex[dish.key].satisfaction < sat) dex[dish.key] = dish;
         if (isNew) dexNew.Add(dish.key);
         SaveDex();
-        ShowMeal(dish, isNew);
-        DishNamer.Request(this, ings, stages, md.id, name =>
-        {
-            dish.name = name;
-            Dish saved;
-            if (dex.TryGetValue(dish.key, out saved) && saved == dish) SaveDex(); // AI가 지은 이름이 도착하면 저장 파일도 갱신
-            if (mealDish == dish && mealName != null) mealName.text = name; // 아직 그 식사 화면이면 바로 바꾼다
-            RefreshDexDetail(dish);
-        });
+        ShowMeal(dish, isNew); // 요리 이름은 Recipes.NameOf 규칙 이름을 그대로 쓴다 (실행 중 AI 호출 없음)
     }
 
     void Consume(Ingredient[] ings)
@@ -1730,7 +1722,7 @@ public class GameFlow : MonoBehaviour
             plainFit.aspectRatio = 1f;
             var plainImg = plainPic.gameObject.AddComponent<RawImage>();
             plainImg.raycastTarget = false;
-            plainImg.texture = DishPhoto.Placeholder(ings, stages);
+            plainImg.texture = DishArt.Placeholder(ings, stages);
             return;
         }
         var frame = UIKit.Box(parent, "DishPhoto", x0, y0, x1, y1, Color.white); // 폴라로이드 사진처럼 흰 테두리
@@ -1742,38 +1734,9 @@ public class GameFlow : MonoBehaviour
         fit.aspectRatio = 1f;
         var img = pic.gameObject.AddComponent<RawImage>();
         img.raycastTarget = false;
-        var placeholder = DishPhoto.Placeholder(ings, stages);
-        img.texture = placeholder;
-        var status = UIKit.Label(frame, "요리 사진 찍는 중...", 0.04f, 0.075f, 0.96f, 0.18f, 40, TextAnchor.MiddleCenter, UIKit.Muted);
-        var bar = UIKit.Box(frame, "LoadBar", 0.08f, 0.025f, 0.92f, 0.065f, UIKit.Muted);
-        var fill = UIKit.Box(bar, "Fill", 0, 0, 0, 1, UIKit.Accent, false);
-        bool finished = false;
-        string retry = null; // 실패해서 다시 시도하는 중이면 그 안내
-        StartCoroutine(LoadingBar(status, fill, () => finished, () => retry));
-        // 생성은 성공할 때까지 뒤에서 계속 다시 시도한다. 화면을 넘겨도 계속 만들어 저장해 두고, 다음에 같은 요리면 바로 나온다
-        DishPhoto.Request(ings, stages, m, tex =>
-        {
-            finished = true;
-            if (img == null) { Destroy(placeholder); return; } // 그새 화면이 바뀌었다
-            bar.gameObject.SetActive(false);
-            img.texture = tex;
-            Destroy(placeholder);
-            status.text = "";
-        }, msg => retry = msg);
-    }
-
-    // 실제 진행률은 알 수 없어서, 예상 시간 기준으로 차오르다 95%에서 기다린다. 재시도 중이면 그 안내를 보여 준다.
-    System.Collections.IEnumerator LoadingBar(Text status, RectTransform fill, System.Func<bool> finished, System.Func<string> retry)
-    {
-        float t = 0f, expected = DishPhoto.ExpectedSeconds;
-        while (!finished() && fill != null)
-        {
-            t += Time.unscaledDeltaTime;
-            float p = Mathf.Min(0.95f, 1f - Mathf.Exp(-2f * t / expected));
-            fill.anchorMax = new Vector2(p, 1f);
-            status.text = retry() ?? "요리 사진 찍는 중... " + Mathf.RoundToInt(p * 100f) + "%"; // "(0초)" 같은 경과 시간은 빼고 무슨 일인지 말한다
-            yield return null;
-        }
+        // 미리 만들어 둔 요리 사진이 있으면 그것을, 없으면 재료 색으로 그린 대체 그림을 보여 준다 (대기 시간 없음)
+        var made = DishArt.Load(ings, stages, m);
+        img.texture = made != null ? made : DishArt.Placeholder(ings, stages);
     }
 
     // ---------------------------------------------------------------- 공용
@@ -2018,25 +1981,23 @@ public class GameFlow : MonoBehaviour
         if (silhouette && !any) UIKit.Label(parent, "?", 0, 0, 1, 1, 120, TextAnchor.MiddleCenter, UIKit.Muted);
         if (silhouette || d == null || d.stages == null || d.ings.Length == 0) return;
 
-        if (photoState != null) photoState(false);
-        DishPhoto.Request(d.ings, d.stages, d.method, tex =>
+        // 미리 만든 요리 사진이 있으면 재료 그림 대신 그 사진을 보여 준다 (없으면 재료 그림 그대로)
+        var tex = DishArt.Load(d.ings, d.stages, d.method);
+        if (tex == null) return;
+        for (int k = parent.childCount - 1; k >= 0; k--)
         {
-            if (parent == null) return; // 그새 도감을 닫았다
-            for (int k = parent.childCount - 1; k >= 0; k--)
-            {
-                var c = parent.GetChild(k);
-                c.SetParent(null);
-                Destroy(c.gameObject);
-            }
-            var pic = UIKit.Box(parent, "Photo", 0, 0, 1, 1);
-            var fit = pic.gameObject.AddComponent<AspectRatioFitter>();
-            fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-            fit.aspectRatio = 1f;
-            var raw = pic.gameObject.AddComponent<RawImage>();
-            raw.texture = tex;
-            raw.raycastTarget = false;
-            if (photoState != null) photoState(true);
-        });
+            var c = parent.GetChild(k);
+            c.SetParent(null);
+            Destroy(c.gameObject);
+        }
+        var pic = UIKit.Box(parent, "Photo", 0, 0, 1, 1);
+        var fit = pic.gameObject.AddComponent<AspectRatioFitter>();
+        fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+        fit.aspectRatio = 1f;
+        var raw = pic.gameObject.AddComponent<RawImage>();
+        raw.texture = tex;
+        raw.raycastTarget = false;
+        if (photoState != null) photoState(true);
     }
 
     // 도감 화면의 정렬·필터·검색 상태. 도감을 열 때마다 초기화한다.
