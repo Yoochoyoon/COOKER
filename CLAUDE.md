@@ -39,7 +39,8 @@
 | `Cook.cs` (판정과 수치) | 유초윤 |
 | `Data.cs`, `UIKit.cs`, `DishArt.cs` | 유초윤 |
 | `Lobby.cs`, `FireFlame.cs`, `Sound.cs` | 영은 |
-| `Titles.cs`, `Settings.cs`, `Help.cs` | 윤혁진 |
+| `Titles.cs`, `Help.cs` | 윤혁진 |
+| `Settings.cs`, 세이브 관련 코드 | 유초윤 |
 | `SampleScene.unity`, 데이터 에셋 | 유초윤 |
 | `Assets/Resources/Art/`, `Sfx/`, `AiDishes/` | 전원 (파일 추가만) |
 | `docs/` | 유초윤 (각자 자기 기능 문서) |
