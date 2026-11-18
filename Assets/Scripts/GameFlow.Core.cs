@@ -45,6 +45,8 @@ public partial class GameFlow : MonoBehaviour
         if (inst != null) return;
         LoadDex();
         Titles.Load();
+        // 씬에 COOKER 오브젝트(GameFlow)를 직접 올려 두었으면 그것을 쓴다. 없으면 코드로 만든다 (중복 방지)
+        if (FindFirstObjectByType<GameFlow>() != null) return;
         var go = new GameObject("COOKER");
         inst = go.AddComponent<GameFlow>();
     }
