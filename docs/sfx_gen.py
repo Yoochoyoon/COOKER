@@ -163,6 +163,20 @@ def click():
     write('click', s, 0.5)
 
 
-for fn in (put, take, flip, stir, lid, boil_over, success, fail, click):
+# pop: 번쩍일 때 펑 (낮은 쿵 + 터지는 노이즈). 앞 소리들의 난수 순서가 바뀌지 않게 맨 뒤에 만든다
+def pop():
+    n = N(0.55); nz = noise(n); s = []; ph = 0.0; lp = 0.0
+    for i in range(n):
+        t = i / SR
+        ph += 2 * math.pi * (45 + 160 * math.exp(-t / 0.025)) / SR
+        boom = math.sin(ph) * env(t, 0.002, 0.12)
+        a = 0.04 + 0.6 * math.exp(-t / 0.05)  # 처음엔 밝게 터지고 금방 둔해진다
+        lp += a * (nz[i] - lp)
+        burst = lp * env(t, 0.001, 0.09)
+        s.append(boom * 1.0 + burst * 0.9)
+    write('pop', s, 0.85)
+
+
+for fn in (put, take, flip, stir, lid, boil_over, success, fail, click, pop):
     fn()
 print('ok')

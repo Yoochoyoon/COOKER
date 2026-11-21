@@ -284,7 +284,7 @@ public partial class GameFlow : MonoBehaviour
         // 화면 번쩍임 칸: 모든 조리 그림 위에 덮이도록 마지막에 만든다. 클릭은 통과시킨다
         flashImg = UIKit.Box(root, "Flash", 0f, 0f, 1f, 1f, new Color(1f, 1f, 1f, 0f), false).GetComponent<Image>();
         flashImg.raycastTarget = false;
-        flashA = 0f;
+        flashT = -1f;
         finishFx = -1f;
 
         scr = Scr.Cook;
@@ -432,10 +432,10 @@ public partial class GameFlow : MonoBehaviour
         }
         if (put) Sound.Play("put");
         if (take) Sound.Play("take");
-        if (ruined) Flash(UIKit.Bad, 0.45f);
-        if (cook.flipped && !sfxFlipped) { Sound.Play("flip"); Flash(Color.white, 0.35f); }
+        if (ruined) Flash(UIKit.Bad, 0.75f, true);
+        if (cook.flipped && !sfxFlipped) { Sound.Play("flip"); Flash(Color.white, 0.5f, false); }
         sfxFlipped = cook.flipped;
-        if (cook.flipMissed && !sfxFlipMissed) Flash(UIKit.Accent, 0.4f); // 뒤집기를 놓친 순간도 색으로 알린다
+        if (cook.flipMissed && !sfxFlipMissed) Flash(UIKit.Accent, 0.65f, true); // 뒤집기를 놓친 순간도 색으로 알린다
         sfxFlipMissed = cook.flipMissed;
         if (stirTimer > sfxStirTimer) Sound.Play("stir", StirSfxGap); // 연타할 때마다 stirTimer가 다시 채워진다
         sfxStirTimer = stirTimer;
@@ -452,16 +452,32 @@ public partial class GameFlow : MonoBehaviour
     float[] shakeT = new float[0];      // 떨림 남은 시간
     bool sfxFlipMissed;
     Image flashImg;
-    float flashA;
+    float flashT = -1f;                 // 번쩍임이 시작된 뒤 흐른 시간. -1이면 쉬는 중
+    float flashPeak;
     Color flashColor;
     float finishFx = -1f;               // 조리가 끝난 뒤 연출을 보여 주는 시간. -1이면 아직 안 끝남
-    const float FlyTime = 0.4f, FlyArc = 0.12f, ShakeTime = 0.35f, ShakePx = 14f, FlashFade = 2.5f;
+    const float FlyTime = 0.4f, FlyArc = 0.12f, ShakeTime = 0.35f, ShakePx = 14f;
+    const float FlashOn = 0.05f, FlashGap = 0.05f, FlashFade = 0.35f; // 번쩍-깜빡-번쩍 후 서서히 사라진다
+    const float BoomGap = 0.1f;         // 같은 프레임에 여러 번 번쩍여도 펑은 한 번만
     const float FinishFxTime = 0.5f;    // 마지막 재료가 접시에 닿는 걸 보고 다음 화면으로 넘어가게
 
-    void Flash(Color c, float alpha)
+    // boom: 펑 소리를 같이 낸다 (실패·놓침). 뒤집기 성공은 자기 소리(flip)가 있어 번쩍임만 한다
+    void Flash(Color c, float peak, bool boom)
     {
+        if (flashT >= 0f && peak < FlashAlpha()) return; // 더 센 번쩍임이 진행 중이면 덮지 않는다
         flashColor = c;
-        flashA = Mathf.Max(flashA, alpha);
+        flashPeak = peak;
+        flashT = 0f;
+        if (boom) Sound.Play("pop", BoomGap);
+    }
+
+    float FlashAlpha()
+    {
+        if (flashT < 0f) return 0f;
+        if (flashT < FlashOn) return flashPeak;
+        if (flashT < FlashOn + FlashGap) return flashPeak * 0.2f;
+        float f = flashT - FlashOn - FlashGap;
+        return flashPeak * Mathf.Clamp01(1f - f / (FlashOn + FlashFade)); // 두 번째 번쩍은 꼭대기에서 바로 사라지기 시작
     }
 
     void UpdateCookFx()
@@ -472,9 +488,13 @@ public partial class GameFlow : MonoBehaviour
             if (flyT[i] < 1f) flyT[i] = Mathf.Min(1f, flyT[i] + dt / FlyTime);
             if (shakeT[i] > 0f) shakeT[i] = Mathf.Max(0f, shakeT[i] - dt);
         }
-        if (flashImg == null) return;
-        flashA = Mathf.MoveTowards(flashA, 0f, dt * FlashFade);
-        flashImg.color = new Color(flashColor.r, flashColor.g, flashColor.b, flashA);
+        if (flashImg == null || flashT < 0f) return;
+        flashT += dt;
+        float a = FlashAlpha();
+        // 번쩍이는 첫 순간은 하얗게 달아오른 색으로, 그 뒤 원래 색으로 (빛이 터지는 느낌)
+        var c = Color.Lerp(Color.white, flashColor, Mathf.Clamp01(flashT / (FlashOn + FlashGap)));
+        flashImg.color = new Color(c.r, c.g, c.b, a);
+        if (a <= 0f) flashT = -1f;
     }
 
     void RefreshCookUI()
@@ -724,7 +744,7 @@ public partial class GameFlow : MonoBehaviour
         {
             finishFx = 0f;
             bool allRuined = cook.GoodIngredients.Length == 0;
-            if (allRuined && cook.Used.Length > 0) Flash(UIKit.Bad, 0.6f);
+            if (allRuined && cook.Used.Length > 0) Flash(UIKit.Bad, 0.85f, true);
             Sound.Play(allRuined ? "fail" : "success");
         }
         finishFx += Time.deltaTime;
