@@ -30,6 +30,7 @@ public partial class GameFlow : MonoBehaviour
         Clear();
         cook = new Cook(chosen, md, Balance.Ease(run.week));
         stirTimer = 0f;
+        ResetCookSfx();
         momTips = chosen.Select(i => Data.MomHint(i)).Where(s => !string.IsNullOrEmpty(s))
             .Concat(new[] { MethodTip(md.id), "게이지가 주황색이 되면 바로 꺼내렴. 빨개지면 늦은 거다." }).ToArray();
 
@@ -372,8 +373,46 @@ public partial class GameFlow : MonoBehaviour
         return 0;
     }
 
+    // ---- 조리 효과음
+    // 넣기·꺼내기·뒤집기는 클릭, 끌어다 놓기, 키(GameFlow.Core의 Update) 여러 곳에서 일어난다.
+    // 호출하는 곳마다 소리를 붙이면 빠뜨리기 쉬워서, 매 프레임 조리 상태가 바뀐 순간을 보고 한 곳에서 튼다.
+    Spot[] sfxSpots = new Spot[0];
+    bool sfxFlipped, sfxLid, sfxBubble;
+    float sfxStirTimer;
+    const float StirSfxGap = 0.12f; // 연타가 아주 빠를 때 젓는 소리가 겹쳐 웅웅거리지 않게
+
+    void ResetCookSfx()
+    {
+        sfxSpots = cook.items.Select(it => it.spot).ToArray();
+        sfxFlipped = false; sfxLid = false; sfxBubble = false; sfxStirTimer = 0f;
+    }
+
+    void PlayCookSfx()
+    {
+        bool put = false, take = false; // 시간이 다 돼 한꺼번에 꺼낼 때 같은 소리가 여러 번 겹치지 않게 한 프레임에 한 번만
+        for (int i = 0; i < cook.items.Length && i < sfxSpots.Length; i++)
+        {
+            var now = cook.items[i].spot;
+            if (now == sfxSpots[i]) continue;
+            if (now == Spot.Pan) put = true; else take = true;
+            sfxSpots[i] = now;
+        }
+        if (put) Sound.Play("put");
+        if (take) Sound.Play("take");
+        if (cook.flipped && !sfxFlipped) Sound.Play("flip");
+        sfxFlipped = cook.flipped;
+        if (stirTimer > sfxStirTimer) Sound.Play("stir", StirSfxGap); // 연타할 때마다 stirTimer가 다시 채워진다
+        sfxStirTimer = stirTimer;
+        bool lid = (lidOnPot != null && lidOnPot.activeSelf) || cook.lidProgress > 0f; // 뚜껑 그림이 없는 화면은 누르는 동안 lidProgress가 오른다
+        if (lid && !sfxLid) Sound.Play("lid");
+        sfxLid = lid;
+        if (cook.bubble && !sfxBubble) Sound.Play("boil_over");
+        sfxBubble = cook.bubble;
+    }
+
     void RefreshCookUI()
     {
+        PlayCookSfx();
         for (int i = 0; i < itemImgs.Count; i++)
         {
             var it = cook.items[i];
@@ -620,6 +659,7 @@ public partial class GameFlow : MonoBehaviour
         var md = cook.m;
         int sat = cook.Satisfaction();
         cook = null;
+        Sound.Play(ings.Length == 0 ? "fail" : "success");
 
         if (ings.Length == 0)
         {
