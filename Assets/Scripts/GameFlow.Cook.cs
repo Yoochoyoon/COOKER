@@ -281,6 +281,12 @@ public partial class GameFlow : MonoBehaviour
         if (newArt) FireFlame.Attach(root, cook, panRect, cookArt, new Vector2(960f, RefH - 500f), md.id == Method.Boil ? 165f : md.id == Method.Grill ? 182f : 205f);
         else FireFlame.Attach(root, cook, panRect, cookArt);
 
+        // 화면 번쩍임 칸: 모든 조리 그림 위에 덮이도록 마지막에 만든다. 클릭은 통과시킨다
+        flashImg = UIKit.Box(root, "Flash", 0f, 0f, 1f, 1f, new Color(1f, 1f, 1f, 0f), false).GetComponent<Image>();
+        flashImg.raycastTarget = false;
+        flashA = 0f;
+        finishFx = -1f;
+
         scr = Scr.Cook;
     }
 
@@ -353,10 +359,23 @@ public partial class GameFlow : MonoBehaviour
             x0 = 0.64f + k * w + w * 0.1f; x1 = 0.64f + (k + 1) * w - w * 0.1f; y0 = 0.06f; y1 = 0.19f;
         }
         var rt = itemRects[i];
+        float scale = 1f;
+        if (i < flyT.Length && flyT[i] < 1f)
+        {
+            // 성공한 재료: 팬에서 접시까지 포물선으로 날아가며 공중에서 살짝 커진다
+            float p = flyT[i], e = 1f - (1f - p) * (1f - p) * (1f - p), lift = FlyArc * Mathf.Sin(p * Mathf.PI);
+            var f = flyFrom[i];
+            x0 = Mathf.Lerp(f.x, x0, e); x1 = Mathf.Lerp(f.z, x1, e);
+            y0 = Mathf.Lerp(f.y, y0, e) + lift; y1 = Mathf.Lerp(f.w, y1, e) + lift;
+            scale = 1f + 0.25f * Mathf.Sin(p * Mathf.PI);
+        }
         rt.anchorMin = new Vector2(x0, y0);
         rt.anchorMax = new Vector2(x1, y1);
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = Vector2.zero;
+        rt.localScale = Vector3.one * scale;
+        if (i < shakeT.Length && shakeT[i] > 0f)
+            rt.anchoredPosition = new Vector2(Mathf.Sin(shakeT[i] * 90f) * ShakePx * (shakeT[i] / ShakeTime), 0f); // 망친 재료는 접시에서 부르르 떤다
         string key = i < 6 ? "ZXCVBN".Substring(i, 1) : "-";
         itemLabels[i].text = it.spot == Spot.Tray ? "[" + key + "] " + it.ing.name + " 넣기"
             : it.spot == Spot.Pan ? (promptLabel != null && !(it.d >= cook.Lo && it.d <= cook.Hi(it)) ? "" : "[" + key + "] " + (promptLabel != null ? "접시에 담기" : it.ing.name + " 꺼내기")) // 새 화면에서는 꺼낼 때가 됐을 때만 보인다
@@ -384,24 +403,40 @@ public partial class GameFlow : MonoBehaviour
 
     void ResetCookSfx()
     {
+        int n = cook.items.Length;
         sfxSpots = cook.items.Select(it => it.spot).ToArray();
-        sfxFlipped = false; sfxLid = false; sfxBubble = false; sfxStirTimer = 0f;
+        sfxFlipped = false; sfxLid = false; sfxBubble = false; sfxStirTimer = 0f; sfxFlipMissed = false;
+        flyFrom = new Vector4[n];
+        flyT = Enumerable.Repeat(1f, n).ToArray();
+        shakeT = new float[n];
     }
 
     void PlayCookSfx()
     {
         bool put = false, take = false; // 시간이 다 돼 한꺼번에 꺼낼 때 같은 소리가 여러 번 겹치지 않게 한 프레임에 한 번만
+        bool ruined = false;
         for (int i = 0; i < cook.items.Length && i < sfxSpots.Length; i++)
         {
-            var now = cook.items[i].spot;
+            var it = cook.items[i];
+            var now = it.spot;
             if (now == sfxSpots[i]) continue;
             if (now == Spot.Pan) put = true; else take = true;
+            if (sfxSpots[i] == Spot.Pan && now == Spot.Plate && i < itemRects.Count)
+            {
+                // 아직 PlaceItem 전이라 그림은 팬 자리에 있다. 이 자리에서 접시로 날아가게 한다
+                var r = itemRects[i];
+                if (it.ok) { flyFrom[i] = new Vector4(r.anchorMin.x, r.anchorMin.y, r.anchorMax.x, r.anchorMax.y); flyT[i] = 0f; }
+                else { shakeT[i] = ShakeTime; ruined = true; }
+            }
             sfxSpots[i] = now;
         }
         if (put) Sound.Play("put");
         if (take) Sound.Play("take");
-        if (cook.flipped && !sfxFlipped) Sound.Play("flip");
+        if (ruined) Flash(UIKit.Bad, 0.45f);
+        if (cook.flipped && !sfxFlipped) { Sound.Play("flip"); Flash(Color.white, 0.35f); }
         sfxFlipped = cook.flipped;
+        if (cook.flipMissed && !sfxFlipMissed) Flash(UIKit.Accent, 0.4f); // 뒤집기를 놓친 순간도 색으로 알린다
+        sfxFlipMissed = cook.flipMissed;
         if (stirTimer > sfxStirTimer) Sound.Play("stir", StirSfxGap); // 연타할 때마다 stirTimer가 다시 채워진다
         sfxStirTimer = stirTimer;
         bool lid = (lidOnPot != null && lidOnPot.activeSelf) || cook.lidProgress > 0f; // 뚜껑 그림이 없는 화면은 누르는 동안 lidProgress가 오른다
@@ -411,9 +446,41 @@ public partial class GameFlow : MonoBehaviour
         sfxBubble = cook.bubble;
     }
 
+    // ---- 조리 피드백 연출 (docs/19 4번): 성공은 접시로 날아감, 실패는 빨간 번쩍임과 떨림
+    Vector4[] flyFrom = new Vector4[0]; // 날아가기 시작한 자리 (anchorMin.x, anchorMin.y, anchorMax.x, anchorMax.y)
+    float[] flyT = new float[0];        // 0~1 날아가는 진행도. 1이면 제자리
+    float[] shakeT = new float[0];      // 떨림 남은 시간
+    bool sfxFlipMissed;
+    Image flashImg;
+    float flashA;
+    Color flashColor;
+    float finishFx = -1f;               // 조리가 끝난 뒤 연출을 보여 주는 시간. -1이면 아직 안 끝남
+    const float FlyTime = 0.4f, FlyArc = 0.12f, ShakeTime = 0.35f, ShakePx = 14f, FlashFade = 2.5f;
+    const float FinishFxTime = 0.5f;    // 마지막 재료가 접시에 닿는 걸 보고 다음 화면으로 넘어가게
+
+    void Flash(Color c, float alpha)
+    {
+        flashColor = c;
+        flashA = Mathf.Max(flashA, alpha);
+    }
+
+    void UpdateCookFx()
+    {
+        float dt = Time.deltaTime;
+        for (int i = 0; i < flyT.Length; i++)
+        {
+            if (flyT[i] < 1f) flyT[i] = Mathf.Min(1f, flyT[i] + dt / FlyTime);
+            if (shakeT[i] > 0f) shakeT[i] = Mathf.Max(0f, shakeT[i] - dt);
+        }
+        if (flashImg == null) return;
+        flashA = Mathf.MoveTowards(flashA, 0f, dt * FlashFade);
+        flashImg.color = new Color(flashColor.r, flashColor.g, flashColor.b, flashA);
+    }
+
     void RefreshCookUI()
     {
         PlayCookSfx();
+        UpdateCookFx();
         for (int i = 0; i < itemImgs.Count; i++)
         {
             var it = cook.items[i];
@@ -651,6 +718,21 @@ public partial class GameFlow : MonoBehaviour
 
     void FinishCook()
     {
+        // 끝나자마자 화면을 바꾸면 마지막 재료가 날아가는 모습과 번쩍임이 보이지 않는다.
+        // GameFlow.Core의 Update가 cook.finished인 동안 매 프레임 여기를 부르므로, 잠깐 연출만 돌리고 돌아간다.
+        if (finishFx < 0f)
+        {
+            finishFx = 0f;
+            bool allRuined = cook.GoodIngredients.Length == 0;
+            if (allRuined && cook.Used.Length > 0) Flash(UIKit.Bad, 0.6f);
+            Sound.Play(allRuined ? "fail" : "success");
+        }
+        finishFx += Time.deltaTime;
+        UpdateCookFx();
+        for (int i = 0; i < itemRects.Count && i < cook.items.Length; i++) PlaceItem(i);
+        if (finishFx < FinishFxTime) return;
+        finishFx = -1f;
+
         var used = cook.Used;                 // 접시에 올린 재료(소비됨). 트레이에 남은 재료는 쓰지 않은 것
         var ings = cook.GoodIngredients;      // 성공한 재료만 요리가 된다
         var usedStages = cook.UsedStages;
@@ -660,7 +742,6 @@ public partial class GameFlow : MonoBehaviour
         var md = cook.m;
         int sat = cook.Satisfaction();
         cook = null;
-        Sound.Play(ings.Length == 0 ? "fail" : "success");
         Sound.Music("bgm_lobby"); // 조리가 끝나면 식사·하루 선택 화면으로 가므로 평소 곡으로 돌아간다
 
         if (ings.Length == 0)
