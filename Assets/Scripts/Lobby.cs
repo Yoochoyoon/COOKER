@@ -17,6 +17,7 @@ public static class Lobby
     public static void Show(Transform root, Run run, Action clear, Action startGame, Action openDex, Action openTitles, Action openFridge)
     {
         clear();
+        Sound.Music("bgm_lobby"); // 장보기·하루 선택도 이 곡이 이어진다
         var screen = UIKit.Box(root, "Lobby", 0, 0, 1, 1);
 
         // 창 비율이 16:9가 아니어도 시안과 똑같이 보이도록, 16:9 영역 안에 놓는다

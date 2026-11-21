@@ -4,6 +4,7 @@ using UnityEngine;
 // 효과음과 배경 음악 재생기. 파일이 없으면 조용히 넘어가서 소리 파일 없이도 게임이 돈다.
 // 규칙: Assets/Resources/Sfx/<이름>.wav (효과음), Assets/Resources/Sfx/<이름>.ogg (배경 음악)
 // 이름은 docs/19의 효과음 표를 따른다: put, take, flip, stir, lid, boil_over, success, fail, click
+// 배경 음악: bgm_title, bgm_lobby, bgm_cook (목록과 출처는 docs/22)
 public static class Sound
 {
     static readonly Dictionary<string, AudioClip> cache = new Dictionary<string, AudioClip>();
@@ -16,6 +17,11 @@ public static class Sound
     // 도메인 리로드를 끄고 Play하면 static이 남는다. 이전 실행의 "없음" 기억과 사라진 AudioSource를 비운다 (Art.cs와 같은 이유)
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetCache() { cache.Clear(); lastPlayed.Clear(); sfx = null; music = null; }
+
+    // 게임은 늘 타이틀 화면으로 시작한다. 타이틀은 GameFlow.Core(유초윤 파일)가 그리므로, 그 파일을 건드리지 않고 시작할 때 여기서 튼다.
+    // 로비(Lobby.Show)와 조리(StartCook)에 들어가면 각 화면의 곡으로 바뀐다.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void Boot() { Music("bgm_title"); }
 
     static AudioClip Clip(string name)
     {

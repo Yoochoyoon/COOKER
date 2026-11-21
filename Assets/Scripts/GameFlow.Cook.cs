@@ -31,6 +31,7 @@ public partial class GameFlow : MonoBehaviour
         cook = new Cook(chosen, md, Balance.Ease(run.week));
         stirTimer = 0f;
         ResetCookSfx();
+        Sound.Music("bgm_cook");
         momTips = chosen.Select(i => Data.MomHint(i)).Where(s => !string.IsNullOrEmpty(s))
             .Concat(new[] { MethodTip(md.id), "게이지가 주황색이 되면 바로 꺼내렴. 빨개지면 늦은 거다." }).ToArray();
 
@@ -660,6 +661,7 @@ public partial class GameFlow : MonoBehaviour
         int sat = cook.Satisfaction();
         cook = null;
         Sound.Play(ings.Length == 0 ? "fail" : "success");
+        Sound.Music("bgm_lobby"); // 조리가 끝나면 식사·하루 선택 화면으로 가므로 평소 곡으로 돌아간다
 
         if (ings.Length == 0)
         {
