@@ -63,7 +63,7 @@ public class Help : MonoBehaviour
         canvasGo.AddComponent<GraphicRaycaster>();
 
         // 마우스로도 열 수 있는 작은 [?] 버튼. 자리는 화면마다 달라서 글자·버튼과 겹치지 않는 곳으로 알아서 옮긴다 (PlaceOpenButton).
-        var b = UIKit.Btn(canvasGo.transform, "?", Cand[0][0], Cand[0][1], Cand[0][2], Cand[0][3], Open, UIKit.Muted, 28, true, true);
+        var b = UIKit.ImageBtn(canvasGo.transform, "icon_help", Cand[0][0], Cand[0][1], Cand[0][2], Cand[0][3], Open);
         openBtn = b.gameObject;
         openRt = (RectTransform)openBtn.transform;
     }
@@ -168,7 +168,7 @@ public class Help : MonoBehaviour
     // 그 자리에 있는 글자·버튼과 겹치지 않는 첫 곳에 둔다 (0.5초마다 확인). 모두 겹치면 가장 덜 겹치는 곳.
     static readonly float[][] Cand =
     {
-        new[] { 0.001f, 0.925f, 0.020f, 0.985f }, // 왼쪽 위 모서리 (화면 맨 왼쪽 띠. 4:3에서는 주차 카드가 0.021부터 시작해 폭을 줄였다)
+        new[] { 0.0156f, 0.8056f, 0.0521f, 0.8704f }, // 로비 시안: 주차 카드 바로 아래 왼쪽 (x 30~100, y 140~210 픽셀). 다른 화면에서 겹치면 아래 후보로 옮겨 간다
         new[] { 0.002f, 0.860f, 0.027f, 0.920f }, // 왼쪽 가장자리, 조금 아래
         new[] { 0.002f, 0.800f, 0.027f, 0.855f },
         new[] { 0.47f, 0.0f, 0.53f, 0.035f },     // 아래 가운데 (화면 맨 아래 띠)

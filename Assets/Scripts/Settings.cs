@@ -136,8 +136,8 @@ public class SettingsButton : MonoBehaviour
         cgo.AddComponent<GraphicRaycaster>();
         canvasRT = (RectTransform)cgo.transform;
 
-        // 오른쪽 위 로비 버튼(0.915~0.99) 바로 아래
-        UIKit.Btn(canvasRT, "설정", 0.905f, 0.84f, 0.99f, 0.905f, Open, UIKit.Muted, 30);
+        // 왼쪽 위 도움말([?]) 바로 아래 (로비 시안 기준)
+        UIKit.ImageBtn(canvasRT, "icon_gear", 0.0156f, 0.7083f, 0.0521f, 0.775f, Open);
     }
 
     void Update()

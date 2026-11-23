@@ -425,16 +425,6 @@ public static class UIKit
         var c = bg ?? Accent;
         if (!classic && !enabled) c = new Color(c.r, c.g, c.b, 0.35f); // 못 누르는 버튼은 35% 투명
         var rt = Box(parent, "Btn_" + text, x0, y0, x1, y1, c, false);
-        // 버튼 나인패치: Resources/Art/btn_base.png가 있으면 그 그림을 그대로 쓴다 (모서리는 고정, 가운데만 늘어남).
-        // 그림에 이미 색이 있으므로 색은 입히지 않고, 못 누르는 버튼의 투명도(c.a)만 따른다. 그림이 없으면 기본 둥근 사각형(색 입힘)을 쓴다.
-        var baseArt = Art.Load("btn_base");
-        if (baseArt != null)
-        {
-            var bi = rt.GetComponent<Image>();
-            bi.sprite = baseArt;
-            bi.type = Image.Type.Sliced;
-            bi.color = new Color(1f, 1f, 1f, c.a);
-        }
         if (classic || enabled)
         {
             // 버튼 두께: 아래로 진한 같은 색 그림자
@@ -496,6 +486,21 @@ public static class UIKit
                 lr.offsetMin = Vector2.zero; lr.offsetMax = Vector2.zero;
             }
         }
+        return b;
+    }
+
+    // 그림만 있는 버튼: 배경 없이 그림(Resources/Art/icon_*.png) 하나만 보이고, 누르면 onClick. 글자는 넣지 않는다.
+    public static Button ImageBtn(Transform parent, string icon, float x0, float y0, float x1, float y1, Action onClick)
+    {
+        var rt = Box(parent, "ImageBtn_" + icon, x0, y0, x1, y1);
+        var img = rt.gameObject.AddComponent<Image>();
+        img.sprite = Art.Load(icon);
+        img.preserveAspect = true;
+        img.color = img.sprite == null ? new Color(0f, 0f, 0f, 0f) : Color.white;
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = img;
+        b.transition = Selectable.Transition.ColorTint;
+        b.onClick.AddListener(() => onClick());
         return b;
     }
 
