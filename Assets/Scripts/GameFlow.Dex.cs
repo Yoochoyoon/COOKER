@@ -367,6 +367,7 @@ public partial class GameFlow : MonoBehaviour
         grid.constraintCount = 5;
         grid.childAlignment = TextAnchor.UpperCenter;
         content.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        content.AddComponent<DexGridFit>(); // 화면 비율이 달라도 5열이 팝업 안에 들어오게 칸 크기를 맞춘다
         sr.content = crt;
         sr.viewport = vp;
         sr.horizontal = false;
@@ -498,5 +499,24 @@ public partial class GameFlow : MonoBehaviour
         if (dexDetail != null) Destroy(dexDetail);
         dexDetail = null;
         detailDish = null;
+    }
+}
+
+// 도감 격자: 보이는 너비에 5열이 딱 맞도록 칸 크기를 계산한다 (4:3처럼 좁은 화면에서 잘리지 않게).
+public class DexGridFit : UIBehaviour
+{
+    protected override void OnRectTransformDimensionsChange() { Fit(); }
+    protected override void Start() { Fit(); }
+
+    void Fit()
+    {
+        var grid = GetComponent<GridLayoutGroup>();
+        var rt = transform as RectTransform;
+        if (grid == null || rt == null) return;
+        float w = rt.rect.width;
+        if (w < 100f) return;
+        int n = Mathf.Max(1, grid.constraintCount);
+        float cw = Mathf.Min(270f, (w - grid.padding.left - grid.padding.right - grid.spacing.x * (n - 1)) / n);
+        grid.cellSize = new Vector2(cw, cw * 320f / 270f);
     }
 }
