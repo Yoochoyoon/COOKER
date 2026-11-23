@@ -42,7 +42,7 @@ public static class Lobby
         // 글자는 말풍선의 자식이라 말풍선과 함께 움직인다. 글자 칸은 말풍선 안쪽(시안 600~895, 437~522)
         if (tagPiece != null)
         {
-            var tag = LabelIn(tagPiece, 310, 110, rep == null ? "칭호 없음" : rep.name, 11, 33, 251, 64, 42, Color.white);
+            var tag = LabelIn(tagPiece, 310, 110, rep == null ? "칭호 없음" : rep.name, 31, 33, 251, 64, 34, Color.white);
             tagText = tag;
             var o = tag.gameObject.AddComponent<Outline>();
             o.effectColor = new Color(0.78f, 0.36f, 0.27f);
@@ -52,20 +52,20 @@ public static class Lobby
         // 현재 주차 / 보유 금액 (새 게임 직전이면 1주차와 시작 예산)
         Piece(fit, "WeekCard", "lobby_day", 22, 21, 297, 88, null);
         Piece(fit, "WeekIcon", "icon_week", 46, 37, 49, 50, null);
-        Text(fit, run.week + "주차", 122, 35, 180, 60, 56, Brown, TextAnchor.MiddleLeft);
+        Text(fit, run.week + "주차", 122, 40, 180, 50, 44, Brown, TextAnchor.MiddleLeft);
         Piece(fit, "MoneyCard", "lobby_money", 342, 21, 297, 88, null);
         Piece(fit, "MoneyIcon", "icon_money", 370, 36, 47, 53, null);
         string money = run.budget.ToString("N0");
-        Text(fit, money, 442, 33, 180, 60, 56, Brown, TextAnchor.MiddleLeft);
+        Text(fit, money, 442, 40, 180, 50, 44, Brown, TextAnchor.MiddleLeft);
 
         // 아래 줄: 도감(책) · 칭호(왕관) · 게임 시작
         // 단축키 이름표는 각 버튼 위에 붙어 같이 움직인다
         var dex = Piece(fit, "Dex", "lobby_dex", 1043, 903, 206, 157, openDex);
-        if (dex != null) LabelIn(dex, 206, 157, "도감 [D]", 0, -40, 206, 34, 34, Color.white);
+        if (dex != null) LabelIn(dex, 206, 157, "도감 [D]", 0, -40, 206, 34, 26, Color.white);
         var crown = Piece(fit, "TitleIcon", "icon_title", 1266, 906, 196, 153, openTitles);
-        if (crown != null) LabelIn(crown, 196, 153, "칭호 [T]", 0, -40, 196, 34, 34, Color.white);
+        if (crown != null) LabelIn(crown, 196, 153, "칭호 [T]", 0, -40, 196, 34, 26, Color.white);
         var start = Piece(fit, "Start", "lobby_start", 1481, 931, 418, 128, startGame);
-        if (start != null) UIKit.PrimaryLabel(start, "게임 시작", 72, true);
+        if (start != null) UIKit.PrimaryLabel(start, "게임 시작", 60, true);
     }
 
     static Text tagText; // 캐릭터 머리 위 대표 칭호 글자

@@ -136,8 +136,8 @@ public class SettingsButton : MonoBehaviour
         cgo.AddComponent<GraphicRaycaster>();
         canvasRT = (RectTransform)cgo.transform;
 
-        // 왼쪽 열: 도움말([?]) 바로 아래 (x 22~92, y 215~285 픽셀)
-        UIKit.ImageBtn(canvasRT, "icon_gear", 0.0115f, 0.7361f, 0.0479f, 0.8009f, Open);
+        // 위쪽 줄: 도움말 옆 (x 770~840, y 30~100 픽셀). 도움말·설정·나가기가 HUD와 한 줄에 놓인다
+        UIKit.ImageBtn(canvasRT, "icon_gear", 0.4010f, 0.9074f, 0.4375f, 0.9722f, Open);
     }
 
     void Update()
