@@ -123,6 +123,9 @@ public partial class GameFlow : MonoBehaviour
         // 어디서든 로비로 돌아가는 버튼. 화면이 바뀌어도 남아 있고, 판 도중 화면에서만 보인다 (Update)
         lobbyBtn = UIKit.IconBtn(canvasRT, "icon_home", "로비", 0.905f, 0.915f, 0.99f, 0.99f, GoLobby, UIKit.Accent, 30).gameObject;
         lobbyBtn.SetActive(false);
+        // 타이틀 버튼: 로비에서만 보인다 (로비 버튼이 있던 자리). 로비는 주가 시작하는 자리라 나가도 잃는 것이 없다.
+        titleBtn = UIKit.Btn(canvasRT, "타이틀", 0.905f, 0.915f, 0.99f, 0.99f, GoTitle, UIKit.Muted, 28).gameObject;
+        titleBtn.SetActive(false);
 
         if (FindFirstObjectByType<EventSystem>() == null)
         {
@@ -779,6 +782,15 @@ public partial class GameFlow : MonoBehaviour
     // 로비 버튼: 판 도중(장보기·하루 선택·조리·식사)에만 보이고, 팝업이 열려 있으면 숨긴다.
     // 누르면 바로 가지 않고 확인 창을 띄운다. 가기로 하면 이번 주차가 취소된다 (CancelWeekToLobby).
     GameObject lobbyBtn;
+    GameObject titleBtn;
+
+    // 로비에서 타이틀로. 저장된 주가 있으면 타이틀의 [이어하기]로 돌아올 수 있다.
+    void GoTitle()
+    {
+        if (scr != Scr.Lobby || modal != null) return;
+        Sound.Music("bgm_title");
+        ShowTitle();
+    }
 
     void GoLobby()
     {
@@ -818,6 +830,8 @@ public partial class GameFlow : MonoBehaviour
         var kb = Keyboard.current;
         if (lobbyBtn != null)
             lobbyBtn.SetActive((scr == Scr.Shop || scr == Scr.Day || scr == Scr.Cook || scr == Scr.Meal) && modal == null && dexDetail == null);
+        if (titleBtn != null)
+            titleBtn.SetActive(scr == Scr.Lobby && modal == null && dexDetail == null);
         if (cook == null)
         {
             if (kb != null) HandleMenuKeys(kb);
