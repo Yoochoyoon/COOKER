@@ -44,6 +44,14 @@ public static class Settings
     {
         Sound.SfxVolume = SfxPercent / 100f;
         Sound.MusicVolume = MusicPercent / 100f;
+        // 지금 나오는 음악에도 바로 적용한다. Sound.cs는 곡이 바뀔 때만 음량을 맞추므로, 여기서 음악 재생기를 직접 찾는다.
+        // (Sound.cs가 "Sound" 오브젝트에 효과음 AudioSource, 음악 AudioSource 순서로 만든다는 점에 기대고 있다. 나중에 Sound.ApplyVolume()으로 바꾸면 된다.)
+        var soundGo = GameObject.Find("Sound");
+        if (soundGo != null)
+        {
+            var srcs = soundGo.GetComponents<AudioSource>();
+            if (srcs.Length > 1) srcs[1].volume = Sound.MusicVolume;
+        }
         Screen.fullScreenMode = Fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed;
     }
 
