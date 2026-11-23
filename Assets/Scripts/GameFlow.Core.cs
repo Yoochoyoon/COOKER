@@ -124,7 +124,8 @@ public partial class GameFlow : MonoBehaviour
         lobbyBtn = UIKit.IconBtn(canvasRT, "icon_home", "로비", 0.905f, 0.915f, 0.99f, 0.99f, GoLobby, UIKit.Accent, 30).gameObject;
         lobbyBtn.SetActive(false);
         // 타이틀 버튼: 로비에서만 보인다 (로비 버튼이 있던 자리). 로비는 주가 시작하는 자리라 나가도 잃는 것이 없다.
-        titleBtn = UIKit.ImageBtn(canvasRT, "icon_exit", 0.94f, 0.905f, 0.99f, 0.97f, GoTitle).gameObject;
+        // 오른쪽 위 모서리 (x 1828~1898, y 22~92 픽셀): 왼쪽 열과 같은 여백(22)
+        titleBtn = UIKit.ImageBtn(canvasRT, "icon_exit", 0.9521f, 0.9148f, 0.9885f, 0.9796f, GoTitle).gameObject;
         titleBtn.SetActive(false);
 
         if (FindFirstObjectByType<EventSystem>() == null)

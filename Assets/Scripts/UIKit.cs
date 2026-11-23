@@ -499,8 +499,9 @@ public static class UIKit
         img.color = img.sprite == null ? new Color(0f, 0f, 0f, 0f) : Color.white;
         var b = rt.gameObject.AddComponent<Button>();
         b.targetGraphic = img;
-        b.transition = Selectable.Transition.ColorTint;
+        b.transition = Selectable.Transition.ColorTint; // 올리면 살짝 어두워짐
         b.onClick.AddListener(() => onClick());
+        if (img.sprite != null) rt.gameObject.AddComponent<PressDown>().depth = 3f; // 누르면 살짝 내려앉음
         return b;
     }
 
