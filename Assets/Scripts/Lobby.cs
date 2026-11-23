@@ -28,36 +28,35 @@ public static class Lobby
 
         if (Art.Load("lobby_bg") == null) { Fallback(screen, run, startGame, openDex, openTitles, openFridge); return; }
 
+        // 시안(로비 배치) 그림 한 장에 냉장고·캐릭터·칭호 말풍선·도감 책·왕관·시작 바가 이미 그려져 있다.
+        // 그래서 그림은 배경 하나만 깔고, 그 자리를 누르는 칸(투명 버튼)과 글자만 올린다.
         Piece(fit, "Bg", "lobby_bg", 0, 0, RefW, RefH, null);
-        Piece(fit, "Fridge", "lobby_fridge", 1091, 146, 716, 934, openFridge);
-        Piece(fit, "Character", "lobby_character", 150, 242, 917, 838, openTitles);
-        Piece(fit, "Desk", "lobby_desk", 0, 945, 1835, 135, null);
+        Hit(fit, "FridgeHit", 1455, 240, 415, 640, openFridge);
+        Hit(fit, "CharacterHit", 578, 520, 327, 480, openTitles);
 
-        // 대표 칭호: 캐릭터 머리 위. 눌러도 칭호 목록이 열린다
+        // 대표 칭호: 캐릭터 머리 위 말풍선. 눌러도 칭호 목록이 열린다
         var rep = Titles.Representative;
-        Piece(fit, "TitleTag", "lobby_titletag", 481, 177, 295, 119, openTitles);
-        var tag = Text(fit, rep == null ? "칭호 없음" : rep.name, 541, 226, 175, 62, 42, Color.white, TextAnchor.MiddleCenter);
+        Hit(fit, "TitleHit", 600, 437, 295, 85, openTitles);
+        // 글자 칸은 말풍선 안쪽(시안 600~895, 437~522)에 들어간다
+        var tag = Text(fit, rep == null ? "칭호 없음" : rep.name, 622, 448, 251, 64, 42, Color.white, TextAnchor.MiddleCenter);
         tagText = tag;
         var o = tag.gameObject.AddComponent<Outline>();
         o.effectColor = new Color(0.78f, 0.36f, 0.27f);
         o.effectDistance = new Vector2(3f, -3f);
 
         // 현재 주차 / 보유 금액 (새 게임 직전이면 1주차와 시작 예산)
-        Piece(fit, "WeekCard", "lobby_day", 40, 30, 276, 109, null);
-        Text(fit, run.week + "주차", 140, 36, 170, 96, 56, Brown, TextAnchor.MiddleLeft);
-        // 금액 칸: 오른쪽 끝(1888)을 고정하고, 금액 글자 길이에 맞춰 왼쪽으로 늘어난다 (동전 그림이 있는 왼쪽 100px과 오른쪽 여백은 그대로)
+        // 달력 칸(왼쪽 위 시안 자리 22~318, 25~105)에 주차 글자
+        // 글자 칸 가운데를 시안 칸 가운데(y 65)에 맞춘다
+        Text(fit, run.week + "주차", 122, 35, 180, 60, 56, Brown, TextAnchor.MiddleLeft);
+        // 금액 칸(시안 342~638): 아이콘 옆에 금액 글자
         string money = run.budget.ToString("N0");
-        float textW = 0f;
-        foreach (char ch in money) textW += ch == ',' ? 16f : 32f; // 글자 크기 56에서 숫자·쉼표의 대략 너비
-        float cardW = Mathf.Max(260f, 100f + textW + 34f);
-        float cardX = 1888f - cardW;
-        var moneyCard = Piece(fit, "MoneyCard", "lobby_money", cardX, 30, cardW, 109, null);
-        if (moneyCard != null) moneyCard.GetComponent<Image>().type = Image.Type.Sliced;
-        Text(fit, money, cardX + 100f, 36, cardW - 100f - 24f, 96, 56, Brown, TextAnchor.MiddleLeft);
+        Text(fit, money, 442, 33, 180, 60, 56, Brown, TextAnchor.MiddleLeft);
 
-        Piece(fit, "Dex", "lobby_dex", 36, 852, 380, 207, openDex);
-        // 게임 시작: 글자 없는 버튼 그림(lobby_start) 위에 코드로 글자를 올린다. 같은 그림·글자 모양을 다른 화면의 주요 버튼도 쓴다 (UIKit.PrimaryBtn)
-        var start = Piece(fit, "Start", "lobby_start", 1316, 868, 557, 155, startGame);
+        // 아래 줄: 도감(책) · 칭호(왕관)
+        Hit(fit, "DexHit", 1040, 900, 206, 157, openDex);
+        Hit(fit, "TitleHit2", 1268, 905, 192, 150, openTitles);
+        // 게임 시작: 글자 없는 버튼 그림(lobby_start_v2) 위에 코드로 글자를 올린다. 같은 그림·글자 모양을 다른 화면의 주요 버튼도 쓴다 (UIKit.PrimaryBtn)
+        var start = Hit(fit, "StartHit", 1485, 935, 418, 120, startGame); // 시안 바(935~1055)의 가운데에 글자가 온다
         if (start != null) UIKit.PrimaryLabel(start, "게임 시작", 72, true);
     }
 
@@ -75,6 +74,19 @@ public static class Lobby
     static RectTransform Rect(Transform parent, string name, float x, float y, float w, float h)
     {
         return UIKit.Box(parent, name, x / RefW, 1f - (y + h) / RefH, (x + w) / RefW, 1f - y / RefH);
+    }
+
+    // 그림 위에 눌리는 투명한 칸. 시안 그림에 이미 그려진 것(책·왕관·캐릭터 등)을 누르게 해 준다
+    static RectTransform Hit(Transform parent, string name, float x, float y, float w, float h, Action onClick)
+    {
+        var rt = Rect(parent, name, x, y, w, h);
+        var img = rt.gameObject.AddComponent<Image>();
+        img.color = new Color(0f, 0f, 0f, 0f);
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = img;
+        b.transition = Selectable.Transition.None;
+        b.onClick.AddListener(() => onClick());
+        return rt;
     }
 
     // 그림 조각 하나. onClick이 있으면 누를 수 있다 (올리면 살짝 어두워진다)
