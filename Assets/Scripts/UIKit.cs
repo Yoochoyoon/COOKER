@@ -425,6 +425,16 @@ public static class UIKit
         var c = bg ?? Accent;
         if (!classic && !enabled) c = new Color(c.r, c.g, c.b, 0.35f); // 못 누르는 버튼은 35% 투명
         var rt = Box(parent, "Btn_" + text, x0, y0, x1, y1, c, false);
+        // 버튼 나인패치: Resources/Art/btn_base.png가 있으면 그 그림을 쓴다 (모서리는 고정, 가운데만 늘어남).
+        // 그림은 흰색으로 그리고, 버튼 색(c)은 색조로 입힌다. 그림이 없으면 기본 둥근 사각형을 그대로 쓴다.
+        var baseArt = Art.Load("btn_base");
+        if (baseArt != null)
+        {
+            var bi = rt.GetComponent<Image>();
+            bi.sprite = baseArt;
+            bi.type = Image.Type.Sliced;
+            bi.color = c;
+        }
         if (classic || enabled)
         {
             // 버튼 두께: 아래로 진한 같은 색 그림자
