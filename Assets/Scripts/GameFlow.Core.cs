@@ -289,7 +289,7 @@ public partial class GameFlow : MonoBehaviour
     void ShowShop()
     {
         Clear();
-        Pad(0.96f);
+        Pad(0.864f); // 장보기 창을 지금(0.96)의 90%로 줄임 (0.96 × 0.9). 배경 그림은 그대로 꽉 찬다
         SetBg("bg_shop");
         PurgeExpired();
         int spent = cart.Sum(kv => Price(kv.Key) * kv.Value);
