@@ -96,6 +96,7 @@ public partial class GameFlow : MonoBehaviour
     void Awake()
     {
         if (Camera.main != null) Camera.main.backgroundColor = UIKit.Bg;
+        Settings.Load(); // 음량과 전체화면을 먼저 맞춘다 (Sound.Boot의 타이틀 음악이 이 음량을 쓴다)
         BuildCanvas();
         ShowTitle();
     }
@@ -201,8 +202,19 @@ public partial class GameFlow : MonoBehaviour
             UIKit.Label(root, "일주일치 장바구니로 최대한 오래 버텨라", 0.1f, 0.46f, 0.9f, 0.58f, 54);
             UIKit.Btn(root, "시작  [Enter]", 0.35f, 0.26f, 0.65f, 0.40f, StartRun, null, 44, true, true);
         }
+        UIKit.Btn(root, "설정", 0.80f, 0.04f, 0.96f, 0.12f, ShowSettings, UIKit.Muted, 36);
         scr = Scr.Title;
         confirm = StartRun;
+    }
+
+    // 설정 화면 (docs/19 8번). 돌아가기는 타이틀로 간다.
+    void ShowSettings()
+    {
+        Clear();
+        SetBg("bg_title");
+        Settings.Open(root, ShowTitle);
+        scr = Scr.Other;
+        confirm = ShowTitle;
     }
 
     Image TitleImage(Transform parent, Sprite s, float x0, float y0, float x1, float y1)
