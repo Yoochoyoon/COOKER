@@ -202,19 +202,22 @@ public partial class GameFlow : MonoBehaviour
             UIKit.Label(root, "일주일치 장바구니로 최대한 오래 버텨라", 0.1f, 0.46f, 0.9f, 0.58f, 54);
             UIKit.Btn(root, "시작  [Enter]", 0.35f, 0.26f, 0.65f, 0.40f, StartRun, null, 44, true, true);
         }
-        UIKit.Btn(root, "설정", 0.80f, 0.04f, 0.96f, 0.12f, ShowSettings, UIKit.Muted, 36);
+        // 이어하기: 저장된 주의 로비에서 다시 시작한다 (RunSave). 설정은 모든 화면의 톱니 버튼에서 연다 (Settings.cs).
+        if (RunSave.Has()) UIKit.Btn(root, "이어하기", 0.03f, 0.04f, 0.23f, 0.12f, Continue, UIKit.Accent, 36);
         scr = Scr.Title;
         confirm = StartRun;
     }
 
-    // 설정 화면 (docs/19 8번). 돌아가기는 타이틀로 간다.
-    void ShowSettings()
+    void Continue()
     {
-        Clear();
-        SetBg("bg_title");
-        Settings.Open(root, ShowTitle);
-        scr = Scr.Other;
-        confirm = ShowTitle;
+        var saved = RunSave.Load();
+        if (saved == null) { RunSave.Delete(); StartRun(); return; }
+        run = saved;
+        flyingIn.Clear();
+        cart.Clear();
+        sel.Clear();
+        selMethod = null;
+        ShowLobby();
     }
 
     Image TitleImage(Transform parent, Sprite s, float x0, float y0, float x1, float y1)
@@ -811,6 +814,7 @@ public partial class GameFlow : MonoBehaviour
 
     void Update()
     {
+        if (Settings.IsOpen) return; // 설정 화면이 열려 있으면 뒤의 게임은 입력을 받지 않는다
         var kb = Keyboard.current;
         if (lobbyBtn != null)
             lobbyBtn.SetActive((scr == Scr.Shop || scr == Scr.Day || scr == Scr.Cook || scr == Scr.Meal) && modal == null && dexDetail == null);
@@ -933,6 +937,7 @@ public partial class GameFlow : MonoBehaviour
         run.strikes = 0;
         run.dishes.Clear();
         run.budget = NextBudget(sat);
+        RunSave.Save(run); // 이어하기: 새 주의 시작 상태를 저장한다
         cart.Clear();
         sel.Clear();
         selMethod = null;
@@ -1007,7 +1012,7 @@ public partial class GameFlow : MonoBehaviour
         var why = UIKit.Box(left, "Why", 0.06f, 0.05f, 0.94f, 0.34f, new Color(1f, 0.9f, 0.85f), false);
         UIKit.Label(why, reason, 0.04f, 0.05f, 0.96f, 0.95f, 28, TextAnchor.MiddleCenter, UIKit.Bad);
         DishRowsCard("이번 주 먹은 요리", 0.51f, 0.27f, 0.92f, 0.77f); // 주가 바뀌면 목록이 비워지므로 "이번 주"가 정확하다
-        UIKit.PrimaryBtn(root, "다시 하기 [Enter]", 0.30f, 0.05f, 0.70f, 0.19f, ShowTitle, 48);
+        UIKit.PrimaryBtn(root, "다시 하기 [Enter]", 0.30f, 0.05f, 0.70f, 0.19f, () => { RunSave.Delete(); ShowTitle(); }, 48); // 굶어서 끝난 판은 이어하기에서 지운다
         confirm = ShowTitle;
         var gainedOnFail = Titles.Check(dex.Values.ToList()); // 굶어서 끝나는 결산에서도 판정한다
         pendingGain.AddRange(gainedOnFail);

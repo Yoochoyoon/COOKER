@@ -1,8 +1,10 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// 설정 화면 (docs/19 8번). 효과음·음악 음량과 전체화면을 바꾸고 PlayerPrefs에 저장한다.
-// 화면은 GameFlow.Core의 ShowSettings가 Open()으로 그린다. 음량 값은 Sound.SfxVolume / Sound.MusicVolume에 넣는다.
+// 설정 (docs/19 8번). 효과음·음악 음량과 전체화면을 바꾸고 PlayerPrefs에 저장한다.
+// 톱니(설정) 버튼은 모든 화면 오른쪽 위에 떠 있다 (SettingsButton). 누르면 게임을 멈추고 설정 창을 연다. Esc·Enter·돌아가기로 닫는다.
+// 음량 값은 Sound.SfxVolume / Sound.MusicVolume에 넣는다.
 // 저장 키: cooker.sfx, cooker.bgm, cooker.fullscreen (바꾸면 설정이 초기화된다)
 public static class Settings
 {
@@ -12,6 +14,7 @@ public static class Settings
     public static int SfxPercent = 100;
     public static int MusicPercent = 50;
     public static bool Fullscreen = true;
+    public static bool IsOpen; // 설정 창이 열려 있으면 뒤의 게임(GameFlow.Update)은 입력을 받지 않는다
 
     static Text sfxTxt, bgmTxt, fullTxt;
 
@@ -55,19 +58,19 @@ public static class Settings
         Screen.fullScreenMode = Fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed;
     }
 
-    // root 안에 설정 화면을 그린다. back은 "돌아가기"를 눌렀을 때 실행한다.
-    public static void Open(RectTransform root, System.Action back)
+    // 설정 패널(부모 안을 꽉 채운다)의 내용을 그린다. close는 "돌아가기"를 눌렀을 때 실행한다.
+    public static void BuildPanel(RectTransform panel, System.Action close)
     {
-        UIKit.Label(root, "설정", 0.1f, 0.78f, 0.9f, 0.92f, 90, TextAnchor.MiddleCenter, UIKit.Accent);
+        UIKit.Label(panel, "설정", 0.1f, 0.78f, 0.9f, 0.92f, 90, TextAnchor.MiddleCenter, UIKit.Accent);
 
-        UIKit.Label(root, "효과음", 0.12f, 0.60f, 0.48f, 0.72f, 48, TextAnchor.MiddleLeft);
-        sfxTxt = VolumeRow(root, 0.60f, 0.72f, () => SfxPercent, v => SfxPercent = v);
+        UIKit.Label(panel, "효과음", 0.12f, 0.60f, 0.48f, 0.72f, 48, TextAnchor.MiddleLeft);
+        sfxTxt = VolumeRow(panel, 0.60f, 0.72f, () => SfxPercent, v => SfxPercent = v);
 
-        UIKit.Label(root, "음악", 0.12f, 0.44f, 0.48f, 0.56f, 48, TextAnchor.MiddleLeft);
-        bgmTxt = VolumeRow(root, 0.44f, 0.56f, () => MusicPercent, v => MusicPercent = v);
+        UIKit.Label(panel, "음악", 0.12f, 0.44f, 0.48f, 0.56f, 48, TextAnchor.MiddleLeft);
+        bgmTxt = VolumeRow(panel, 0.44f, 0.56f, () => MusicPercent, v => MusicPercent = v);
 
-        UIKit.Label(root, "전체화면", 0.12f, 0.28f, 0.48f, 0.40f, 48, TextAnchor.MiddleLeft);
-        fullTxt = UIKit.Btn(root, "", 0.55f, 0.28f, 0.89f, 0.40f, () =>
+        UIKit.Label(panel, "전체화면", 0.12f, 0.28f, 0.48f, 0.40f, 48, TextAnchor.MiddleLeft);
+        fullTxt = UIKit.Btn(panel, "", 0.55f, 0.28f, 0.89f, 0.40f, () =>
         {
             Fullscreen = !Fullscreen;
             Apply();
@@ -75,7 +78,7 @@ public static class Settings
             Refresh();
         }, null, 44).GetComponentInChildren<Text>();
 
-        UIKit.PrimaryBtn(root, "돌아가기 [Enter]", 0.30f, 0.07f, 0.70f, 0.19f, back, 44);
+        UIKit.PrimaryBtn(panel, "돌아가기 [Esc]", 0.30f, 0.07f, 0.70f, 0.19f, close, 44);
         Refresh();
     }
 
@@ -101,5 +104,66 @@ public static class Settings
         if (sfxTxt != null) sfxTxt.text = SfxPercent + "%";
         if (bgmTxt != null) bgmTxt.text = MusicPercent + "%";
         if (fullTxt != null) fullTxt.text = Fullscreen ? "켜짐" : "꺼짐";
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void Boot()
+    {
+        if (Object.FindFirstObjectByType<SettingsButton>() != null) return;
+        var go = new GameObject("COOKER_Settings");
+        Object.DontDestroyOnLoad(go);
+        go.AddComponent<SettingsButton>();
+    }
+}
+
+// 모든 화면 위에 떠 있는 톱니 버튼과 설정 창. 게임 화면과 따로 캔버스를 가진다.
+public class SettingsButton : MonoBehaviour
+{
+    RectTransform canvasRT;
+    GameObject dim;
+
+    void Awake()
+    {
+        var cgo = new GameObject("SettingsCanvas", typeof(RectTransform));
+        cgo.transform.SetParent(transform, false);
+        var canvas = cgo.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 4000; // 게임 화면과 장식 위, 도움말(5000) 아래
+        var scaler = cgo.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.matchWidthOrHeight = 0.5f;
+        cgo.AddComponent<GraphicRaycaster>();
+        canvasRT = (RectTransform)cgo.transform;
+
+        // 오른쪽 위 로비 버튼(0.915~0.99) 바로 아래
+        UIKit.Btn(canvasRT, "설정", 0.905f, 0.84f, 0.99f, 0.905f, Open, UIKit.Muted, 30);
+    }
+
+    void Update()
+    {
+        if (!Settings.IsOpen) return;
+        var kb = Keyboard.current;
+        if (kb == null) return;
+        if (kb.escapeKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) Close();
+    }
+
+    void Open()
+    {
+        if (Settings.IsOpen) return;
+        Settings.IsOpen = true;
+        Time.timeScale = 0f; // 조리 타이머와 젓기·뚜껑 같은 시간 흐름을 멈춘다
+        dim = UIKit.Box(canvasRT, "SettingsDim", 0, 0, 1, 1, new Color(0f, 0f, 0f, 0.55f), false).gameObject; // 뒤쪽 클릭을 막는다
+        var panel = UIKit.Box(dim.transform, "SettingsPanel", 0.2f, 0.16f, 0.8f, 0.84f, UIKit.Card);
+        Settings.BuildPanel(panel, Close);
+    }
+
+    void Close()
+    {
+        if (!Settings.IsOpen) return;
+        Settings.IsOpen = false;
+        Time.timeScale = 1f;
+        if (dim != null) Destroy(dim);
+        dim = null;
     }
 }
