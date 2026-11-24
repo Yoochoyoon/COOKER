@@ -374,7 +374,12 @@ public class Help : MonoBehaviour
     void RulesTab()
     {
         string text =
-            "• 한 주는 " + Balance.Days + "일이에요. 주가 시작할 때 한 번 장을 보고, 그 재료로 " + Balance.Days + "일을 버텨요.\n"
+            "▶ 첫날 따라 하기\n"
+            + "① 장보기: 숫자키로 재료를 담고 Enter로 사요. 첫날 달걀은 공짜예요.\n"
+            + "② 하루 선택: 엄마가 보낸 달걀이 올라와 있어요. [조리 시작 Enter]를 눌러요.\n"
+            + "③ 달걀을 눌러 팬에 넣고, 불 세기는 1·2·3키. 게이지가 주황이면 눌러서 접시에 담아요.\n"
+            + "④ 실패해도 첫날은 굶지 않아요. 다시 해 봐요.\n\n"
+            + "• 한 주는 " + Balance.Days + "일이에요. 주가 시작할 때 한 번 장을 보고, 그 재료로 " + Balance.Days + "일을 버텨요.\n"
             + "• 예산은 첫 주 " + Balance.Budget.ToString("N0") + "원이고, 다음 주부터는 지난주 만족도에 따라 "
             + Balance.BudgetMin.ToString("N0") + "~" + Balance.BudgetMax.ToString("N0") + "원이에요.\n"
             + "• 재료는 유통기한이 지나면 버려져요. 남은 재료는 다음 주로 이어져요.\n"
