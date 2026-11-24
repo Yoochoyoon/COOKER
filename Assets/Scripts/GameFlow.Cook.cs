@@ -280,6 +280,7 @@ public partial class GameFlow : MonoBehaviour
         // 불꽃: 불 세기에 따라 도구 둘레의 불꽃 길이가 달라진다 (FireFlame.cs, yo00ng 작업). 새 조리대에서는 가스레인지 불 자리(960,500)에 맞춘다
         if (newArt) FireFlame.Attach(root, cook, panRect, cookArt, new Vector2(960f, RefH - 500f), md.id == Method.Boil ? 165f : md.id == Method.Grill ? 182f : 205f);
         else FireFlame.Attach(root, cook, panRect, cookArt);
+        if (md.id == Method.Fry && newArt) FryFx.Attach(root, cook); // 튀기기 연출: 기름·거품·기름방울·김·소리 (FryFx.cs, 윤혁진)
 
         // 화면 번쩍임 칸: 모든 조리 그림 위에 덮이도록 마지막에 만든다. 클릭은 통과시킨다
         flashImg = UIKit.Box(root, "Flash", 0f, 0f, 1f, 1f, new Color(1f, 1f, 1f, 0f), false).GetComponent<Image>();
