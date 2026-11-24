@@ -28,36 +28,43 @@ public static class Lobby
 
         if (Art.Load("lobby_bg") == null) { Fallback(screen, run, startGame, openDex, openTitles, openFridge); return; }
 
+        // 시안(로비 배치)을 그림 층으로 나눠 놓았다. 배경(lobby_bg) 위에 각 층을 픽셀 위치에 올린다.
+        // 각 층은 시안 그림과 픽셀 단위로 맞춘 위치다 (냉장고·캐릭터·말풍선·달력·금액·도감·왕관·시작 바)
         Piece(fit, "Bg", "lobby_bg", 0, 0, RefW, RefH, null);
-        Piece(fit, "Fridge", "lobby_fridge", 1091, 146, 716, 934, openFridge);
-        Piece(fit, "Character", "lobby_character", 150, 242, 917, 838, openTitles);
-        Piece(fit, "Desk", "lobby_desk", 0, 945, 1835, 135, null);
+        // 냉장고는 버튼임을 드러낸다: 올리면 살짝 커지고(1.04), 눌리면 어두워지며 내려앉는다
+        var fridge = Piece(fit, "Fridge", "lobby_fridge", 1451, 238, 420, 644, openFridge);
+        if (fridge != null) fridge.gameObject.AddComponent<HoverScale>().scale = 1.04f;
+        Piece(fit, "Character", "lobby_character", 558, 473, 359, 541, openTitles);
 
-        // 대표 칭호: 캐릭터 머리 위. 눌러도 칭호 목록이 열린다
+        // 대표 칭호: 캐릭터 머리 위 말풍선. 눌러도 칭호 목록이 열린다
         var rep = Titles.Representative;
-        Piece(fit, "TitleTag", "lobby_titletag", 481, 177, 295, 119, openTitles);
-        var tag = Text(fit, rep == null ? "칭호 없음" : rep.name, 541, 226, 175, 62, 42, Color.white, TextAnchor.MiddleCenter);
-        tagText = tag;
-        var o = tag.gameObject.AddComponent<Outline>();
-        o.effectColor = new Color(0.78f, 0.36f, 0.27f);
-        o.effectDistance = new Vector2(3f, -3f);
+        var tagPiece = Piece(fit, "TitleTag", "lobby_titletag", 589, 415, 310, 110, openTitles);
+        // 글자는 말풍선의 자식이라 말풍선과 함께 움직인다. 글자 칸은 말풍선 안쪽(시안 600~895, 437~522)
+        if (tagPiece != null)
+        {
+            var tag = LabelIn(tagPiece, 310, 110, rep == null ? "칭호 없음" : rep.name, 11, 33, 251, 64, 42, Color.white);
+            tagText = tag;
+            var o = tag.gameObject.AddComponent<Outline>();
+            o.effectColor = new Color(0.78f, 0.36f, 0.27f);
+            o.effectDistance = new Vector2(3f, -3f);
+        }
 
         // 현재 주차 / 보유 금액 (새 게임 직전이면 1주차와 시작 예산)
-        Piece(fit, "WeekCard", "lobby_day", 40, 30, 276, 109, null);
-        Text(fit, run.week + "주차", 140, 36, 170, 96, 56, Brown, TextAnchor.MiddleLeft);
-        // 금액 칸: 오른쪽 끝(1888)을 고정하고, 금액 글자 길이에 맞춰 왼쪽으로 늘어난다 (동전 그림이 있는 왼쪽 100px과 오른쪽 여백은 그대로)
+        Piece(fit, "WeekCard", "lobby_day", 22, 21, 297, 88, null);
+        Piece(fit, "WeekIcon", "icon_week", 46, 37, 49, 50, null);
+        Text(fit, run.week + "주차", 122, 35, 180, 60, 56, Brown, TextAnchor.MiddleLeft);
+        Piece(fit, "MoneyCard", "lobby_money", 342, 21, 297, 88, null);
+        Piece(fit, "MoneyIcon", "icon_money", 370, 36, 47, 53, null);
         string money = run.budget.ToString("N0");
-        float textW = 0f;
-        foreach (char ch in money) textW += ch == ',' ? 16f : 32f; // 글자 크기 56에서 숫자·쉼표의 대략 너비
-        float cardW = Mathf.Max(260f, 100f + textW + 34f);
-        float cardX = 1888f - cardW;
-        var moneyCard = Piece(fit, "MoneyCard", "lobby_money", cardX, 30, cardW, 109, null);
-        if (moneyCard != null) moneyCard.GetComponent<Image>().type = Image.Type.Sliced;
-        Text(fit, money, cardX + 100f, 36, cardW - 100f - 24f, 96, 56, Brown, TextAnchor.MiddleLeft);
+        Text(fit, money, 442, 33, 180, 60, 56, Brown, TextAnchor.MiddleLeft);
 
-        Piece(fit, "Dex", "lobby_dex", 36, 852, 380, 207, openDex);
-        // 게임 시작: 글자 없는 버튼 그림(lobby_start) 위에 코드로 글자를 올린다. 같은 그림·글자 모양을 다른 화면의 주요 버튼도 쓴다 (UIKit.PrimaryBtn)
-        var start = Piece(fit, "Start", "lobby_start", 1316, 868, 557, 155, startGame);
+        // 아래 줄: 도감(책) · 칭호(왕관) · 게임 시작
+        // 단축키 이름표는 각 버튼 위에 붙어 같이 움직인다
+        var dex = Piece(fit, "Dex", "lobby_dex", 1043, 903, 206, 157, openDex);
+        if (dex != null) LabelIn(dex, 206, 157, "도감 [D]", 0, -40, 206, 34, 34, Color.white);
+        var crown = Piece(fit, "TitleIcon", "icon_title", 1266, 906, 196, 153, openTitles);
+        if (crown != null) LabelIn(crown, 196, 153, "칭호 [T]", 0, -40, 196, 34, 34, Color.white);
+        var start = Piece(fit, "Start", "lobby_start", 1481, 931, 418, 128, startGame);
         if (start != null) UIKit.PrimaryLabel(start, "게임 시작", 72, true);
     }
 
@@ -75,6 +82,19 @@ public static class Lobby
     static RectTransform Rect(Transform parent, string name, float x, float y, float w, float h)
     {
         return UIKit.Box(parent, name, x / RefW, 1f - (y + h) / RefH, (x + w) / RefW, 1f - y / RefH);
+    }
+
+    // 그림 위에 눌리는 투명한 칸. 시안 그림에 이미 그려진 것(책·왕관·캐릭터 등)을 누르게 해 준다
+    static RectTransform Hit(Transform parent, string name, float x, float y, float w, float h, Action onClick)
+    {
+        var rt = Rect(parent, name, x, y, w, h);
+        var img = rt.gameObject.AddComponent<Image>();
+        img.color = new Color(0f, 0f, 0f, 0f);
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = img;
+        b.transition = Selectable.Transition.None;
+        b.onClick.AddListener(() => onClick());
+        return rt;
     }
 
     // 그림 조각 하나. onClick이 있으면 누를 수 있다 (올리면 살짝 어두워진다)
@@ -100,6 +120,29 @@ public static class Lobby
         rt.gameObject.AddComponent<LobbyHover>().img = img;
         rt.gameObject.AddComponent<PressDown>().depth = 5f;
         return rt;
+    }
+
+    // 그림 조각의 자식으로 붙는 글자. x, y는 그림 왼쪽 위 기준 픽셀(음수 가능, 그림 밖에 둘 수 있다), pw·ph는 그림의 기준 크기.
+    // 그림의 자식이라 그림이 눌리거나 올라올 때 글자도 같이 움직인다.
+    static Text LabelIn(RectTransform piece, float pw, float ph, string text, float x, float y, float w, float h, int size, Color color)
+    {
+        var rt = UIKit.Box(piece, "Label", x / pw, 1f - (y + h) / ph, (x + w) / pw, 1f - y / ph);
+        var t = rt.gameObject.AddComponent<Text>();
+        t.font = UIKit.GetFont();
+        t.text = text;
+        t.fontSize = size;
+        t.alignment = TextAnchor.MiddleCenter;
+        t.color = color;
+        t.resizeTextForBestFit = true;
+        t.resizeTextMinSize = 12;
+        t.resizeTextMaxSize = size;
+        t.horizontalOverflow = HorizontalWrapMode.Overflow;
+        t.verticalOverflow = VerticalWrapMode.Overflow;
+        t.raycastTarget = false;
+        var o = rt.gameObject.AddComponent<Outline>();
+        o.effectColor = Brown;
+        o.effectDistance = new Vector2(2f, -2f);
+        return t;
     }
 
     static Text Text(Transform parent, string text, float x, float y, float w, float h, int size, Color color, TextAnchor anchor)

@@ -489,6 +489,22 @@ public static class UIKit
         return b;
     }
 
+    // 그림만 있는 버튼: 배경 없이 그림(Resources/Art/icon_*.png) 하나만 보이고, 누르면 onClick. 글자는 넣지 않는다.
+    public static Button ImageBtn(Transform parent, string icon, float x0, float y0, float x1, float y1, Action onClick)
+    {
+        var rt = Box(parent, "ImageBtn_" + icon, x0, y0, x1, y1);
+        var img = rt.gameObject.AddComponent<Image>();
+        img.sprite = Art.Load(icon);
+        img.preserveAspect = true;
+        img.color = img.sprite == null ? new Color(0f, 0f, 0f, 0f) : Color.white;
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = img;
+        b.transition = Selectable.Transition.ColorTint; // 올리면 살짝 어두워짐
+        b.onClick.AddListener(() => onClick());
+        if (img.sprite != null) rt.gameObject.AddComponent<PressDown>().depth = 3f; // 누르면 살짝 내려앉음
+        return b;
+    }
+
     // 주요 버튼의 글자 모양 (로비 "게임 시작" 원본 그림의 글자를 본뜬 것): 흰 글자 + 갈색 주황 테두리 + 아래로 옅은 그림자
     public static Text PrimaryLabel(Transform parent, string text, int size, bool enabled = true)
     {

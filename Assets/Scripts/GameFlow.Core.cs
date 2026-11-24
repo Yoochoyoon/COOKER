@@ -96,6 +96,7 @@ public partial class GameFlow : MonoBehaviour
     void Awake()
     {
         if (Camera.main != null) Camera.main.backgroundColor = UIKit.Bg;
+        Settings.Load(); // 음량과 전체화면을 먼저 맞춘다 (Sound.Boot의 타이틀 음악이 이 음량을 쓴다)
         BuildCanvas();
         ShowTitle();
     }
@@ -122,6 +123,10 @@ public partial class GameFlow : MonoBehaviour
         // 어디서든 로비로 돌아가는 버튼. 화면이 바뀌어도 남아 있고, 판 도중 화면에서만 보인다 (Update)
         lobbyBtn = UIKit.IconBtn(canvasRT, "icon_home", "로비", 0.905f, 0.915f, 0.99f, 0.99f, GoLobby, UIKit.Accent, 30).gameObject;
         lobbyBtn.SetActive(false);
+        // 타이틀 버튼: 로비에서만 보인다 (로비 버튼이 있던 자리). 로비는 주가 시작하는 자리라 나가도 잃는 것이 없다.
+        // 오른쪽 위 모서리 (x 1828~1898, y 22~92 픽셀): 왼쪽 열과 같은 여백(22)
+        titleBtn = UIKit.ImageBtn(canvasRT, "icon_exit", 0.9521f, 0.9148f, 0.9885f, 0.9796f, GoTitle).gameObject;
+        titleBtn.SetActive(false);
 
         if (FindFirstObjectByType<EventSystem>() == null)
         {
@@ -201,8 +206,22 @@ public partial class GameFlow : MonoBehaviour
             UIKit.Label(root, "일주일치 장바구니로 최대한 오래 버텨라", 0.1f, 0.46f, 0.9f, 0.58f, 54);
             UIKit.Btn(root, "시작  [Enter]", 0.35f, 0.26f, 0.65f, 0.40f, StartRun, null, 44, true, true);
         }
+        // 이어하기: 저장된 주의 로비에서 다시 시작한다 (RunSave). 설정은 모든 화면의 톱니 버튼에서 연다 (Settings.cs).
+        if (RunSave.Has()) UIKit.Btn(root, "이어하기", 0.03f, 0.04f, 0.23f, 0.12f, Continue, UIKit.Accent, 36);
         scr = Scr.Title;
         confirm = StartRun;
+    }
+
+    void Continue()
+    {
+        var saved = RunSave.Load();
+        if (saved == null) { RunSave.Delete(); StartRun(); return; }
+        run = saved;
+        flyingIn.Clear();
+        cart.Clear();
+        sel.Clear();
+        selMethod = null;
+        ShowLobby();
     }
 
     Image TitleImage(Transform parent, Sprite s, float x0, float y0, float x1, float y1)
@@ -270,7 +289,7 @@ public partial class GameFlow : MonoBehaviour
     void ShowShop()
     {
         Clear();
-        Pad(0.96f);
+        Pad(0.864f); // 장보기 창을 지금(0.96)의 90%로 줄임 (0.96 × 0.9). 배경 그림은 그대로 꽉 찬다
         SetBg("bg_shop");
         PurgeExpired();
         int spent = cart.Sum(kv => Price(kv.Key) * kv.Value);
@@ -764,6 +783,15 @@ public partial class GameFlow : MonoBehaviour
     // 로비 버튼: 판 도중(장보기·하루 선택·조리·식사)에만 보이고, 팝업이 열려 있으면 숨긴다.
     // 누르면 바로 가지 않고 확인 창을 띄운다. 가기로 하면 이번 주차가 취소된다 (CancelWeekToLobby).
     GameObject lobbyBtn;
+    GameObject titleBtn;
+
+    // 로비에서 타이틀로. 저장된 주가 있으면 타이틀의 [이어하기]로 돌아올 수 있다.
+    void GoTitle()
+    {
+        if (scr != Scr.Lobby || modal != null) return;
+        Sound.Music("bgm_title");
+        ShowTitle();
+    }
 
     void GoLobby()
     {
@@ -799,9 +827,12 @@ public partial class GameFlow : MonoBehaviour
 
     void Update()
     {
+        if (Settings.IsOpen) return; // 설정 화면이 열려 있으면 뒤의 게임은 입력을 받지 않는다
         var kb = Keyboard.current;
         if (lobbyBtn != null)
             lobbyBtn.SetActive((scr == Scr.Shop || scr == Scr.Day || scr == Scr.Cook || scr == Scr.Meal) && modal == null && dexDetail == null);
+        if (titleBtn != null)
+            titleBtn.SetActive(scr == Scr.Lobby && modal == null && dexDetail == null);
         if (cook == null)
         {
             if (kb != null) HandleMenuKeys(kb);
@@ -921,6 +952,7 @@ public partial class GameFlow : MonoBehaviour
         run.strikes = 0;
         run.dishes.Clear();
         run.budget = NextBudget(sat);
+        RunSave.Save(run); // 이어하기: 새 주의 시작 상태를 저장한다
         cart.Clear();
         sel.Clear();
         selMethod = null;
@@ -995,7 +1027,7 @@ public partial class GameFlow : MonoBehaviour
         var why = UIKit.Box(left, "Why", 0.06f, 0.05f, 0.94f, 0.34f, new Color(1f, 0.9f, 0.85f), false);
         UIKit.Label(why, reason, 0.04f, 0.05f, 0.96f, 0.95f, 28, TextAnchor.MiddleCenter, UIKit.Bad);
         DishRowsCard("이번 주 먹은 요리", 0.51f, 0.27f, 0.92f, 0.77f); // 주가 바뀌면 목록이 비워지므로 "이번 주"가 정확하다
-        UIKit.PrimaryBtn(root, "다시 하기 [Enter]", 0.30f, 0.05f, 0.70f, 0.19f, ShowTitle, 48);
+        UIKit.PrimaryBtn(root, "다시 하기 [Enter]", 0.30f, 0.05f, 0.70f, 0.19f, () => { RunSave.Delete(); ShowTitle(); }, 48); // 굶어서 끝난 판은 이어하기에서 지운다
         confirm = ShowTitle;
         var gainedOnFail = Titles.Check(dex.Values.ToList()); // 굶어서 끝나는 결산에서도 판정한다
         pendingGain.AddRange(gainedOnFail);
