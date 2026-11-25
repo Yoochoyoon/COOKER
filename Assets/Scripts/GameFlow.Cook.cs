@@ -754,6 +754,7 @@ public partial class GameFlow : MonoBehaviour
         UpdateCookFx();
         for (int i = 0; i < itemRects.Count && i < cook.items.Length; i++) PlaceItem(i);
         if (finishFx < FinishFxTime) return;
+        if (!SeasonStep()) return; // 간 고르기(docs/29)를 마칠 때까지 기다린다
         finishFx = -1f;
 
         var used = cook.Used;                 // 접시에 올린 재료(소비됨). 트레이에 남은 재료는 쓰지 않은 것
