@@ -553,7 +553,9 @@ public partial class GameFlow : MonoBehaviour
             : (cook.m.id == Method.Grill && cook.flipMissed && !cook.flipped) ? "뒤집을 때를 놓쳤다... 한쪽만 익었다"
             : (cook.m.id == Method.Boil && cook.hadOverflow) ? "국이 끓어넘쳤다... 맛이 줄었다"
             : null;
-        string momLine = momTips.Length == 0 ? "" : "엄마: " + momTips[(int)(cook.t / 4f) % momTips.Length];
+        string orderLine = cook.OrderLine(); // 재료 넣는 순서 안내(docs/28): 처음 몇 판만, 틀렸을 땐 잠깐
+        string momLine = orderLine != null ? "엄마: " + orderLine
+            : momTips.Length == 0 ? "" : "엄마: " + momTips[(int)(cook.t / 4f) % momTips.Length];
         if (promptLabel != null)
         {
             // 가운데 안내 하나로 통합: 급한 것 > 꺼낼 때 > 진행 상황. 말풍선은 엄마의 조언만 한다.
@@ -572,7 +574,7 @@ public partial class GameFlow : MonoBehaviour
             else if (ready > 0) SetPrompt("알맞게 익었어요! 접시에 담아요", 1);
             else if (inPan > 0 && cook.m.id == Method.Stirfry) SetPrompt(cook.stirring ? "좋아요, 계속 저어요!" : "저어요! 연타 [Space]", cook.stirring ? 0 : 1);
             else if (inPan > 0) SetPrompt("익는 중이에요...", 0);
-            else if (onTray > 0) SetPrompt("재료를 눌러서 넣어요", 0);
+            else if (onTray > 0) SetPrompt(cook.OrderHintOn && cook.NextIngredientName() != null ? "먼저 " + cook.NextIngredientName() + "을(를) 넣어요" : "재료를 눌러서 넣어요", 0);
             else SetPrompt("모두 담았어요! [Enter]", 0);
             stateLabel.text = momLine;
             stateLabel.color = UIKit.Ink;

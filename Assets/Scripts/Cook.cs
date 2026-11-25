@@ -46,6 +46,7 @@ public partial class Cook
         lo = m.lo - Balance.EaseBand * ease;
         hi = m.hi + Balance.EaseBand * ease;
         speed = m.speed * (1f - Balance.EaseSpeed * ease);
+        InitOrder(); // 순서 힌트를 보여 줄 판인지 정한다 (docs/28)
     }
 
     public float Lo { get { return lo; } }
@@ -58,7 +59,7 @@ public partial class Cook
     public void Put(int i)
     {
         if (finished || i < 0 || i >= items.Length) return;
-        if (items[i].spot == Spot.Tray) items[i].spot = Spot.Pan;
+        if (items[i].spot == Spot.Tray) { CheckOrderOnPut(items[i]); items[i].spot = Spot.Pan; } // 순서 판정(docs/28)
     }
 
     // 팬의 재료를 접시로 꺼낸다. 이때 판정이 확정된다.
@@ -168,6 +169,7 @@ public partial class Cook
         else coef = Mathf.Lerp(1f, 0.5f, (d - hi) / (99f - hi));
         if (m.id == Method.Stirfry && stirLapsed) coef *= Balance.NoStirCoef; // 쉬지 않고 계속 저어야 한다. 한 번이라도 너무 오래 쉬면 눌어붙는다
         if (m.id == Method.Boil && hadOverflow) coef *= Balance.BoilOverCoef;   // 끓어넘치게 두면 양·맛이 깎인다
+        coef *= OrderMultiplier; // 재료를 틀린 순서로 넣을 때마다 맛이 깎인다 (docs/28)
         if (m.id == Method.Fry && hadSoggy) coef *= Balance.SoggyCoef;          // 기름이 식으면 눅눅해져 맛이 깎인다
         return true;
     }
