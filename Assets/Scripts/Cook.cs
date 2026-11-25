@@ -153,7 +153,7 @@ public partial class Cook
             if (oilLowTime >= Balance.OilGrace) hadSoggy = true;
         }
 
-        if (t >= Balance.MaxCookTime) { TakeOutAll(); finished = true; }
+        if (t >= HardLimit) { TakeOutAll(); finished = true; } // 제한 시간 + 여유(docs/30)가 지나면 강제로 끝난다
         else if (!AnyInPan && !AnyInTray) finished = true;
     }
 

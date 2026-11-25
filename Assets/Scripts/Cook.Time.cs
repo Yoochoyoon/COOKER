@@ -22,6 +22,10 @@ public partial class Cook
         }
     }
 
+    // 제한 시간이 지나도 조리는 바로 끝나지 않고 이만큼 더 할 수 있다. 이 시간이 지나면 강제로 끝난다 (그동안 감점이 쌓인다).
+    const float OverGrace = 25f;
+    public float HardLimit { get { return TimeLimit + OverGrace; } }
+
     // 제한 시간을 넘긴 초
     public float OverTime { get { return t > TimeLimit ? t - TimeLimit : 0f; } }
 

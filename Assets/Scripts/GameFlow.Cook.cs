@@ -544,7 +544,9 @@ public partial class GameFlow : MonoBehaviour
             }
             else flipBtn.gameObject.SetActive(cook.flipAvailable);
         }
-        timeLabel.text = "남은 시간 " + Mathf.Max(0, Mathf.CeilToInt(Balance.MaxCookTime - cook.t)) + "초";
+        // 남은 시간(docs/30): 제한 시간을 넘으면 "초과 +N초"로 바뀌고 점수가 깎인다
+        timeLabel.text = cook.OverTime > 0f ? "초과 +" + Mathf.CeilToInt(cook.OverTime) + "초"
+            : "남은 시간 " + Mathf.Max(0, Mathf.CeilToInt(cook.TimeLimit - cook.t)) + "초";
         if (lidImage != null) lidImage.color = cook.bubble ? new Color(1f, 0.70f, 0.20f) : lidBase;
         if (lidRect != null && promptLabel != null) lidRect.localScale = Vector3.one * (cook.bubble ? 1f + 0.05f * Mathf.Sin(Time.time * 9f) : 1f); // 거품이 넘칠 때 두근
         string warn = cook.bubble ? "거품이 넘친다! 뚜껑을 눌러!"
@@ -581,8 +583,8 @@ public partial class GameFlow : MonoBehaviour
             stateLabel.text = momLine;
             stateLabel.color = UIKit.Ink;
             if (fireLevelLabel != null) { fireLevelLabel.text = Balance.FireName[cook.fire]; fireLevelLabel.color = FireFlame.LevelColor[Mathf.Clamp(cook.fire, 0, 2)]; }
-            float left = Mathf.Max(0, Balance.MaxCookTime - cook.t);
-            timeLabel.color = left <= 5f ? UIKit.Bad : left <= 15f ? UIKit.Accent : UIKit.Ink; // 시간이 줄수록 색으로 알린다
+            float left = Mathf.Max(0, cook.TimeLimit - cook.t);
+            timeLabel.color = cook.OverTime > 0f || left <= 5f ? UIKit.Bad : left <= 15f ? UIKit.Accent : UIKit.Ink; // 시간이 줄수록 색으로 알린다 (초과하면 빨강)
             if (flipBtn != null && cook.flipAvailable)
                 flipBtn.transform.localScale = Vector3.one * (1f + 0.05f * Mathf.Sin(Time.time * 9f)); // 뒤집을 때만 살짝 두근
         }
