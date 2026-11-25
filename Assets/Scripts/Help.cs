@@ -66,7 +66,10 @@ public class Help : MonoBehaviour
         var b = UIKit.ImageBtn(canvasGo.transform, "icon_help", Cand[0][0], Cand[0][1], Cand[0][2], Cand[0][3], Open);
         openBtn = b.gameObject;
         openRt = (RectTransform)openBtn.transform;
+        IconRect = openRt; // 아이콘 자리는 CornerDock이 정한다 (설정 톱니와 한 쌍으로 어느 화면에서든 아무것도 가리지 않게)
     }
+
+    public static RectTransform IconRect { get; private set; }
 
     bool Down(Key key, int vk)
     {
@@ -83,7 +86,7 @@ public class Help : MonoBehaviour
         if (!IsOpen)
         {
             if (pendingEnable) TryEnableKeyboard();
-            if (Time.unscaledTime >= nextPlaceCheck) { nextPlaceCheck = Time.unscaledTime + 0.5f; PlaceOpenButton(); }
+            if (!CornerDock.Active && Time.unscaledTime >= nextPlaceCheck) { nextPlaceCheck = Time.unscaledTime + 0.5f; PlaceOpenButton(); } // CornerDock이 있으면 그쪽이 자리를 정한다
             var kb = Keyboard.current;
             if (kb != null && kb.f1Key.wasPressedThisFrame) Open();
             return;

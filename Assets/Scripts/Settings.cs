@@ -137,8 +137,11 @@ public class SettingsButton : MonoBehaviour
         canvasRT = (RectTransform)cgo.transform;
 
         // 위쪽 줄: 도움말 옆 (x 770~840, y 30~100 픽셀). 도움말·설정·나가기가 HUD와 한 줄에 놓인다
-        UIKit.ImageBtn(canvasRT, "icon_gear", 0.4010f, 0.9074f, 0.4375f, 0.9722f, Open);
+        var gear = UIKit.ImageBtn(canvasRT, "icon_gear", 0.4010f, 0.9074f, 0.4375f, 0.9722f, Open);
+        GearRect = (RectTransform)gear.transform; // 자리는 CornerDock이 정한다 (도움말과 한 쌍으로 아무것도 가리지 않게)
     }
+
+    public static RectTransform GearRect { get; private set; }
 
     void Update()
     {
