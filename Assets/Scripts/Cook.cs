@@ -19,7 +19,7 @@ public class CookItem
     public float coef;
 }
 
-public class Cook
+public partial class Cook
 {
     public CookItem[] items;
     public MethodDef m;
@@ -197,7 +197,8 @@ public class Cook
         float avg = sum / plated.Length;
         // 재료 2개를 섞어 모두 성공시키면 보너스
         if (plated.Length >= 2 && plated.All(it => it.ok)) avg *= 1f + Balance.MixBonus;
-        return Mathf.Min(100, Mathf.RoundToInt(avg));
+        avg += SeasonDelta - TimePenalty; // 간 고르기 보정(docs/29)과 시간 초과 감점(docs/30). 고르기 전이면 보정은 0
+        return Mathf.Clamp(Mathf.RoundToInt(avg), 0, 100);
     }
 
     // 익힘 5단계. 색이 서서히 변하지 않고 단계가 바뀔 때 한 번에 바뀐다. 기준은 꺼내기 판정(Judge)과 같다.

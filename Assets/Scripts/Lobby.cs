@@ -42,7 +42,7 @@ public static class Lobby
         // 글자는 말풍선의 자식이라 말풍선과 함께 움직인다. 글자 칸은 말풍선 안쪽(시안 600~895, 437~522)
         if (tagPiece != null)
         {
-            var tag = LabelIn(tagPiece, 310, 110, rep == null ? "칭호 없음" : rep.name, 31, 33, 251, 64, 34, Color.white);
+            var tag = LabelIn(tagPiece, 310, 110, rep == null ? "칭호 없음" : rep.name, 41, 33, 251, 64, 34, Color.white);
             tagText = tag;
             var o = tag.gameObject.AddComponent<Outline>();
             o.effectColor = new Color(0.78f, 0.36f, 0.27f);
