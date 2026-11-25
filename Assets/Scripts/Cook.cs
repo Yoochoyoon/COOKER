@@ -126,7 +126,8 @@ public partial class Cook
             }
         }
 
-        float common = speed * Balance.Fire[fire];
+        UpdateGauge(dt); // 불 바늘(docs/26): 구간 밖이면 익는 속도가 느려진다
+        float common = speed * Balance.Fire[fire] * (AnyInPan ? GaugeSpeedCoef : 1f);
         if (stirring) common *= Balance.StirSlow;
         if (bubble) common *= Balance.BubbleFast;
 

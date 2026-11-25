@@ -287,6 +287,7 @@ public partial class GameFlow : MonoBehaviour
         flashImg.raycastTarget = false;
         flashT = -1f;
         finishFx = -1f;
+        BuildGaugeUI(); // 불 바늘 게이지(docs/26)
 
         scr = Scr.Cook;
     }
@@ -502,6 +503,7 @@ public partial class GameFlow : MonoBehaviour
     {
         PlayCookSfx();
         UpdateCookFx();
+        UpdateGaugeUI(); // 불 바늘 게이지(docs/26)
         for (int i = 0; i < itemImgs.Count; i++)
         {
             var it = cook.items[i];
