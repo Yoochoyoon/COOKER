@@ -9,10 +9,11 @@ public partial class GameFlow
     RectTransform gaugeNeedle;
     Image gaugeNeedleImg;
     Text gaugeLabel;
+    Image overallFill; // 전체 익힘 막대 (docs/27)
 
     void BuildGaugeUI()
     {
-        gaugeTrack = null; gaugeNeedle = null; gaugeLabel = null;
+        gaugeTrack = null; gaugeNeedle = null; gaugeLabel = null; overallFill = null;
         if (!cookArt || cook == null) return; // 새 조리 화면에서만 그린다
         var track = UIKit.Box(root, "GaugeTrack", 0.010f, 0.22f, 0.030f, 0.80f, new Color(0.35f, 0.25f, 0.2f, 0.55f), false);
         gaugeTrack = track.GetComponent<Image>();
@@ -24,12 +25,27 @@ public partial class GameFlow
         gaugeNeedleImg.raycastTarget = false;
         gaugeLabel = UIKit.Label(root, "", 0.0f, 0.165f, 0.14f, 0.225f, 34, TextAnchor.MiddleCenter, UIKit.Bad);
         gaugeLabel.raycastTarget = false;
+
+        // 전체 익힘 막대(docs/27): 팬 전체의 익힘을 막대 하나로 보여 준다. 재료별 게이지는 숨긴다.
+        foreach (var r in itemRects) { var gb = r.Find("GaugeBg"); if (gb != null) gb.gameObject.SetActive(false); }
+        var bar = UIKit.Box(root, "OverallBar", 0.36f, 0.185f, 0.64f, 0.215f, new Color(0f, 0f, 0f, 0.45f), false);
+        bar.GetComponent<Image>().raycastTarget = false;
+        overallFill = UIKit.Box(bar, "OverallFill", 0f, 0f, 0f, 1f, Color.white, false).GetComponent<Image>();
+        overallFill.raycastTarget = false;
+        // 조리 완료 버튼: 팬의 재료를 한꺼번에 접시에 담고 끝낸다 (Enter도 같다)
+        UIKit.PrimaryBtn(root, "조리 완료 [Enter]", 0.70f, 0.03f, 0.945f, 0.15f, () => { if (cook != null) cook.Complete(); }, 38);
     }
 
     // 매 프레임: 바늘 위치, 구간 밖 경고, 밸브 강조
     void UpdateGaugeUI()
     {
         if (cook == null || gaugeNeedle == null) return;
+        if (overallFill != null)
+        {
+            float od = cook.OverallD;
+            overallFill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(od / 100f), 1f);
+            overallFill.color = cook.WholeInRange ? new Color(1f, 0.55f, 0.1f) : od < cook.Lo ? new Color(1f, 0.85f, 0.2f) : new Color(0.85f, 0.15f, 0.1f);
+        }
         float v = cook.GaugeValue;
         gaugeNeedle.anchorMin = new Vector2(-0.7f, Mathf.Clamp01(v - 0.012f));
         gaugeNeedle.anchorMax = new Vector2(1.7f, Mathf.Clamp01(v + 0.012f));

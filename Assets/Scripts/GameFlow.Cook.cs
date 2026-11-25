@@ -33,7 +33,7 @@ public partial class GameFlow : MonoBehaviour
         ResetCookSfx();
         Sound.Music("bgm_cook");
         momTips = chosen.Select(i => Data.MomHint(i)).Where(s => !string.IsNullOrEmpty(s))
-            .Concat(new[] { MethodTip(md.id), "게이지가 주황색이 되면 바로 꺼내렴. 빨개지면 늦은 거다." }).ToArray();
+            .Concat(new[] { MethodTip(md.id), "전체 게이지가 주황색이 되면 조리 완료! 빨개지면 늦은 거다." }).ToArray();
 
         // 방식별 배경 그림(팬/웍/냄비 + 도마 + 접시)이 있으면 그걸로, 없으면 단색 칸으로 그린다.
         // 튀기기는 전용 배경 그림이 아직 없어 웍 그림을 임시로 쓴다 (bg_cook_fry.png를 넣으면 그것을 쓴다)
@@ -134,7 +134,7 @@ public partial class GameFlow : MonoBehaviour
                 fireBtns.Add(b.GetComponent<Image>());
             }
             stateLabel = UIKit.Label(root, "", 0.64f, 0.27f, 0.97f, 0.34f, 30, TextAnchor.MiddleLeft, UIKit.Bad);
-            UIKit.Btn(root, "팬의 재료 모두 꺼내기 [Enter]", 0.03f, 0.245f, 0.60f, 0.295f, () => { if (cook != null) cook.TakeOutAll(); }, UIKit.Bad, 26);
+            UIKit.Btn(root, "조리 완료 [Enter]", 0.03f, 0.245f, 0.60f, 0.295f, () => { if (cook != null) cook.Complete(); }, UIKit.Bad, 26);
         }
 
         for (int i = 0; i < chosen.Length; i++)
@@ -298,7 +298,7 @@ public partial class GameFlow : MonoBehaviour
         if (cook == null || i >= cook.items.Length) return;
         var it = cook.items[i];
         if (it.spot == Spot.Tray) cook.Put(i);
-        else if (it.spot == Spot.Pan) cook.TakeOut(i);
+        // 팬의 재료는 하나씩 꺼내지 않는다. 조리 완료(Enter)로 한꺼번에 접시에 담는다 (docs/27)
     }
 
     // 끌어다 놓기: 트레이 -> 팬이면 넣고, 팬 -> 접시/트레이면 꺼낸다. 엉뚱한 곳이면 제자리로 돌아간다.
@@ -307,8 +307,7 @@ public partial class GameFlow : MonoBehaviour
         if (cook == null) return;
         var it = cook.items[i];
         if (it.spot == Spot.Tray && Over(panRect, pos)) cook.Put(i);
-        else if (it.spot == Spot.Pan && (Over(plateRect, pos) || Over(trayRect, pos))) cook.TakeOut(i);
-        PlaceItem(i);
+        PlaceItem(i); // 팬의 재료를 끌어서 꺼내는 건 없앴다. 제자리로 돌아간다 (docs/27)
     }
 
     static bool Over(RectTransform rt, Vector2 screenPos)
@@ -380,7 +379,7 @@ public partial class GameFlow : MonoBehaviour
             rt.anchoredPosition = new Vector2(Mathf.Sin(shakeT[i] * 90f) * ShakePx * (shakeT[i] / ShakeTime), 0f); // 망친 재료는 접시에서 부르르 떤다
         string key = i < 6 ? "ZXCVBN".Substring(i, 1) : "-";
         itemLabels[i].text = it.spot == Spot.Tray ? "[" + key + "] " + it.ing.name + " 넣기"
-            : it.spot == Spot.Pan ? (promptLabel != null && !(it.d >= cook.Lo && it.d <= cook.Hi(it)) ? "" : "[" + key + "] " + (promptLabel != null ? "접시에 담기" : it.ing.name + " 꺼내기")) // 새 화면에서는 꺼낼 때가 됐을 때만 보인다
+            : it.spot == Spot.Pan ? "" // 팬의 재료는 하나씩 꺼내지 않으므로 글자를 쓰지 않는다 (docs/27)
             : it.ing.name;
     }
 
@@ -568,18 +567,19 @@ public partial class GameFlow : MonoBehaviour
             {
                 var it = cook.items[i];
                 if (it.spot == Spot.Tray) onTray++;
-                else if (it.spot == Spot.Pan) { inPan++; if (it.d >= cook.Lo && it.d <= cook.Hi(it)) ready++; }
+                else if (it.spot == Spot.Pan) inPan++;
             }
+            if (cook.WholeInRange) ready = 1; // 전체 익힘이 알맞은 구간(docs/27)
             UpdateBubbles();
             if (plateGlow != null) plateGlow.color = new Color(1f, 0.85f, 0.35f, ready > 0 ? 0.55f + 0.35f * Mathf.Sin(Time.time * 6f) : 0f);
             if (cook.bubble) SetPrompt("거품이 넘쳐요! 뚜껑을 눌러요", 2);
             else if (cook.flipAvailable) SetPrompt("지금 뒤집으세요! [Space]", 1);
             else if (warn != null) SetPrompt(warn, 2);
-            else if (ready > 0) SetPrompt("알맞게 익었어요! 접시에 담아요", 1);
+            else if (ready > 0) SetPrompt("알맞게 익었어요! 완료해요 [Enter]", 1);
             else if (inPan > 0 && cook.m.id == Method.Stirfry) SetPrompt(cook.stirring ? "좋아요, 계속 저어요!" : "저어요! 연타 [Space]", cook.stirring ? 0 : 1);
             else if (inPan > 0) SetPrompt("익는 중이에요...", 0);
             else if (onTray > 0) SetPrompt(cook.OrderHintOn && cook.NextIngredientName() != null ? "먼저 " + cook.NextIngredientName() + "을(를) 넣어요" : "재료를 눌러서 넣어요", 0);
-            else SetPrompt("모두 담았어요! [Enter]", 0);
+            else SetPrompt("완료해요 [Enter]", 0);
             stateLabel.text = momLine;
             stateLabel.color = UIKit.Ink;
             if (fireLevelLabel != null) { fireLevelLabel.text = Balance.FireName[cook.fire]; fireLevelLabel.color = FireFlame.LevelColor[Mathf.Clamp(cook.fire, 0, 2)]; }

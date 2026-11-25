@@ -9,10 +9,11 @@ public static class DishArt
 {
     const string Style = "cute2"; // 파일 이름 앞부분. 미리 만든 그림 파일도 이 이름을 쓴다
 
-    // 요리 키: 재료 id와 익힘을 알파벳 순서로 이어 붙인다. 예: cute2_egg-good_tofu-good_Grill
+    // 요리 키: 재료 id를 알파벳 순서로 이어 붙인다. 완성 요리 사진은 익힘과 상관없이 "잘 완성된 요리" 한 장으로 통일했다 (docs/27).
+    // 예: cute2_egg-good_tofu-good_Grill (stages 인자는 호출하는 곳과 맞추려고 남겨 두었고 쓰지 않는다)
     public static string Key(Ingredient[] ings, Doneness[] stages, Method m)
     {
-        var parts = ings.Select((i, n) => (Art.Id(i) ?? "x") + "-" + stages[n].ToString().ToLower()).OrderBy(s => s);
+        var parts = ings.Select((i, n) => (Art.Id(i) ?? "x") + "-good").OrderBy(s => s);
         return Style + "_" + string.Join("_", parts) + "_" + m;
     }
 

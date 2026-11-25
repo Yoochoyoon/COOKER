@@ -74,6 +74,7 @@ public partial class Cook
 
     public void TakeOutAll()
     {
+        if (wholeD < 0f && AnyInPan) wholeD = OverallD; // 전체 익힘 확정(docs/27): 한꺼번에 꺼낼 때 전체 값 하나로 판정한다
         for (int i = 0; i < items.Length; i++) TakeOut(i);
     }
 
@@ -138,8 +139,8 @@ public partial class Cook
             if (it.spot != Spot.Pan) continue;
             it.d = Mathf.Min(100f, it.d + common * it.ing.speedMod * dt);
             if (m.id == Method.Grill && it.d >= 30f && it.d <= 40f) windowOpen = true;
-            if (it.d >= Balance.BurnLimit) TakeOut(i); // 탄 재료는 그 재료만 접시로 넘어간다
         }
+        if (AnyInPan && OverallD >= Balance.BurnLimit) { TakeOutAll(); finished = true; } // 전체가 탔다(docs/27): 한꺼번에 접시로 넘어가고 끝난다
         if (m.id == Method.Grill)
         {
             bool wasAvailable = flipAvailable;
@@ -161,7 +162,7 @@ public partial class Cook
     bool Judge(CookItem it, out float coef, out string fail)
     {
         coef = 0f; fail = null;
-        float d = it.d;
+        float d = wholeD >= 0f ? wholeD : it.d; // 전체 익힘(docs/27): 재료별 값이 아니라 전체 값 하나로 판정
         if (d < Balance.RawLimit) { fail = "날것"; return false; }
         if (d >= Balance.BurnLimit) { fail = "탄 것"; return false; }
         float hi = Hi(it);
@@ -207,7 +208,7 @@ public partial class Cook
     // 익힘 5단계. 색이 서서히 변하지 않고 단계가 바뀔 때 한 번에 바뀐다. 기준은 꺼내기 판정(Judge)과 같다.
     public Doneness Stage(CookItem it)
     {
-        float d = it.d;
+        float d = wholeD >= 0f && it.spot == Spot.Plate ? wholeD : it.d; // 접시에 올린 뒤에는 전체 값(docs/27)
         if (d < Balance.RawLimit) return Doneness.Raw;        // 날것 (꺼내면 실패)
         if (d >= Balance.BurnLimit) return Doneness.Burnt;    // 탄 것 (꺼내면 실패)
         if (d < Lo) return Doneness.Under;                    // 적게 익힘

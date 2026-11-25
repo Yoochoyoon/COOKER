@@ -866,7 +866,7 @@ public partial class GameFlow : MonoBehaviour
                 var itemKeys = new[] { kb.zKey, kb.xKey, kb.cKey, kb.vKey, kb.bKey, kb.nKey };
                 for (int k = 0; k < itemKeys.Length && k < cook.items.Length; k++)
                     if (itemKeys[k].wasPressedThisFrame) ItemClick(k);
-                if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) cook.TakeOutAll();
+                if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) cook.Complete(); // 조리 완료(docs/27)
             }
 
             if (lidOnPot != null)
