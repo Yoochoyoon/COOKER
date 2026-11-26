@@ -16,6 +16,9 @@ public class CornerDock : MonoBehaviour
     const float CheckEvery = 0.3f;
     const float ObstaclePad = 10f; // 장애물 둘레 여유 (기준 픽셀)
 
+    static int forceFrames;   // 화면이 바뀐 직후 몇 프레임은 기다리지 않고 바로 다시 자리를 잡는다
+    public static void Recheck() { forceFrames = 3; }
+
     float next;
     bool placed;
     Rect curRect;            // 지금 놓인 쌍의 영역 (화면 픽셀)
@@ -34,7 +37,8 @@ public class CornerDock : MonoBehaviour
     {
         if (Help.IconRect == null || SettingsButton.GearRect == null) return;
         Active = true;
-        if (Time.unscaledTime < next) return;
+        if (forceFrames > 0) forceFrames--;
+        else if (Time.unscaledTime < next) return;
         next = Time.unscaledTime + CheckEvery;
         Place();
     }

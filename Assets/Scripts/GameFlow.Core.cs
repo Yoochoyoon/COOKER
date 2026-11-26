@@ -146,6 +146,7 @@ public partial class GameFlow : MonoBehaviour
     void Clear()
     {
         CloseModal();
+        CornerDock.Recheck(); // 화면이 바뀌면 도움말·설정 아이콘 자리를 바로 다시 잡는다
         SetBg(null);
         root.localScale = Vector3.one;
         flyLayer.localScale = Vector3.one;
