@@ -522,7 +522,7 @@ public static class UIKit
         t.verticalOverflow = VerticalWrapMode.Truncate;
         t.raycastTarget = false;
         var o = rt.gameObject.AddComponent<Outline>();
-        o.effectColor = enabled ? new Color(0.76f, 0.42f, 0.17f) : new Color(0.50f, 0.49f, 0.47f);
+        o.effectColor = enabled ? new Color(0.76f, 0.42f, 0.17f) : new Color(0.30f, 0.29f, 0.28f);
         o.effectDistance = new Vector2(Mathf.Max(3f, size * 0.05f), Mathf.Max(3f, size * 0.05f));
         var sh = rt.gameObject.AddComponent<Shadow>();
         sh.effectColor = new Color(0.45f, 0.22f, 0.05f, 0.28f);
