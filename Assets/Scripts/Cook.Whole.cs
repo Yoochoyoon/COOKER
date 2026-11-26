@@ -22,6 +22,7 @@ public partial class Cook
     {
         get
         {
+            SyncFlip();
             var first = items.FirstOrDefault(it => it.spot == Spot.Pan);
             if (first == null) return false;
             float d = OverallD;
@@ -29,11 +30,19 @@ public partial class Cook
         }
     }
 
+    // 굽기: 뒤집은 뒤에 넣은 재료에도 뒤집기 감점이 남지 않게 한다. 팬 전체를 값 하나로 판정하므로 적정 구간도 하나여야 한다.
+    void SyncFlip()
+    {
+        if (!flipped) return;
+        foreach (var it in items) it.hiBonus = 0f;
+    }
+
     // 조리 완료: 전체 익힘을 확정하고 팬의 재료를 한꺼번에 접시로 옮긴다. 판정은 확정한 전체 값 하나로 한다.
     // 팬이 비어 있으면 아무 일도 하지 않는다 (실수로 끝내지 않게).
     public void Complete()
     {
         if (finished || !AnyInPan) return;
+        SyncFlip();
         wholeD = OverallD;
         TakeOutAll();
         finished = true; // 트레이에 남은 재료는 쓰지 않은 것이다
