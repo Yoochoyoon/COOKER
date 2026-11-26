@@ -300,26 +300,26 @@ public partial class GameFlow : MonoBehaviour
         // 왼쪽: 장보기 표 (노란 메뉴 카드 + 연한 줄 카드. 색은 장보기 시안 HTML을 따른다)
         // 모양은 로비 위쪽 바·시작 버튼에서 뽑은 특징(모래색 판, 진한 갈색 선과 아래 두께, 안쪽 크림 선)을 코드로 그린다 (HudStyle)
         HudStyle.Panel(root, "Panel", 0.02f, 0.03f, 0.545f, 0.97f, ShopYellow);
-        UIKit.Label(root, run.week + "주차 장보기", 0.04f, 0.88f, 0.30f, 0.96f, 52, TextAnchor.MiddleLeft, ShopOrange);
-        UIKit.Label(root, "남은 예산 <color=#E9684F>" + left.ToString("N0") + "원</color>", 0.30f, 0.88f, 0.525f, 0.96f, 44, TextAnchor.MiddleRight, ShopBrown);
+        UIKit.Label(root, run.week + "주차 장보기", 0.04f, 0.905f, 0.30f, 0.965f, 50, TextAnchor.MiddleLeft, ShopOrange);
+        UIKit.Label(root, "남은 예산 <color=#E9684F>" + left.ToString("N0") + "원</color>", 0.30f, 0.905f, 0.525f, 0.965f, 42, TextAnchor.MiddleRight, ShopBrown);
         UIKit.Label(root, run.week == 1 ? "6끼분 담기 · 첫날 달걀은 무료" : "7끼분 채우기 · 이월 재료 있음, 가격 인상",
-            0.04f, 0.795f, 0.32f, 0.875f, 28, TextAnchor.MiddleLeft, new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 1f));
+            0.04f, 0.855f, 0.32f, 0.905f, 28, TextAnchor.MiddleLeft, new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 1f));
         // 단축키 안내: 너무 작아 안 보이던 것을 같은 줄 오른쪽에 읽히는 크기로
-        UIKit.Label(root, "숫자 담기 · Shift+숫자 빼기", 0.30f, 0.795f, 0.525f, 0.875f, 24, TextAnchor.MiddleRight, new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 0.9f));
+        UIKit.Label(root, "숫자 담기 · Shift+숫자 빼기", 0.30f, 0.855f, 0.525f, 0.905f, 24, TextAnchor.MiddleRight, new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 0.9f));
 
         Color head = new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 0.95f);
-        UIKit.Label(root, "재료", 0.10f, 0.725f, 0.235f, 0.785f, 30, TextAnchor.MiddleLeft, head);
-        UIKit.Label(root, "가격", 0.235f, 0.725f, 0.325f, 0.785f, 30, TextAnchor.MiddleCenter, head);
-        UIKit.Label(root, "유통기한", 0.325f, 0.725f, 0.395f, 0.785f, 30, TextAnchor.MiddleCenter, head);
-        UIKit.Label(root, "수량", 0.405f, 0.725f, 0.525f, 0.785f, 30, TextAnchor.MiddleCenter, head);
-        UIKit.Box(root, "HeadLine", 0.035f, 0.722f, 0.53f, 0.726f, new Color(0.6f, 0.45f, 0.3f, 0.45f), false); // 표 머리글 아래 줄
+        UIKit.Label(root, "재료", 0.10f, 0.805f, 0.225f, 0.850f, 28, TextAnchor.MiddleLeft, head);
+        UIKit.Label(root, "가격", 0.225f, 0.805f, 0.315f, 0.850f, 28, TextAnchor.MiddleCenter, head);
+        UIKit.Label(root, "유통기한", 0.315f, 0.805f, 0.385f, 0.850f, 28, TextAnchor.MiddleCenter, head);
+        UIKit.Label(root, "수량", 0.395f, 0.805f, 0.525f, 0.850f, 28, TextAnchor.MiddleCenter, head);
+        UIKit.Box(root, "HeadLine", 0.035f, 0.800f, 0.53f, 0.804f, new Color(0.6f, 0.45f, 0.3f, 0.45f), false); // 표 머리글 아래 줄
 
         var shopList = Data.Active; // 해금 전에는 새우가 상점에 나오지 않는다
         for (int r = 0; r < shopList.Length; r++)
         {
             var ing = shopList[r];
             float top = RowTop(r);
-            float bot = top - (RowStep - 0.022f);
+            float bot = top - (RowStep - 0.012f);
             HudStyle.Panel(root, "Row", 0.035f, bot, 0.53f, top, HudStyle.SandSoft, true);
             int qty;
             cart.TryGetValue(ing, out qty);
@@ -327,19 +327,19 @@ public partial class GameFlow : MonoBehaviour
             run.inv.TryGetValue(ing, out own);
             SetIcon(UIKit.Box(root, "Icon", 0.045f, bot + 0.008f, 0.095f, top - 0.008f).gameObject.AddComponent<Image>(), ing);
             UIKit.Label(root, "<color=#A67C6DCC><size=24>[" + (r + 1) + "]</size></color> " + ing.name + (own > 0 ? " <color=#3F8F63><size=24>보유 " + own + "개</size></color>" : ""),
-                0.10f, bot, 0.235f, top, 34, TextAnchor.MiddleLeft, ShopBrown);
-            UIKit.Label(root, Price(ing).ToString("N0") + "원", 0.235f, bot, 0.325f, top, 34, TextAnchor.MiddleCenter, ShopBrown);
-            UIKit.Label(root, ing.shelf + "일", 0.325f, bot, 0.395f, top, 34, TextAnchor.MiddleCenter, new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 1f));
-            ShopBtn("−", 0.405f, bot + 0.010f, 0.445f, top - 0.010f, () => ChangeCart(ing, -1), HudStyle.Tan, false, HudStyle.Text, 44, qty > 0);
-            UIKit.Label(root, qty.ToString(), 0.445f, bot, 0.485f, top, 38, TextAnchor.MiddleCenter, qty > 0 ? ShopOrange : ShopBrown);
-            ShopBtn("+", 0.485f, bot + 0.010f, 0.525f, top - 0.010f, () => ChangeCart(ing, 1), HudStyle.Gold, true, HudStyle.Text, 44, Price(ing) <= left);
+                0.10f, bot, 0.225f, top, 36, TextAnchor.MiddleLeft, ShopBrown);
+            UIKit.Label(root, Price(ing).ToString("N0") + "원", 0.225f, bot, 0.315f, top, 36, TextAnchor.MiddleCenter, ShopBrown);
+            UIKit.Label(root, ing.shelf + "일", 0.315f, bot, 0.385f, top, 36, TextAnchor.MiddleCenter, new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 1f));
+            ShopBtn("−", 0.392f, bot + 0.005f, 0.442f, top - 0.005f, () => ChangeCart(ing, -1), HudStyle.Tan, false, HudStyle.Text, 52, qty > 0);
+            UIKit.Label(root, qty.ToString(), 0.442f, bot, 0.476f, top, 40, TextAnchor.MiddleCenter, qty > 0 ? ShopOrange : ShopBrown);
+            ShopBtn("+", 0.476f, bot + 0.005f, 0.526f, top - 0.005f, () => ChangeCart(ing, 1), HudStyle.Gold, true, HudStyle.Text, 52, Price(ing) <= left);
         }
 
-        UIKit.Box(root, "FootLine", 0.035f, 0.172f, 0.53f, 0.176f, new Color(0.6f, 0.45f, 0.3f, 0.45f), false); // 아래 영역 구분선
-        UIKit.Label(root, "담은 재료 <color=#E9684F>" + units + "</color>개", 0.04f, 0.04f, 0.25f, 0.16f, 38, TextAnchor.MiddleLeft, ShopBrown);
+        UIKit.Box(root, "FootLine", 0.035f, 0.148f, 0.53f, 0.152f, new Color(0.6f, 0.45f, 0.3f, 0.45f), false); // 아래 영역 구분선
+        UIKit.Label(root, "담은 재료 <color=#E9684F>" + units + "</color>개", 0.04f, 0.035f, 0.25f, 0.14f, 38, TextAnchor.MiddleLeft, ShopBrown);
         bool ok = units >= Need();
         // 주요 버튼 (로비 "게임 시작"과 같은 그림·글자 모양). 아직 못 누르면 연하게 보인다
-        UIKit.PrimaryBtn(root, ok ? "구매 확정  [Enter]" : "최소 " + Need() + "개 필요", 0.27f, 0.05f, 0.525f, 0.15f, ConfirmShop, 40, ok);
+        UIKit.PrimaryBtn(root, ok ? "구매 확정  [Enter]" : "최소 " + Need() + "개 필요", 0.27f, 0.04f, 0.525f, 0.14f, ConfirmShop, 40, ok);
 
         DrawBasket();
         scr = Scr.Shop;
@@ -400,8 +400,8 @@ public partial class GameFlow : MonoBehaviour
 
     // ---- 장바구니 연출
     // 재료 줄의 위쪽 위치(0~1). 날아가는 재료의 출발점도 이 값으로 정한다.
-    static float RowStep { get { return Data.Active.Length > 6 ? 0.078f : 0.09f; } } // 재료가 7개가 되면 줄 간격을 줄인다
-    static float RowTop(int r) { return 0.715f - r * RowStep; }
+    static float RowStep { get { return Data.Active.Length > 6 ? 0.090f : 0.105f; } } // 재료가 7개가 되면 줄 간격을 줄인다
+    static float RowTop(int r) { return 0.792f - r * RowStep; }
     static readonly Vector2 BasketMouth = new Vector2(0.785f, 0.42f); // 재료가 떨어지는 장바구니 입구 (화면 비율)
 
     // 장바구니: shop_basket_back/front 그림이 둘 다 있으면 재료가 그 사이에 끼인 것처럼 그린다.
