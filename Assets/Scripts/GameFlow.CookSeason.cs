@@ -65,8 +65,8 @@ public partial class GameFlow
         {
             var opt = choices[i];
             float x0 = i % 2 == 0 ? 0.24f : 0.51f;
-            float y0 = i < 2 ? 0.37f : 0.15f;
-            UIKit.Btn(dim, SeasonName(opt) + " [" + keyNames[i] + "]", x0, y0, x0 + 0.25f, y0 + 0.28f, () => PickSeasonOption(opt), UIKit.Accent, 44);
+            float y0 = i < 2 ? 0.43f : 0.15f;
+            UIKit.Btn(dim, SeasonName(opt) + " [" + keyNames[i] + "]", x0, y0, x0 + 0.25f, y0 + 0.22f, () => PickSeasonOption(opt), UIKit.Accent, 44);
         }
     }
 }
