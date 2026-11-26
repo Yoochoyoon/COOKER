@@ -346,6 +346,35 @@ public partial class GameFlow : MonoBehaviour
         confirm = ok ? (System.Action)ConfirmShop : null;
     }
 
+    // 하루 선택의 방식 버튼: HudStyle 모양에 아이콘, 이름, 한 줄 설명. 고른 것만 노란색(윗면 빛).
+    Button DayMethodBtn(string icon, string name, string tip, float x0, float y0, float x1, float y1, System.Action onClick, bool on, int size, bool enabled)
+    {
+        var rt = HudStyle.Panel(root, "Method_" + name, x0, y0, x1, y1, on ? HudStyle.Gold : HudStyle.SandSoft, false, on);
+        var img = rt.GetComponent<Image>();
+        if (!enabled) img.color = new Color(1f, 1f, 1f, 0.5f);
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = img;
+        var cb = b.colors;
+        cb.highlightedColor = Color.white;
+        cb.pressedColor = new Color(0.9f, 0.9f, 0.9f);
+        cb.disabledColor = Color.white;
+        b.colors = cb;
+        b.interactable = enabled;
+        b.onClick.AddListener(() => onClick());
+        rt.gameObject.AddComponent<PressDown>().depth = 4f;
+        var sprite = Art.Load(icon);
+        if (sprite != null)
+        {
+            var ir = UIKit.Box(rt, "Icon", 0.05f, 0.16f, 0.20f, 0.88f).gameObject.AddComponent<Image>();
+            ir.sprite = sprite; ir.preserveAspect = true; ir.raycastTarget = false;
+            ir.color = enabled ? HudStyle.Text : new Color(HudStyle.Text.r, HudStyle.Text.g, HudStyle.Text.b, 0.4f); // 흰 아이콘을 갈색으로 칠해 연한 바탕에서도 보이게
+        }
+        float a = enabled ? 1f : 0.5f;
+        UIKit.Label(rt, name, 0.22f, 0.10f, 0.66f, 0.96f, size, TextAnchor.MiddleLeft, new Color(HudStyle.Text.r, HudStyle.Text.g, HudStyle.Text.b, a));
+        UIKit.Label(rt, tip, 0.60f, 0.14f, 0.96f, 0.92f, 24, TextAnchor.MiddleRight, new Color(HudStyle.Text.r, HudStyle.Text.g, HudStyle.Text.b, 0.7f * a));
+        return b;
+    }
+
     // 장보기 줄 안의 작은 버튼: HudStyle 모양(진한 갈색 선, 아래 두께, 안쪽 크림 선). gold면 노란 버튼처럼 윗면에 빛이 한 줄 든다.
     // enabled가 false면 연하게 보이고 눌리지 않는다.
     Button ShopBtn(string text, float x0, float y0, float x1, float y1, System.Action onClick, Color fill, bool gold, Color textColor,
@@ -574,7 +603,7 @@ public partial class GameFlow : MonoBehaviour
 
         Clear();
         Pad(0.96f);
-        UIKit.Label(root, run.week + "주차 " + run.day + "일차 / " + Balance.Days + "일", 0.03f, 0.88f, 0.55f, 0.98f, 56, TextAnchor.MiddleLeft, UIKit.Accent);
+        UIKit.Label(root, run.week + "주차 " + run.day + "일차 / " + Balance.Days + "일", 0.03f, 0.88f, 0.55f, 0.98f, 56, TextAnchor.MiddleLeft, ShopOrange);
         UIKit.Label(root, "비상 라면 " + (Balance.Lifelines - run.strikes) + "/" + Balance.Lifelines + "   먹은 끼니 " + run.dishes.Count + "개", 0.45f, 0.88f, 0.89f, 0.98f, 40, TextAnchor.MiddleRight);
 
         // 왼쪽: 식탁(보유 재료) -> 도마(요리할 재료). 끌어다 놓아서 고르고, 도마에서 식탁으로 끌어 빼낸다
@@ -584,7 +613,7 @@ public partial class GameFlow : MonoBehaviour
         if (guideMeal)
         {
             IngredientToken(Data.Egg, 1, null, 0.09f, 0.30f, 0.23f, 0.47f, board, true, false);
-            UIKit.Box(root, "GuideNote", 0.06f, 0.54f, 0.47f, 0.84f, UIKit.Card); // 체크무늬 위에서도 읽히게 쪽지에 쓴다
+            HudStyle.Panel(root, "GuideNote", 0.06f, 0.54f, 0.47f, 0.84f, HudStyle.SandSoft); // 체크무늬 위에서도 읽히게 쪽지에 쓴다
             UIKit.Label(root, "엄마가 보낸 달걀!\n첫날은 달걀을 굽는다. 불 세기와 꺼내기를 익혀 보자.\n실패해도 굶지 않으니 다시 하면 돼!",
                 0.08f, 0.56f, 0.45f, 0.82f, 34, TextAnchor.MiddleLeft);
         }
@@ -616,8 +645,8 @@ public partial class GameFlow : MonoBehaviour
         }
 
         // 오른쪽: 방식
-        UIKit.Box(root, "Right", 0.54f, 0.47f, 0.96f, 0.87f, UIKit.Card);
-        UIKit.Label(root, "조리 방식", 0.56f, 0.80f, 0.94f, 0.86f, 34, TextAnchor.MiddleLeft, UIKit.Muted);
+        HudStyle.Panel(root, "Right", 0.54f, 0.47f, 0.96f, 0.87f, HudStyle.Sand);
+        UIKit.Label(root, "조리 방식", 0.56f, 0.80f, 0.94f, 0.86f, 34, TextAnchor.MiddleLeft, HudStyle.TextSoft);
         var openMethods = Data.ActiveMethods; // 튀기기는 "자취 생존자"를 얻기 전에는 선택지에 나오지 않는다
         for (int k = 0; k < openMethods.Length; k++)
         {
@@ -626,19 +655,18 @@ public partial class GameFlow : MonoBehaviour
             float top = 0.795f - k * step;
             float bot = top - (step - 0.02f);
             bool on = selMethod == md.id;
-            var mb = UIKit.IconBtn(root, md.id == Method.Grill ? "icon_pan" : md.id == Method.Stirfry ? "icon_wok" : md.id == Method.Boil ? "icon_pot" : "icon_fry", "[" + "QWER"[k] + "] " + md.name, 0.57f, bot, 0.93f, top, () => { selMethod = md.id; ShowDay(); },
-                on ? UIKit.Accent : UIKit.Muted, openMethods.Length > 3 ? 38 : 44, !guideMeal || on); // 고른 방식만 진한 주황, 나머지는 차분한 갈색 (전부 빨갛던 것 정리)
             // 방식마다 핵심 조작을 한마디로 (고르기 전에 알 수 있게)
             string tip = md.id == Method.Grill ? "뒤집을 때를 잡아라" : md.id == Method.Stirfry ? "쉬지 않고 저어라"
                 : md.id == Method.Boil ? "넘치면 뚜껑" : "불을 약하게 두지 마";
-            var ml = mb.GetComponentInChildren<Text>(); // 이름은 아이콘 옆, 설명은 오른쪽 끝
-            if (ml != null) { ml.rectTransform.anchorMin = new Vector2(0.27f, 0.08f); ml.rectTransform.anchorMax = new Vector2(0.66f, 0.92f); ml.alignment = TextAnchor.MiddleLeft; }
-            UIKit.Label(mb.transform, tip, 0.62f, 0.12f, 0.97f, 0.88f, 24, TextAnchor.MiddleRight, new Color(1f, 1f, 1f, 0.8f));
+            // 고른 방식만 노란 버튼(윗면 빛), 나머지는 차분한 중간 톤 (HudStyle)
+            DayMethodBtn(md.id == Method.Grill ? "icon_pan" : md.id == Method.Stirfry ? "icon_wok" : md.id == Method.Boil ? "icon_pot" : "icon_fry",
+                "[" + "QWER"[k] + "] " + md.name, tip, 0.57f, bot, 0.93f, top, () => { selMethod = md.id; ShowDay(); },
+                on, openMethods.Length > 3 ? 38 : 44, !guideMeal || on);
         }
 
         // 엄마 힌트
         // 알림처럼: 카드 전체가 눌리는 메시지 알림 (버튼 모양 없이 아이콘 + 제목 + 내용)
-        var hintCard = UIKit.Box(root, "Hint", 0.54f, 0.255f, 0.96f, 0.43f, UIKit.Card);
+        var hintCard = HudStyle.Panel(root, "Hint", 0.54f, 0.255f, 0.96f, 0.43f, HudStyle.Sand);
         string hint = sel.Count == 0
             ? "밥은 잘 챙겨 먹고 있니? 아껴 쓰되, 굶지는 마라."
             : string.Join("\n", sel.Select(i => Data.MomHint(i)));
@@ -656,14 +684,14 @@ public partial class GameFlow : MonoBehaviour
         mailImg.sprite = Art.Load("icon_mail");
         mailImg.color = UIKit.Accent;
         mailImg.raycastTarget = false;
-        UIKit.Label(root, "엄마에게서 메시지", 0.59f, 0.355f, 0.80f, 0.42f, 26, TextAnchor.MiddleLeft, UIKit.Accent);
+        UIKit.Label(root, "엄마에게서 메시지", 0.59f, 0.355f, 0.80f, 0.42f, 26, TextAnchor.MiddleLeft, ShopOrange);
         if (!guideMeal) UIKit.Label(root, "눌러서 추천 요리 보기 [M]", 0.74f, 0.355f, 0.945f, 0.42f, 24, TextAnchor.MiddleRight, UIKit.Muted);
         UIKit.Label(root, hint, 0.56f, 0.265f, 0.94f, 0.35f, 32, TextAnchor.MiddleLeft);
 
         // 하단
         // 오늘의 요리 카드: 고른 재료와 방식을 색으로 구분해서 (아직 안 골랐으면 흐리게 안내)
-        var sumCard = UIKit.Box(root, "Summary", 0.03f, 0.045f, 0.55f, 0.20f, UIKit.Card);
-        UIKit.Label(sumCard, "오늘의 요리", 0.04f, 0.68f, 0.5f, 0.97f, 26, TextAnchor.MiddleLeft, UIKit.Muted);
+        var sumCard = HudStyle.Panel(root, "Summary", 0.03f, 0.045f, 0.55f, 0.20f, HudStyle.Sand);
+        UIKit.Label(sumCard, "오늘의 요리", 0.04f, 0.68f, 0.5f, 0.97f, 26, TextAnchor.MiddleLeft, HudStyle.TextSoft);
         string ingText = sel.Count == 0 ? "<color=#A67C6D>재료를 골라 주세요</color>" : "<color=#E9684F>" + string.Join(" + ", sel.Select(i => i.name)) + "</color>";
         string methodText = selMethod.HasValue ? "<color=#5BA77A>" + Data.GetMethod(selMethod.Value).name + "</color>" : "<color=#A67C6D>방식을 골라 주세요</color>";
         UIKit.Label(sumCard, ingText + "   ·   " + methodText, 0.04f, 0.06f, 0.96f, 0.70f, 40, TextAnchor.MiddleLeft, UIKit.Ink);
@@ -688,12 +716,11 @@ public partial class GameFlow : MonoBehaviour
         }
         else
         {
-            var color = dl == 1 ? UIKit.Bad : UIKit.Accent;
-            rt = UIKit.Box(root, "Ing_" + ing.name, x0, y0, x1, y1, color);
+            var color = dl == 1 ? new Color(0.98f, 0.78f, 0.70f) : HudStyle.SandSoft; // 오늘까지인 재료만 살짝 붉게
+            rt = HudStyle.Panel(root, "Ing_" + ing.name, x0, y0, x1, y1, color, true);
             SetIcon(UIKit.Box(rt, "Icon", 0.03f, 0.08f, 0.40f, 0.92f).gameObject.AddComponent<Image>(), ing); // 왼쪽에 재료 그림
-            var name = UIKit.Label(rt, (key.HasValue ? "[" + key.Value + "] " : "") + ing.name, 0.40f, 0.48f, 0.97f, 0.92f, 34, TextAnchor.MiddleCenter, Color.white);
-            name.gameObject.AddComponent<Outline>().effectColor = new Color(UIKit.Ink.r, UIKit.Ink.g, UIKit.Ink.b, 0.8f);
-            UIKit.Label(rt, "x" + qty + (tag == "" ? "" : " " + tag), 0.38f, 0.08f, 0.95f, 0.48f, 24, TextAnchor.MiddleCenter, new Color(1f, 1f, 1f, 0.9f)); // 오른쪽 끝이 잘리지 않게
+            UIKit.Label(rt, (key.HasValue ? "[" + key.Value + "] " : "") + ing.name, 0.40f, 0.48f, 0.97f, 0.92f, 34, TextAnchor.MiddleCenter, HudStyle.Text);
+            UIKit.Label(rt, "x" + qty + (tag == "" ? "" : " " + tag), 0.38f, 0.08f, 0.95f, 0.48f, 24, TextAnchor.MiddleCenter, dl == 1 ? UIKit.Bad : HudStyle.TextSoft); // 오른쪽 끝이 잘리지 않게
         }
         if (!draggable) return;
         var click = rt.gameObject.AddComponent<Button>(); // 클릭해도 식탁 <-> 도마로 옮긴다

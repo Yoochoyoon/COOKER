@@ -560,7 +560,7 @@ public static class UIKit
     public static void DexBtn(Transform parent, float x0, float y0, float w, Action onClick)
     {
         var s = Art.Load("lobby_dex");
-        float h = w * (1920f / 1080f) / (380f / 207f);
+        float h = w * (1920f / 1080f) / (s == null ? 380f / 207f : s.rect.width / s.rect.height); // 그림 비율대로
         if (s == null) { Btn(parent, "도감 [D]", x0, y0, x0 + w, y0 + h, onClick, Muted, 36); return; }
         var rt = Box(parent, "DexBtn", x0, y0, x0 + w, y0 + h);
         var img = rt.gameObject.AddComponent<Image>();
