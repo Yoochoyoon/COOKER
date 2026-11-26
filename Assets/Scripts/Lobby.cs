@@ -32,8 +32,7 @@ public static class Lobby
         // 각 층은 시안 그림과 픽셀 단위로 맞춘 위치다 (냉장고·캐릭터·말풍선·달력·금액·도감·왕관·시작 바)
         Piece(fit, "Bg", "lobby_bg", 0, 0, RefW, RefH, null);
         // 냉장고는 버튼임을 드러낸다: 올리면 살짝 커지고(1.04), 눌리면 어두워지며 내려앉는다
-        var fridge = Piece(fit, "Fridge", "lobby_fridge", 1451, 238, 421, 647, openFridge);
-        if (fridge != null) fridge.gameObject.AddComponent<HoverScale>().scale = 1.04f;
+        Piece(fit, "Fridge", "lobby_fridge", 1451, 238, 421, 647, openFridge);
         Piece(fit, "Character", "lobby_character", 558, 473, 359, 541, openTitles);
 
         // 대표 칭호: 캐릭터 머리 위 말풍선. 눌러도 칭호 목록이 열린다
@@ -114,9 +113,10 @@ public static class Lobby
         b.transition = Selectable.Transition.None;
         if (w * h > 300000f)
         {
-            rt.gameObject.AddComponent<HoverScale>(); // 큰 그림(캐릭터·냉장고)은 올리면 아주 살짝 커지는 것뿐
+            rt.gameObject.AddComponent<HoverScale>().scale = 1.04f; // 큰 그림(캐릭터·냉장고)은 올리면 살짝 커지는 것뿐
             return rt;
         }
+        rt.gameObject.AddComponent<HoverScale>().scale = 1.05f; // 작은 버튼(도감·왕관·시작·칭호 말풍선)도 올리면 조금 커진다. 안의 글자도 자식이라 같이 커진다
         rt.gameObject.AddComponent<LobbyHover>().img = img;
         rt.gameObject.AddComponent<PressDown>().depth = 5f;
         return rt;
