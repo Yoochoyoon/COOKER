@@ -15,6 +15,8 @@ public static class HudStyle
     public static readonly Color Gold = new Color(0.976f, 0.80f, 0.25f);     // 노란 버튼
     public static readonly Color Tan = new Color(0.949f, 0.80f, 0.49f);      // 칭호 말풍선 같은 중간 톤
     public static readonly Color Text = new Color(0.29f, 0.20f, 0.14f);      // 글자: 진한 갈색
+    public static readonly Color DisabledGray = new Color(0.78f, 0.77f, 0.75f); // 못 누르는 버튼 바탕 (투명도가 아니라 회색)
+    public static readonly Color DisabledText = new Color(0.55f, 0.54f, 0.52f);
     public static readonly Color TextSoft = new Color(0.52f, 0.40f, 0.30f);  // 덜 중요한 글자
 
     static readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();

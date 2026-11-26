@@ -514,7 +514,7 @@ public static class UIKit
         t.text = text;
         t.fontSize = size;
         t.alignment = TextAnchor.MiddleCenter;
-        t.color = enabled ? Color.white : new Color(1f, 1f, 1f, 0.7f);
+        t.color = Color.white;
         t.resizeTextForBestFit = true;
         t.resizeTextMinSize = 12;
         t.resizeTextMaxSize = size;
@@ -522,7 +522,7 @@ public static class UIKit
         t.verticalOverflow = VerticalWrapMode.Truncate;
         t.raycastTarget = false;
         var o = rt.gameObject.AddComponent<Outline>();
-        o.effectColor = enabled ? new Color(0.76f, 0.42f, 0.17f) : new Color(0.7f, 0.55f, 0.42f);
+        o.effectColor = enabled ? new Color(0.76f, 0.42f, 0.17f) : new Color(0.50f, 0.49f, 0.47f);
         o.effectDistance = new Vector2(Mathf.Max(3f, size * 0.05f), Mathf.Max(3f, size * 0.05f));
         var sh = rt.gameObject.AddComponent<Shadow>();
         sh.effectColor = new Color(0.45f, 0.22f, 0.05f, 0.28f);
@@ -531,16 +531,16 @@ public static class UIKit
     }
 
     // 주요 버튼(조리 시작·구매 확정·다음 날 같은 "다음으로 가는" 버튼): 글자 없는 버튼 그림(lobby_start)을 늘려 쓰고 글자는 코드로 올린다.
-    // 그림이 없으면 일반 버튼으로 대신한다. 못 누르는 상태는 그림이 연해진다.
+    // 그림이 없으면 일반 버튼으로 대신한다. 못 누르는 상태는 회색 버튼이 된다.
     public static Button PrimaryBtn(Transform parent, string text, float x0, float y0, float x1, float y1, Action onClick, int size = 44, bool enabled = true)
     {
         var s = Art.Load("lobby_start");
         if (s == null) return Btn(parent, text, x0, y0, x1, y1, onClick, Good, size, enabled);
         var rt = Box(parent, "Btn_" + text, x0, y0, x1, y1);
         var img = rt.gameObject.AddComponent<Image>();
-        img.sprite = s;
+        img.sprite = enabled ? s : HudStyle.Make(HudStyle.DisabledGray, false, false); // 못 누를 때는 투명하지 않은 회색 버튼
         img.type = Image.Type.Sliced; // 모서리는 그대로, 가운데만 늘어난다
-        img.color = enabled ? Color.white : new Color(0.72f, 0.72f, 0.72f, 0.65f);
+        img.color = Color.white;
         var b = rt.gameObject.AddComponent<Button>();
         b.targetGraphic = img;
         b.transition = Selectable.Transition.None;

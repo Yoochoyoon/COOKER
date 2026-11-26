@@ -380,9 +380,10 @@ public partial class GameFlow : MonoBehaviour
     Button ShopBtn(string text, float x0, float y0, float x1, float y1, System.Action onClick, Color fill, bool gold, Color textColor,
         int size, bool enabled)
     {
-        var rt = HudStyle.Panel(root, "Btn_" + text, x0, y0, x1, y1, fill, true, gold);
+        // 못 누를 때는 투명하게 하지 않고 회색 버튼으로 보인다 (선·두께 모양은 그대로)
+        var rt = enabled ? HudStyle.Panel(root, "Btn_" + text, x0, y0, x1, y1, fill, true, gold)
+            : HudStyle.Panel(root, "Btn_" + text, x0, y0, x1, y1, HudStyle.DisabledGray, true, false);
         var img = rt.GetComponent<Image>();
-        if (!enabled) img.color = new Color(1f, 1f, 1f, 0.4f);
         var b = rt.gameObject.AddComponent<Button>();
         b.targetGraphic = img;
         var cb = b.colors;
@@ -393,7 +394,7 @@ public partial class GameFlow : MonoBehaviour
         b.interactable = enabled;
         b.onClick.AddListener(() => onClick());
         rt.gameObject.AddComponent<PressDown>().depth = 3f;
-        var tc = enabled ? textColor : new Color(textColor.r, textColor.g, textColor.b, 0.4f);
+        var tc = enabled ? textColor : HudStyle.DisabledText;
         UIKit.Label(rt, text, 0.04f, 0.10f, 0.96f, 0.96f, size, TextAnchor.MiddleCenter, tc);
         return b;
     }
