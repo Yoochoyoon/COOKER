@@ -35,6 +35,9 @@ public partial class Cook
         return -1;
     }
 
+    // 이 재료의 순서 단계 (작을수록 먼저, 순서 제한이 없으면 -1). 화면의 순서 그림 줄이 쓴다.
+    public int TierOf(Ingredient ing) { return Tier(m.id, ing.name); }
+
     // 지금 이 판의 순서 판정 보정 (틀린 횟수만큼 곱한다)
     public float OrderMultiplier { get { return Mathf.Pow(OrderCoefPerViolation, OrderViolations); } }
 

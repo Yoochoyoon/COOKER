@@ -50,7 +50,7 @@ public partial class GameFlow : MonoBehaviour
             // 위 설명은 한 줄로 짧게 (긴 규칙은 첫날 가이드/도움말에서). 지금 해야 할 일은 가운데 안내(promptLabel)가 크게 알려 준다.
             UIKit.Box(root, "TopNote", 0.185f, 0.895f, 0.895f, 0.98f, new Color(1f, 0.97f, 0.9f, 0.92f)); // 배경 그림 위에서도 글자가 읽히게 (오른쪽 끝은 로비 버튼 자리)
             UIKit.Label(root, md.name + " 중", 0.20f, 0.90f, 0.30f, 0.975f, 44, TextAnchor.MiddleLeft, UIKit.Accent);
-            UIKit.Label(root, (guideMeal ? "[첫날 가이드] " : "") + ShortGuide(md.id), 0.30f, 0.90f, 0.885f, 0.975f, 32, TextAnchor.MiddleLeft, new Color(0.3f, 0.2f, 0.1f));
+            UIKit.Label(root, (guideMeal ? "[첫날 가이드] " : "") + ShortGuide(md.id), 0.30f, 0.90f, 0.52f, 0.975f, 30, TextAnchor.MiddleLeft, new Color(0.3f, 0.2f, 0.1f));
 
             // 가운데 안내: 지금 해야 할 단 하나의 행동. 바탕색으로 위급한 정도를 구분한다.
             promptBg = UIKit.Box(root, "Prompt", 0.27f, 0.775f, 0.73f, 0.875f, UIKit.Card).GetComponent<Image>();
@@ -288,6 +288,7 @@ public partial class GameFlow : MonoBehaviour
         flashT = -1f;
         finishFx = -1f;
         BuildGaugeUI(); // 불 바늘 게이지(docs/26)
+        BuildOrderRow(); // 재료 순서 그림 줄(docs/28)
 
         scr = Scr.Cook;
     }
@@ -503,6 +504,7 @@ public partial class GameFlow : MonoBehaviour
         PlayCookSfx();
         UpdateCookFx();
         UpdateGaugeUI(); // 불 바늘 게이지(docs/26)
+        UpdateOrderRow(); // 재료 순서 그림 줄(docs/28)
         for (int i = 0; i < itemImgs.Count; i++)
         {
             var it = cook.items[i];
