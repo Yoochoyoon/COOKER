@@ -283,9 +283,9 @@ public partial class GameFlow : MonoBehaviour
 
     // ---------------------------------------------------------------- 장보기
     // 장보기 왼쪽 패널 색 (시안 HTML: 노란 카드 #fef08a, 갈색 #451a03, 주황 #E9684F)
-    static Color ShopYellow { get { return UIKit.Card; } }
-    static Color ShopBrown { get { return UIKit.Ink; } }
-    static Color ShopOrange { get { return UIKit.Accent; } }
+    static Color ShopYellow { get { return HudStyle.Sand; } }
+    static Color ShopBrown { get { return HudStyle.Text; } }
+    static Color ShopOrange { get { return new Color(0.80f, 0.42f, 0.20f); } }
 
     void ShowShop()
     {
@@ -298,9 +298,8 @@ public partial class GameFlow : MonoBehaviour
         int left = run.budget - spent;
 
         // 왼쪽: 장보기 표 (노란 메뉴 카드 + 연한 줄 카드. 색은 장보기 시안 HTML을 따른다)
-        var shopCard = UIKit.Box(root, "Panel", 0.02f, 0.03f, 0.545f, 0.97f, ShopYellow);
-        shopCard.GetComponent<Outline>().effectColor = ShopBrown;
-        shopCard.GetComponent<Outline>().effectDistance = new Vector2(4f, 4f);
+        // 모양은 로비 위쪽 바·시작 버튼에서 뽑은 특징(모래색 판, 진한 갈색 선과 아래 두께, 안쪽 크림 선)을 코드로 그린다 (HudStyle)
+        HudStyle.Panel(root, "Panel", 0.02f, 0.03f, 0.545f, 0.97f, ShopYellow);
         UIKit.Label(root, run.week + "주차 장보기", 0.04f, 0.88f, 0.30f, 0.96f, 52, TextAnchor.MiddleLeft, ShopOrange);
         UIKit.Label(root, "남은 예산 <color=#E9684F>" + left.ToString("N0") + "원</color>", 0.30f, 0.88f, 0.525f, 0.96f, 44, TextAnchor.MiddleRight, ShopBrown);
         UIKit.Label(root, run.week == 1 ? "6끼분 담기 · 첫날 달걀은 무료" : "7끼분 채우기 · 이월 재료 있음, 가격 인상",
@@ -313,7 +312,7 @@ public partial class GameFlow : MonoBehaviour
         UIKit.Label(root, "가격", 0.235f, 0.725f, 0.325f, 0.785f, 30, TextAnchor.MiddleCenter, head);
         UIKit.Label(root, "유통기한", 0.325f, 0.725f, 0.395f, 0.785f, 30, TextAnchor.MiddleCenter, head);
         UIKit.Label(root, "수량", 0.405f, 0.725f, 0.525f, 0.785f, 30, TextAnchor.MiddleCenter, head);
-        UIKit.Box(root, "HeadLine", 0.035f, 0.722f, 0.53f, 0.726f, new Color(0.92f, 0.78f, 0.73f, 0.8f), false); // 표 머리글 아래 줄
+        UIKit.Box(root, "HeadLine", 0.035f, 0.722f, 0.53f, 0.726f, new Color(0.6f, 0.45f, 0.3f, 0.45f), false); // 표 머리글 아래 줄
 
         var shopList = Data.Active; // 해금 전에는 새우가 상점에 나오지 않는다
         for (int r = 0; r < shopList.Length; r++)
@@ -321,10 +320,7 @@ public partial class GameFlow : MonoBehaviour
             var ing = shopList[r];
             float top = RowTop(r);
             float bot = top - (RowStep - 0.022f);
-            var rowBox = UIKit.Box(root, "Row", 0.035f, bot, 0.53f, top, new Color(1f, 0.98f, 0.92f), false);
-            var rowLine = rowBox.gameObject.AddComponent<Outline>(); // 연한 테두리
-            rowLine.effectColor = new Color(0.96f, 0.88f, 0.84f);
-            rowLine.effectDistance = new Vector2(2f, 2f);
+            HudStyle.Panel(root, "Row", 0.035f, bot, 0.53f, top, HudStyle.SandSoft, true);
             int qty;
             cart.TryGetValue(ing, out qty);
             int own;
@@ -334,14 +330,12 @@ public partial class GameFlow : MonoBehaviour
                 0.10f, bot, 0.235f, top, 34, TextAnchor.MiddleLeft, ShopBrown);
             UIKit.Label(root, Price(ing).ToString("N0") + "원", 0.235f, bot, 0.325f, top, 34, TextAnchor.MiddleCenter, ShopBrown);
             UIKit.Label(root, ing.shelf + "일", 0.325f, bot, 0.395f, top, 34, TextAnchor.MiddleCenter, new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 1f));
-            ShopBtn("−", 0.405f, bot + 0.012f, 0.445f, top - 0.012f, () => ChangeCart(ing, -1), new Color(0.267f, 0.2f, 0.161f), new Color(0.149f, 0.11f, 0.086f),
-                new Color(0.996f, 0.953f, 0.78f), 44, qty > 0, 5f);
+            ShopBtn("−", 0.405f, bot + 0.010f, 0.445f, top - 0.010f, () => ChangeCart(ing, -1), HudStyle.Tan, false, HudStyle.Text, 44, qty > 0);
             UIKit.Label(root, qty.ToString(), 0.445f, bot, 0.485f, top, 38, TextAnchor.MiddleCenter, qty > 0 ? ShopOrange : ShopBrown);
-            ShopBtn("+", 0.485f, bot + 0.012f, 0.525f, top - 0.012f, () => ChangeCart(ing, 1), UIKit.Accent, new Color(0.62f, 0.25f, 0.2f),
-                Color.white, 44, Price(ing) <= left, 5f);
+            ShopBtn("+", 0.485f, bot + 0.010f, 0.525f, top - 0.010f, () => ChangeCart(ing, 1), HudStyle.Gold, true, HudStyle.Text, 44, Price(ing) <= left);
         }
 
-        UIKit.Box(root, "FootLine", 0.035f, 0.172f, 0.53f, 0.176f, new Color(0.92f, 0.78f, 0.73f, 0.8f), false); // 아래 영역 구분선
+        UIKit.Box(root, "FootLine", 0.035f, 0.172f, 0.53f, 0.176f, new Color(0.6f, 0.45f, 0.3f, 0.45f), false); // 아래 영역 구분선
         UIKit.Label(root, "담은 재료 <color=#E9684F>" + units + "</color>개", 0.04f, 0.04f, 0.25f, 0.16f, 38, TextAnchor.MiddleLeft, ShopBrown);
         bool ok = units >= Need();
         // 주요 버튼 (로비 "게임 시작"과 같은 그림·글자 모양). 아직 못 누르면 연하게 보인다
@@ -352,25 +346,16 @@ public partial class GameFlow : MonoBehaviour
         confirm = ok ? (System.Action)ConfirmShop : null;
     }
 
-    // 장보기 시안의 버튼: 색 바탕 + 아래로 두꺼운 그림자(눌리면 내려앉는다). enabled가 false면 연하게(투명 35%) 보이고 그림자도 없다.
-    Button ShopBtn(string text, float x0, float y0, float x1, float y1, System.Action onClick, Color bg, Color lip, Color textColor,
-        int size, bool enabled, float lipDepth, Color? border = null)
+    // 장보기 줄 안의 작은 버튼: HudStyle 모양(진한 갈색 선, 아래 두께, 안쪽 크림 선). gold면 노란 버튼처럼 윗면에 빛이 한 줄 든다.
+    // enabled가 false면 연하게 보이고 눌리지 않는다.
+    Button ShopBtn(string text, float x0, float y0, float x1, float y1, System.Action onClick, Color fill, bool gold, Color textColor,
+        int size, bool enabled)
     {
-        var rt = UIKit.Box(root, "Btn_" + text, x0, y0, x1, y1, enabled ? bg : new Color(bg.r, bg.g, bg.b, 0.35f), false);
-        if (enabled)
-        {
-            var sh = rt.gameObject.AddComponent<Shadow>();
-            sh.effectColor = lip;
-            sh.effectDistance = new Vector2(0f, -lipDepth);
-        }
-        if (border.HasValue)
-        {
-            var o = rt.gameObject.AddComponent<Outline>();
-            o.effectColor = border.Value;
-            o.effectDistance = new Vector2(3f, 3f);
-        }
+        var rt = HudStyle.Panel(root, "Btn_" + text, x0, y0, x1, y1, fill, true, gold);
+        var img = rt.GetComponent<Image>();
+        if (!enabled) img.color = new Color(1f, 1f, 1f, 0.4f);
         var b = rt.gameObject.AddComponent<Button>();
-        b.targetGraphic = rt.GetComponent<Image>();
+        b.targetGraphic = img;
         var cb = b.colors;
         cb.highlightedColor = new Color(1.0f, 1.0f, 1.0f);
         cb.pressedColor = new Color(0.9f, 0.9f, 0.9f);
@@ -378,9 +363,9 @@ public partial class GameFlow : MonoBehaviour
         b.colors = cb;
         b.interactable = enabled;
         b.onClick.AddListener(() => onClick());
-        rt.gameObject.AddComponent<PressDown>().depth = lipDepth * 0.6f;
-        var tc = enabled ? textColor : new Color(textColor.r, textColor.g, textColor.b, 0.35f);
-        UIKit.Label(rt, text, 0.04f, 0.04f, 0.96f, 0.96f, size, TextAnchor.MiddleCenter, tc);
+        rt.gameObject.AddComponent<PressDown>().depth = 3f;
+        var tc = enabled ? textColor : new Color(textColor.r, textColor.g, textColor.b, 0.4f);
+        UIKit.Label(rt, text, 0.04f, 0.10f, 0.96f, 0.96f, size, TextAnchor.MiddleCenter, tc);
         return b;
     }
 

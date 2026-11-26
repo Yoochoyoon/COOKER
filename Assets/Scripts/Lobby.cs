@@ -32,17 +32,17 @@ public static class Lobby
         // 각 층은 시안 그림과 픽셀 단위로 맞춘 위치다 (냉장고·캐릭터·말풍선·달력·금액·도감·왕관·시작 바)
         Piece(fit, "Bg", "lobby_bg", 0, 0, RefW, RefH, null);
         // 냉장고는 버튼임을 드러낸다: 올리면 살짝 커지고(1.04), 눌리면 어두워지며 내려앉는다
-        var fridge = Piece(fit, "Fridge", "lobby_fridge", 1451, 238, 420, 644, openFridge);
+        var fridge = Piece(fit, "Fridge", "lobby_fridge", 1451, 238, 421, 647, openFridge);
         if (fridge != null) fridge.gameObject.AddComponent<HoverScale>().scale = 1.04f;
         Piece(fit, "Character", "lobby_character", 558, 473, 359, 541, openTitles);
 
         // 대표 칭호: 캐릭터 머리 위 말풍선. 눌러도 칭호 목록이 열린다
         var rep = Titles.Representative;
-        var tagPiece = Piece(fit, "TitleTag", "lobby_titletag", 589, 415, 310, 110, openTitles);
+        var tagPiece = Piece(fit, "TitleTag", "lobby_titletag", 601, 383, 296, 87, openTitles);
         // 글자는 말풍선의 자식이라 말풍선과 함께 움직인다. 글자 칸은 말풍선 안쪽(시안 600~895, 437~522)
         if (tagPiece != null)
         {
-            var tag = LabelIn(tagPiece, 310, 110, rep == null ? "칭호 없음" : rep.name, 41, 33, 251, 64, 34, Color.white);
+            var tag = LabelIn(tagPiece, 296, 87, rep == null ? "칭호 없음" : rep.name, 78, 14, 200, 60, 32, Color.white);
             tagText = tag;
             var o = tag.gameObject.AddComponent<Outline>();
             o.effectColor = new Color(0.78f, 0.36f, 0.27f);
@@ -50,21 +50,21 @@ public static class Lobby
         }
 
         // 현재 주차 / 보유 금액 (새 게임 직전이면 1주차와 시작 예산)
-        Piece(fit, "WeekCard", "lobby_day", 22, 21, 297, 88, null);
-        Piece(fit, "WeekIcon", "icon_week", 46, 37, 49, 50, null);
-        Text(fit, run.week + "주차", 122, 40, 180, 50, 44, Brown, TextAnchor.MiddleLeft);
-        Piece(fit, "MoneyCard", "lobby_money", 342, 21, 297, 88, null);
-        Piece(fit, "MoneyIcon", "icon_money", 370, 36, 47, 53, null);
+        // 위쪽 바 하나(lobby_bar)에 달력·주차, 돈주머니·금액을 올린다
+        Piece(fit, "TopBar", "lobby_bar", 22, 25, 705, 73, null);
+        Piece(fit, "WeekIcon", "icon_week", 45, 40, 37, 38, null);
+        Text(fit, run.week + "주차", 100, 42, 230, 50, 40, Brown, TextAnchor.MiddleLeft);
+        Piece(fit, "MoneyIcon", "icon_money", 357, 39, 35, 39, null);
         string money = run.budget.ToString("N0");
-        Text(fit, money, 442, 40, 180, 50, 44, Brown, TextAnchor.MiddleLeft);
+        Text(fit, money, 410, 42, 280, 50, 40, Brown, TextAnchor.MiddleLeft);
 
         // 아래 줄: 도감(책) · 칭호(왕관) · 게임 시작
         // 단축키 이름표는 각 버튼 위에 붙어 같이 움직인다
-        var dex = Piece(fit, "Dex", "lobby_dex", 1043, 903, 206, 157, openDex);
-        if (dex != null) LabelIn(dex, 206, 157, "도감 [D]", 0, -40, 206, 34, 26, Color.white);
-        var crown = Piece(fit, "TitleIcon", "icon_title", 1266, 906, 196, 153, openTitles);
-        if (crown != null) LabelIn(crown, 196, 153, "칭호 [T]", 0, -40, 196, 34, 26, Color.white);
-        var start = Piece(fit, "Start", "lobby_start", 1481, 931, 418, 128, startGame);
+        var dex = Piece(fit, "Dex", "lobby_dex", 1119, 933, 153, 124, openDex);
+        if (dex != null) LabelIn(dex, 153, 124, "도감 [D]", 0, -38, 153, 32, 26, Color.white);
+        var crown = Piece(fit, "TitleIcon", "icon_title", 1296, 933, 155, 123, openTitles);
+        if (crown != null) LabelIn(crown, 155, 123, "칭호 [T]", 0, -38, 155, 32, 26, Color.white);
+        var start = Piece(fit, "Start", "lobby_start", 1488, 940, 402, 115, startGame);
         if (start != null) UIKit.PrimaryLabel(start, "게임 시작", 60, true);
     }
 
