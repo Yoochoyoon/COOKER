@@ -44,9 +44,11 @@ public partial class Cook
     // 생성자에서 한 번 부른다: 힌트를 보여 줄 판인지 정한다
     void InitOrder()
     {
+        // 순서를 따질 거리가 있는 요리(서로 다른 단계가 둘 이상)만 힌트 판 수로 센다. 첫날 달걀 하나짜리 요리로 힌트가 줄지 않게.
+        bool ordered = items.Select(it => Tier(m.id, it.ing.name)).Where(x => x >= 0).Distinct().Count() >= 2;
         int runs = PlayerPrefs.GetInt(OrderHintKey, 0);
         OrderHintOn = runs < OrderHintRuns;
-        PlayerPrefs.SetInt(OrderHintKey, runs + 1);
+        if (ordered) PlayerPrefs.SetInt(OrderHintKey, runs + 1);
     }
 
     // 트레이의 재료를 팬에 넣을 때 부른다. 이미 더 늦은 단계의 재료가 들어가 있으면 순서 위반.
@@ -58,8 +60,11 @@ public partial class Cook
         if (!late) return;
         OrderViolations++;
         orderMsgAt = t;
-        string next = NextIngredientName();
-        orderMsg = "순서가 틀렸어! 오래 익는 재료부터 넣어야 해.";
+        // 올바른 다음 재료도 알려 준다 (docs/28 4장). 지금 넣는 재료는 빼고 찾는다.
+        var next = items.Where(it => it != putting && it.spot == Spot.Tray && Tier(m.id, it.ing.name) >= 0)
+            .OrderBy(it => Tier(m.id, it.ing.name)).FirstOrDefault();
+        orderMsg = next == null ? "순서가 틀렸어! 오래 익는 재료부터 넣어야 해."
+            : "순서가 틀렸어! 다음은 " + next.ing.name + " 차례야.";
     }
 
     // 트레이에 남은 재료 중 지금 넣을 차례인 재료 이름 (순서가 없는 방식이면 null)
@@ -76,6 +81,6 @@ public partial class Cook
         if (orderMsg != null && t - orderMsgAt < OrderMessageSeconds) return orderMsg;
         if (!OrderHintOn) return null;
         string next = NextIngredientName();
-        return next == null ? null : "먼저 " + next + "을(를) 넣어 봐.";
+        return next == null ? null : "먼저 " + next + "부터 넣어 봐.";
     }
 }
