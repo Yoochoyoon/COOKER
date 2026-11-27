@@ -229,7 +229,8 @@ public partial class GameFlow : MonoBehaviour
         cart.Clear();
         sel.Clear();
         selMethod = null;
-        ShowLobby();
+        if (saved.day > 1) ShowDay(); // 하루 선택 중에 저장된 판은 그날의 하루 선택으로, 주 시작 저장은 로비로
+        else ShowLobby();
     }
 
     Image TitleImage(Transform parent, Sprite s, float x0, float y0, float x1, float y1)
@@ -915,6 +916,7 @@ public partial class GameFlow : MonoBehaviour
         run.day = 1;
         run.strikes = 0;
         run.dishes.Clear();
+        RunSave.Save(run); // 주를 취소했으니 저장도 1일 차로 맞춘다
         cart.Clear();
         ClearFlying();
         sel.Clear();
@@ -1060,6 +1062,7 @@ public partial class GameFlow : MonoBehaviour
     void NextDay()
     {
         run.day++;
+        if (run.day <= Balance.Days) RunSave.Save(run); // 이어하기: 하루가 끝날 때마다 자동 저장
         sel.Clear();          // 첫날 가이드의 달걀·굽기가 다음 날 미리 선택된 채로 남지 않게 한다
         selMethod = null;
         if (run.day > Balance.Days) ShowResult();
@@ -1113,6 +1116,7 @@ public partial class GameFlow : MonoBehaviour
 
     void ShowFail(string reason)
     {
+        RunSave.Delete(); // 굶어서 끝난 판은 이어하기에서 지운다
         Clear();
         Pad(0.97f);
         UIKit.Label(root, "굶었다...", 0.05f, 0.80f, 0.95f, 0.98f, 110, TextAnchor.MiddleCenter, UIKit.Bad);
