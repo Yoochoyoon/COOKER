@@ -364,7 +364,7 @@ public partial class GameFlow : MonoBehaviour
     Button DayMethodBtn(string icon, string name, string tip, float x0, float y0, float x1, float y1, System.Action onClick, bool on, int size, bool enabled)
     {
         // 갈색 바 그림(ui_bar_tan)을 쓴다. 고른 방식은 노랗게 빛나고 살짝 커진다. 그림이 없으면 HudStyle 모양으로 대신한다.
-        var sp = Art.Load("ui_bar_tan");
+        var sp = Art.Load("ui_btn_cream");
         RectTransform rt;
         Image img;
         if (sp != null)
@@ -373,7 +373,7 @@ public partial class GameFlow : MonoBehaviour
             img = rt.gameObject.AddComponent<Image>();
             img.sprite = sp;
             img.preserveAspect = false;
-            img.color = on ? new Color(1f, 0.93f, 0.55f) : new Color(0.92f, 0.86f, 0.80f);
+            img.color = on ? new Color(0.72f, 1f, 0.66f) : Color.white; // 고른 방식은 초록 바
         }
         else
         {
@@ -381,8 +381,7 @@ public partial class GameFlow : MonoBehaviour
             img = rt.GetComponent<Image>();
         }
         if (!enabled) img.color = new Color(0.55f, 0.52f, 0.50f);
-        if (on) rt.localScale = Vector3.one * 1.04f;
-        var b = rt.gameObject.AddComponent<Button>();
+                var b = rt.gameObject.AddComponent<Button>();
         b.targetGraphic = img;
         var cb = b.colors;
         cb.highlightedColor = Color.white;
@@ -395,13 +394,15 @@ public partial class GameFlow : MonoBehaviour
         var sprite = Art.Load(icon);
         if (sprite != null)
         {
-            var ir = UIKit.Box(rt, "Icon", 0.04f, 0.14f, 0.21f, 0.86f).gameObject.AddComponent<Image>();
+            var ir = UIKit.Box(rt, "Icon", 0.05f, 0.08f, 0.42f, 0.92f).gameObject.AddComponent<Image>();
             ir.sprite = sprite; ir.preserveAspect = true; ir.raycastTarget = false;
             ir.color = enabled ? Color.white : new Color(1f, 1f, 1f, 0.6f);
         }
         Color nameColor = enabled ? new Color(0.25f, 0.13f, 0.08f) : new Color(0.78f, 0.77f, 0.75f);
-        UIKit.Label(rt, name, 0.22f, 0.08f, 0.60f, 0.94f, size, TextAnchor.MiddleLeft, nameColor);
-        UIKit.Label(rt, tip, 0.50f, 0.12f, 0.97f, 0.90f, 20, TextAnchor.MiddleRight, new Color(nameColor.r, nameColor.g, nameColor.b, 0.75f));
+        var nameTxt = UIKit.Label(rt, name, 0.43f, 0.46f, 0.98f, 0.96f, size, TextAnchor.MiddleLeft, nameColor);
+        nameTxt.resizeTextForBestFit = true; nameTxt.resizeTextMinSize = 18; nameTxt.resizeTextMaxSize = size;
+        var tipTxt = UIKit.Label(rt, tip, 0.43f, 0.04f, 0.98f, 0.50f, 18, TextAnchor.UpperLeft, new Color(nameColor.r, nameColor.g, nameColor.b, 0.8f));
+        tipTxt.resizeTextForBestFit = true; tipTxt.resizeTextMinSize = 11; tipTxt.resizeTextMaxSize = 18;
         return b;
     }
 
@@ -633,24 +634,38 @@ public partial class GameFlow : MonoBehaviour
         }
 
         Clear();
-        Pad(0.96f);
-        SetBg("bg_kitchen_blur"); // 흐린 주방 배경: 앞의 쟁반·도마·바가 또렷하게 보인다
-        var dayTitle = UIKit.Label(root, run.week + "주차 " + run.day + "일차 / " + Balance.Days + "일", 0.03f, 0.88f, 0.50f, 0.98f, 56, TextAnchor.MiddleLeft, HudStyle.Cream);
-        var dayOutline = dayTitle.gameObject.AddComponent<Outline>(); dayOutline.effectColor = HudStyle.Text; dayOutline.effectDistance = new Vector2(3f, -3f); // 흐린 배경 위에서도 읽히게
-        // 상태 바(파란 바 그림): 비상 라면과 먹은 끼니
-        var stBar = DayFrame("ui_bar_blue", "StatusBar", 0.52f, 0.875f, 0.86f, 0.985f, HudStyle.Sand);
-        UIKit.Label(stBar, "비상 라면 " + (Balance.Lifelines - run.strikes) + "/" + Balance.Lifelines + "   먹은 끼니 " + run.dishes.Count + "개", 0.05f, 0.12f, 0.95f, 0.88f, 34, TextAnchor.MiddleCenter, HudStyle.Text);
+        Pad(1f);
+        SetBg("bg_kitchen_blur"); // 흐린 주방 배경: 앞의 도마·철판·바가 또렷하게 보인다
+        // 배치도(1920x1080 기준 픽셀)대로 놓는다. 모든 요소는 화면 가장자리에서 100픽셀 안쪽에 둔다 (로비와 같게).
+        // 위 바: 주차·일차, 남은 돈
+        DayFrame("lobby_bar", "TopBar", DX(100), DY(167), DX(700), DY(103), HudStyle.Sand);
+        DayIcon("icon_week", DX(121), DY(148), DX(152), DY(116));
+        DayIcon("icon_money", DX(386), DY(148), DX(414), DY(116));
+        var weekTxt = UIKit.Label(root, run.week + "주차 " + run.day + "일차", DX(168), DY(158), DX(368), DY(112), 36, TextAnchor.MiddleLeft, HudStyle.Text);
+        weekTxt.resizeTextForBestFit = true; weekTxt.resizeTextMinSize = 20; weekTxt.resizeTextMaxSize = 36;
+        var moneyTxt = UIKit.Label(root, run.budget.ToString("N0") + "원", DX(428), DY(158), DX(678), DY(112), 36, TextAnchor.MiddleLeft, HudStyle.Text);
+        moneyTxt.resizeTextForBestFit = true; moneyTxt.resizeTextMinSize = 20; moneyTxt.resizeTextMaxSize = 36;
+        var stTxt = UIKit.Label(root, "비상 라면 " + (Balance.Lifelines - run.strikes) + "/" + Balance.Lifelines + "   먹은 끼니 " + run.dishes.Count + "개   (" + run.day + "/" + Balance.Days + "일)",
+            DX(830), DY(262), DX(1450), DY(200), 32, TextAnchor.MiddleLeft, HudStyle.Cream);
+        var stOutline = stTxt.gameObject.AddComponent<Outline>(); stOutline.effectColor = HudStyle.Text; stOutline.effectDistance = new Vector2(2f, -2f); // 흐린 배경 위에서도 읽히게
 
-        // 왼쪽: 쟁반(보유 재료) -> 가운데 도마(요리할 재료). 끌어다 놓아서 고르고, 도마에서 쟁반으로 끌어 빼낸다
-        DayFrame("ui_tray", "Tray", 0.02f, 0.37f, 0.46f, 0.85f, HudStyle.SandSoft);
-        var board = DayFrame("ui_cutting_board", "Board", 0.47f, 0.20f, 0.72f, 0.82f, new Color(0.85f, 0.65f, 0.40f));
-        if (sel.Count == 0) UIKit.Label(board, "재료를 여기로\n끌어다 놓기", 0.12f, 0.30f, 0.88f, 0.62f, 32, TextAnchor.MiddleCenter, new Color(0.35f, 0.2f, 0.1f, 0.7f));
+        // 가운데: 철판 뒤의 갈색 탭에 오늘의 요리 한 줄. 고른 재료와 방식을 색으로 구분한다
+        HudStyle.Panel(root, "SummaryTab", DX(990), DY(352), DX(1340), DY(273), HudStyle.Tan);
+        string ingText = sel.Count == 0 ? "<color=#8C7060>재료를 골라 주세요</color>" : "<color=#D9533C>" + string.Join(" + ", sel.Select(i => i.name)) + "</color>";
+        string methodText = selMethod.HasValue ? "<color=#3F8F63>" + Data.GetMethod(selMethod.Value).name + "</color>" : "<color=#8C7060>방식을 골라 주세요</color>";
+        var sumTxt = UIKit.Label(root, ingText + " · " + methodText, DX(1002), DY(338), DX(1328), DY(284), 30, TextAnchor.MiddleCenter, HudStyle.Text);
+        sumTxt.resizeTextForBestFit = true; sumTxt.resizeTextMinSize = 16; sumTxt.resizeTextMaxSize = 30;
+        // 철판(요리할 재료): 여기로 끌어다 놓아서 고르고, 철판에서 밖으로 끌어내면 뺀다
+        var board = DayFrame("ui_tray", "Pan", DX(876), DY(657), DX(1457), DY(340), HudStyle.SandSoft);
+        if (sel.Count == 0) UIKit.Label(board, "재료를 여기로 끌어다 놓기", 0.10f, 0.30f, 0.90f, 0.70f, 34, TextAnchor.MiddleCenter, new Color(0.96f, 0.93f, 0.85f, 0.85f));
+        // 왼쪽 도마(보유 재료)
+        DayFrame("ui_cutting_board", "Board", DX(237), DY(965), DX(797), DY(180), new Color(0.85f, 0.65f, 0.40f));
         if (guideMeal)
         {
-            IngredientToken(Data.Egg, 1, null, 0.52f, 0.40f, 0.67f, 0.56f, board, true, false);
-            HudStyle.Panel(root, "GuideNote", 0.04f, 0.44f, 0.44f, 0.80f, HudStyle.SandSoft); // 쟁반 위에 쪽지를 얹는다
+            IngredientToken(Data.Egg, 1, null, DX(1090), DY(540), DX(1240), DY(440), board, true, false);
+            HudStyle.Panel(root, "GuideNote", DX(262), DY(740), DX(772), DY(380), HudStyle.SandSoft); // 도마 위에 쪽지를 얹는다
             UIKit.Label(root, "엄마가 보낸 달걀!\n첫날은 달걀을 굽는다. 불 세기와 꺼내기를 익혀 보자.\n실패해도 굶지 않으니 다시 하면 돼!",
-                0.06f, 0.46f, 0.42f, 0.78f, 32, TextAnchor.MiddleLeft, HudStyle.Text);
+                DX(285), DY(725), DX(750), DY(395), 30, TextAnchor.MiddleLeft, HudStyle.Text);
         }
         else
         {
@@ -662,49 +677,43 @@ public partial class GameFlow : MonoBehaviour
                 r++;
                 if (sel.Contains(ing))
                 {
-                    // 도마 위: 카드 없이 재료 그림만. 많아지면 칸을 줄인다 (도마 안쪽 x 0.50~0.69, y 0.26~0.76)
-                    int cols = sel.Count <= 1 ? 1 : sel.Count <= 6 ? 2 : 3, rows = (sel.Count + cols - 1) / cols;
-                    float w = 0.19f / cols, h = 0.50f / rows;
-                    float cw = w * 1920f, ch = h * 1080f, side = Mathf.Min(cw, ch, 190f) * 0.92f; // 정사각형 칸
-                    float cx = 0.50f + (onBoard % cols + 0.5f) * w, cy = 0.76f - (onBoard / cols + 0.5f) * h;
-                    IngredientToken(ing, kv.Value, r, cx - side / 1920f / 2f, cy - side / 1080f / 2f, cx + side / 1920f / 2f, cy + side / 1080f / 2f, board, true, true);
+                    // 철판 위: 카드 없이 재료 그림만. 많아지면 칸을 줄인다 (철판 안쪽 x 905~1430, y 368~625)
+                    int n = sel.Count, cols = n <= 4 ? n : n <= 8 ? (n + 1) / 2 : 5, rows = (n + cols - 1) / cols;
+                    float cw = 525f / cols, ch = 257f / rows, side = Mathf.Min(cw, ch, 150f) * 0.92f; // 정사각형 칸
+                    float cx = 905f + (onBoard % cols + 0.5f) * cw, cy = 368f + (onBoard / cols + 0.5f) * ch;
+                    IngredientToken(ing, kv.Value, r, DX(cx - side / 2f), DY(cy + side / 2f), DX(cx + side / 2f), DY(cy - side / 2f), board, true, true);
                     onBoard++;
                 }
                 else
                 {
-                    // 쟁반 위 3칸 x 2줄 (쟁반 안쪽 x 0.04~0.44, y 0.43~0.78)
-                    float x0 = 0.045f + (onTable % 3) * 0.133f, top = 0.785f - (onTable / 3) * 0.175f;
-                    IngredientToken(ing, kv.Value, r, x0, top - 0.165f, x0 + 0.125f, top, board, false, true);
+                    // 도마 위 2칸 x 4줄 (도마 안쪽 x 250~785, y 332~945)
+                    float x0 = 250f + (onTable % 2) * 262f, top = 332f + (onTable / 2) * 154f;
+                    IngredientToken(ing, kv.Value, r, DX(x0), DY(top + 140f), DX(x0 + 248f), DY(top), board, false, true);
                     onTable++;
                 }
             }
         }
 
-        // 오른쪽: 방식 (갈색 바 그림 한 줄씩)
-        var methodTitle = UIKit.Label(root, "조리 방식", 0.74f, 0.82f, 0.98f, 0.87f, 30, TextAnchor.MiddleLeft, HudStyle.Cream);
-        var mtOutline = methodTitle.gameObject.AddComponent<Outline>(); mtOutline.effectColor = HudStyle.Text; mtOutline.effectDistance = new Vector2(2f, -2f);
+        // 오른쪽: 방식 (바 4개, 고른 것만 초록)
         var openMethods = Data.ActiveMethods; // 튀기기는 "자취 생존자"를 얻기 전에는 선택지에 나오지 않는다
-        for (int k = 0; k < openMethods.Length; k++)
+        float[] barTop = { 312f, 437f, 555f, 673f };
+        for (int k = 0; k < openMethods.Length && k < 4; k++)
         {
             var md = openMethods[k];
-            float pitch = openMethods.Length > 3 ? 0.105f : 0.125f;
-            float top = 0.815f - k * pitch;
-            float bot = top - (pitch - 0.012f);
             bool on = selMethod == md.id;
             // 방식마다 핵심 조작을 한마디로 (고르기 전에 알 수 있게)
             string tip = md.id == Method.Grill ? "뒤집을 때를 잡아라" : md.id == Method.Stirfry ? "쉬지 않고 저어라"
                 : md.id == Method.Boil ? "넘치면 뚜껑" : "불을 약하게 두지 마";
             DayMethodBtn(md.id == Method.Grill ? "icon_pan" : md.id == Method.Stirfry ? "icon_wok" : md.id == Method.Boil ? "icon_pot" : "icon_fry",
-                "[" + "QWER"[k] + "] " + md.name, tip, 0.74f, bot, 0.98f, top, () => { selMethod = md.id; ShowDay(); },
-                on, openMethods.Length > 3 ? 34 : 40, !guideMeal || on);
+                md.name, "[" + "QWER"[k] + "] " + tip, DX(1541), DY(barTop[k] + 96f), DX(1812), DY(barTop[k]), () => { selMethod = md.id; ShowDay(); },
+                on, 36, !guideMeal || on);
         }
 
-        // 엄마 힌트
-        // 알림처럼: 카드 전체가 눌리는 메시지 알림 (버튼 모양 없이 아이콘 + 제목 + 내용)
-        var hintCard = HudStyle.Panel(root, "Hint", 0.74f, 0.20f, 0.98f, 0.37f, HudStyle.Sand);
+        // 엄마 메시지: 파란 바 전체가 눌리는 알림 (아이콘 + 제목 + 내용)
+        var hintCard = DayFrame("ui_bar_blue", "Hint", DX(891), DY(785), DX(1440), DY(688), HudStyle.Sand);
         string hint = sel.Count == 0
             ? "밥은 잘 챙겨 먹고 있니? 아껴 쓰되, 굶지는 마라."
-            : string.Join("\n", sel.Select(i => Data.MomHint(i)));
+            : string.Join(" ", sel.Select(i => Data.MomHint(i)));
         var hintBg = hintCard.GetComponent<Image>();
         if (!guideMeal && hintBg != null)
         {
@@ -715,26 +724,28 @@ public partial class GameFlow : MonoBehaviour
             hb.onClick.AddListener(ShowMomRecipes);
             hintCard.gameObject.AddComponent<Bouncy>();
         }
-        var mailImg = UIKit.Box(root, "MailIcon", 0.75f, 0.32f, 0.775f, 0.362f).gameObject.AddComponent<Image>();
-        mailImg.sprite = Art.Load("icon_mail");
-        mailImg.preserveAspect = true;
-        mailImg.raycastTarget = false;
-        UIKit.Label(root, "엄마에게서 메시지", 0.78f, 0.318f, 0.90f, 0.365f, 22, TextAnchor.MiddleLeft, ShopOrange);
-        if (!guideMeal) UIKit.Label(root, "[M] 추천 요리", 0.88f, 0.318f, 0.975f, 0.365f, 20, TextAnchor.MiddleRight, HudStyle.TextSoft);
-        UIKit.Label(root, hint, 0.75f, 0.205f, 0.97f, 0.315f, 24, TextAnchor.MiddleLeft, HudStyle.Text);
+        DayIcon("icon_mail", DX(928), DY(762), DX(992), DY(710));
+        UIKit.Label(root, "엄마에게서 메시지", DX(1008), DY(728), DX(1280), DY(692), 24, TextAnchor.MiddleLeft, HudStyle.Text);
+        if (!guideMeal) UIKit.Label(root, "[M] 추천 요리", DX(1290), DY(728), DX(1425), DY(692), 20, TextAnchor.MiddleRight, HudStyle.TextSoft);
+        var hintTxt = UIKit.Label(root, hint, DX(1008), DY(782), DX(1425), DY(726), 26, TextAnchor.MiddleLeft, HudStyle.Text);
+        hintTxt.resizeTextForBestFit = true; hintTxt.resizeTextMinSize = 14; hintTxt.resizeTextMaxSize = 26;
 
-        // 하단
-        // 오늘의 요리: 고른 재료와 방식을 색으로 구분해서 (아직 안 골랐으면 흐리게 안내). 파란 바 그림 위에 쓴다
-        var sumCard = DayFrame("ui_bar_blue", "Summary", 0.02f, 0.225f, 0.46f, 0.355f, HudStyle.Sand);
-        UIKit.Label(sumCard, "오늘의 요리", 0.04f, 0.66f, 0.5f, 0.97f, 24, TextAnchor.MiddleLeft, HudStyle.TextSoft);
-        string ingText = sel.Count == 0 ? "<color=#8C7060>재료를 골라 주세요</color>" : "<color=#D9533C>" + string.Join(" + ", sel.Select(i => i.name)) + "</color>";
-        string methodText = selMethod.HasValue ? "<color=#3F8F63>" + Data.GetMethod(selMethod.Value).name + "</color>" : "<color=#8C7060>방식을 골라 주세요</color>";
-        UIKit.Label(sumCard, ingText + "   ·   " + methodText, 0.04f, 0.08f, 0.96f, 0.68f, 36, TextAnchor.MiddleLeft, HudStyle.Text);
-        UIKit.DexBtn(root, 0.03f, 0.035f, 0.10f, ShowDex);
+        // 아래: 도감, 조리 시작
+        UIKit.DexBtn(root, DX(1275), DY(978), 130f / 1920f, ShowDex);
         bool canCook = sel.Count > 0 && selMethod.HasValue;
-        UIKit.PrimaryBtn(root, "조리 시작 [Enter]", 0.74f, 0.045f, 0.98f, 0.16f, StartCook, 40, canCook);
+        UIKit.PrimaryBtn(root, "조리 시작 [Enter]", DX(1477), DY(970), DX(1812), DY(882), StartCook, 30, canCook);
         scr = Scr.Day;
         confirm = canCook ? (System.Action)StartCook : null;
+    }
+
+    static float DX(float px) { return px / 1920f; }
+    static float DY(float px) { return 1f - px / 1080f; } // 위에서 잰 픽셀을 아래 기준 비율로
+
+    void DayIcon(string file, float x0, float y0, float x1, float y1)
+    {
+        var im = UIKit.Box(root, "Icon_" + file, x0, y0, x1, y1).gameObject.AddComponent<Image>();
+        im.sprite = Art.Load(file); im.preserveAspect = true; im.raycastTarget = false;
+        if (im.sprite == null) im.enabled = false;
     }
 
     // 식탁/도마 위의 재료 카드. 끌어서 도마에 놓으면 고르고, 도마에서 밖으로 끌어내면 뺀다. 숫자키로도 된다.
