@@ -1189,36 +1189,39 @@ public partial class GameFlow : MonoBehaviour
         confirm = next;
     }
 
-    // 요리 그림 칸. 먼저 대체 그림을 보여 주고, AI 그림이 도착하면 바꿔 끼운다.
-    // generate가 false면(망친 요리) AI에게 그리게 하지 않고 재료를 그 익힘 색으로 칠한 대체 그림만 보여 준다. AI 그림은 도감에 들어가는 요리만 만든다.
+    // 요리 그림 칸. 미리 만들어 둔 요리 사진(Resources/AiDishes)이 있으면 그것을, 없으면 도감처럼 조리된 재료 그림을 옆으로 나란히 보여 준다.
+    // generate가 false면(망친 요리) 사진은 쓰지 않고 재료를 그 익힘 단계 그림(날것·탄 것)으로만 보여 준다. 사진 파일은 익힘과 상관없이 "잘된 요리" 한 장이라서다.
     void Photo(Transform parent, float x0, float y0, float x1, float y1, Ingredient[] ings, Doneness[] stages, Method m, bool generate = true)
     {
-        if (!generate)
-        {
-            var plain = UIKit.Box(parent, "DishPhoto", x0, y0, x1, y1, Color.white);
-            plain.localRotation = Quaternion.Euler(0, 0, -2f);
-            var plainArea = UIKit.Box(plain, "PicArea", 0.04f, 0.04f, 0.96f, 0.97f);
-            var plainPic = UIKit.Box(plainArea, "Pic", 0, 0, 1, 1);
-            var plainFit = plainPic.gameObject.AddComponent<AspectRatioFitter>();
-            plainFit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-            plainFit.aspectRatio = 1f;
-            var plainImg = plainPic.gameObject.AddComponent<RawImage>();
-            plainImg.raycastTarget = false;
-            plainImg.texture = DishArt.Placeholder(ings, stages);
-            return;
-        }
+        var made = generate ? DishArt.Load(ings, stages, m) : null;
         var frame = UIKit.Box(parent, "DishPhoto", x0, y0, x1, y1, Color.white); // 폴라로이드 사진처럼 흰 테두리
         frame.localRotation = Quaternion.Euler(0, 0, -2f);
-        var area = UIKit.Box(frame, "PicArea", 0.04f, 0.19f, 0.96f, 0.97f); // 비율 맞춤(FitInParent)은 부모 전체를 쓰므로 칸을 따로 둔다
+        // 사진이 있으면 아래 테두리를 두껍게(0.19), 재료 그림이면 얇게
+        var area = UIKit.Box(frame, "PicArea", 0.04f, made != null ? 0.19f : 0.10f, 0.96f, 0.97f);
+        if (made == null) { IngredientRow(area, ings, stages); return; }
         var pic = UIKit.Box(area, "Pic", 0, 0, 1, 1);
-        var fit = pic.gameObject.AddComponent<AspectRatioFitter>();
+        var fit = pic.gameObject.AddComponent<AspectRatioFitter>(); // 비율 맞춤(FitInParent)은 부모 전체를 쓰므로 칸을 따로 둔다
         fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
         fit.aspectRatio = 1f;
         var img = pic.gameObject.AddComponent<RawImage>();
         img.raycastTarget = false;
-        // 미리 만들어 둔 요리 사진이 있으면 그것을, 없으면 재료 색으로 그린 대체 그림을 보여 준다 (대기 시간 없음)
-        var made = DishArt.Load(ings, stages, m);
-        img.texture = made != null ? made : DishArt.Placeholder(ings, stages);
+        img.texture = made;
+    }
+
+    // 조리된 재료 그림을 가로로 나란히 (도감과 같은 모양). 재료 그림이 없으면 그 재료의 색 네모로 대신한다.
+    void IngredientRow(Transform parent, Ingredient[] ings, Doneness[] stages)
+    {
+        int n = ings.Length;
+        for (int k = 0; k < n; k++)
+        {
+            var stage = stages != null && k < stages.Length ? stages[k] : Doneness.Good;
+            var sp = Art.Get(ings[k], stage) ?? Art.ShopIcon(ings[k]);
+            var im = UIKit.Box(parent, "Pic", k / (float)n + 0.01f, 0, (k + 1) / (float)n - 0.01f, 1).gameObject.AddComponent<Image>();
+            im.sprite = sp;
+            im.preserveAspect = true;
+            im.raycastTarget = false;
+            im.color = sp != null ? Color.white : ings[k].cooked;
+        }
     }
 
     // ---------------------------------------------------------------- 공용
