@@ -113,6 +113,14 @@ public static class Titles
         catch (Exception e) { Debug.LogWarning("[칭호] 저장 실패: " + e.Message); }
     }
 
+    // [새 게임]: 얻은 칭호와 대표 칭호를 모두 지운다 (파일도 비운다)
+    public static void ResetAll()
+    {
+        earned.Clear();
+        representative = null;
+        Save();
+    }
+
     public static void Load()
     {
         try

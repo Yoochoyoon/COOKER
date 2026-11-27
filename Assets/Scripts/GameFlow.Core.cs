@@ -189,11 +189,11 @@ public partial class GameFlow : MonoBehaviour
         SetBg("bg_title");
         // 새 타이틀 시안(bg_title)에는 로고와 캐릭터가 그려져 있고, 버튼 자리에는 같은 모양의 진짜 버튼을 얹어 가린다 (1920x1080 픽셀 좌표).
         bool hasSave = RunSave.Has();
-        TitleBtn("title_btn_cream", "새 게임", 1321f, 577f, 542f, 141f, 0.832f, 0.85f, 56, HudStyle.Text, StartRun, true);
+        TitleBtn("title_btn_cream", "새 게임", 1321f, 577f, 542f, 141f, 0.832f, 0.85f, 56, HudStyle.Text, NewGame, true);
         TitleBtn("title_btn_cream", "이어하기", 1321f, 721f, 542f, 131f, 0.832f, 0.85f, 52, HudStyle.Text, Continue, hasSave);
         TitleBtn("title_btn_cream", "나가기", 1321f, 859f, 542f, 131f, 0.832f, 0.85f, 52, HudStyle.Text, Quit, true);
         scr = Scr.Title;
-        confirm = StartRun;
+        confirm = NewGame;
     }
 
     // 타이틀 버튼: 그림 속 알약 모양(가로 fw, 세로 fh 비율)이 중심 (cx,cy)에 pillW x pillH로 보이게 놓는다. 못 누르면 어두운 회색.
@@ -275,6 +275,33 @@ public partial class GameFlow : MonoBehaviour
 #else
         Application.Quit();
 #endif
+    }
+
+    // 타이틀의 [새 게임]: 도감·칭호·이어하기 저장·순서 힌트 횟수를 모두 지우고 처음부터 시작한다.
+    // 지울 기록이 있으면 먼저 확인 창을 띄운다 (실수로 눌러도 기록이 날아가지 않게).
+    void NewGame()
+    {
+        if (modal != null) return;
+        if (dex.Count == 0 && Titles.EarnedCount == 0 && !RunSave.Has()) { ResetProgress(); StartRun(); return; }
+        modal = UIKit.Box(canvasRT, "ConfirmNewGame", 0, 0, 1, 1, new Color(0f, 0f, 0f, 0.55f), false).gameObject;
+        var card = UIKit.Box(modal.transform, "Card", 0.22f, 0.25f, 0.78f, 0.75f, UIKit.Card);
+        UIKit.Label(card, "새로 시작할까요?", 0.05f, 0.74f, 0.95f, 0.96f, 64, TextAnchor.MiddleCenter, UIKit.Bad);
+        UIKit.Label(card, "도감 " + dex.Count + "개, 칭호 " + Titles.EarnedCount + "개, 이어하기 저장이 <b>모두 지워진다</b>.\n되돌릴 수 없다.",
+            0.06f, 0.32f, 0.94f, 0.74f, 34, TextAnchor.MiddleCenter, UIKit.Ink);
+        UIKit.Btn(card, "취소 [Esc]", 0.06f, 0.07f, 0.48f, 0.27f, CloseModal, UIKit.Muted, 36);
+        UIKit.Btn(card, "새로 시작", 0.52f, 0.07f, 0.94f, 0.27f, () => { CloseModal(); ResetProgress(); StartRun(); }, UIKit.Bad, 36);
+    }
+
+    // 저장된 플레이 기록을 전부 지운다. 설정(음량·전체화면)은 지우지 않는다.
+    void ResetProgress()
+    {
+        dex.Clear();
+        dexNew.Clear();
+        SaveDex(); // 빈 도감을 파일에 덮어쓴다
+        Titles.ResetAll();
+        RunSave.Delete();
+        PlayerPrefs.DeleteKey("cooker.orderHintRuns"); // 순서 힌트도 처음부터
+        PlayerPrefs.Save();
     }
 
     void StartRun()
