@@ -130,11 +130,11 @@ public partial class GameFlow : MonoBehaviour
             {
                 int level = f;
                 float x0 = 0.64f + f * 0.11f;
-                var b = UIKit.Btn(root, "[" + (f + 1) + "] " + Balance.FireName[f], x0, 0.57f, x0 + 0.10f, 0.69f, () => cook.SetFire(level), UIKit.Muted, 26);
+                var b = UIKit.Btn(root, "[" + (f + 1) + "] " + Balance.FireName[f], x0, 0.57f, x0 + 0.10f, 0.69f, () => cook.SetFire(level), UIKit.Muted, 26, true, false, false); // 조리 화면 버튼은 기존 모양 유지(cream=false)
                 fireBtns.Add(b.GetComponent<Image>());
             }
             stateLabel = UIKit.Label(root, "", 0.64f, 0.27f, 0.97f, 0.34f, 30, TextAnchor.MiddleLeft, UIKit.Bad);
-            UIKit.Btn(root, "조리 완료 [Enter]", 0.03f, 0.245f, 0.60f, 0.295f, () => { if (cook != null) cook.Complete(); }, UIKit.Bad, 26);
+            UIKit.Btn(root, "조리 완료 [Enter]", 0.03f, 0.245f, 0.60f, 0.295f, () => { if (cook != null) cook.Complete(); }, UIKit.Bad, 26, true, false, false);
         }
 
         for (int i = 0; i < chosen.Length; i++)
@@ -192,7 +192,7 @@ public partial class GameFlow : MonoBehaviour
             }
             else
             {
-                flipBtn = UIKit.Btn(root, flipText, 0.64f, 0.34f, 0.97f, 0.53f, () => cook.Flip(), UIKit.Good, 48);
+                flipBtn = UIKit.Btn(root, flipText, 0.64f, 0.34f, 0.97f, 0.53f, () => cook.Flip(), UIKit.Good, 48, true, false, false);
             }
             flipBtn.gameObject.SetActive(false);
         }

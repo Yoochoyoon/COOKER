@@ -417,13 +417,18 @@ public static class UIKit
         return t;
     }
 
-    // 버튼. 기본은 장보기 시안 스타일(색 바탕 + 아래로 두꺼운 그림자, 눌리면 내려앉고, 못 누르면 연하게).
-    // classic이 true면 예전 스타일(외곽선 + 글자 테두리)이다. 로비·타이틀처럼 그림으로 꾸민 화면의 대체 버튼이 쓴다.
+    // 버튼. 기본은 조리 선택 바와 같은 크림색 9칸 늘이기 버튼(ui_btn_cream): 갈색 글자, 마우스를 올리면 노랗게, 못 누르면 어두운 회색.
+    // [Enter]로 누르는 큰 버튼은 PrimaryBtn(노란색)이 따로 맡는다. bg(색)는 예전 호출을 위해 받기만 하고 쓰지 않는다.
+    // classic이 true면 예전 스타일(색 바탕 + 외곽선 + 글자 테두리)이다. 로비·타이틀처럼 그림으로 꾸민 화면의 대체 버튼이 쓴다.
     public static Button Btn(Transform parent, string text, float x0, float y0, float x1, float y1, Action onClick,
-        Color? bg = null, int size = 44, bool enabled = true, bool classic = false)
+        Color? bg = null, int size = 44, bool enabled = true, bool classic = false, bool cream = true)
     {
+        // [Enter] 버튼과 cream=false로 막은 화면(조리 화면 등 이미 꾸민 화면)은 기존 모양을 그대로 쓴다
+        var creamSprite = classic || !cream || text.Contains("[Enter]") ? null : Art.Load("ui_btn_cream");
+        if (creamSprite != null) return CreamBtn(parent, creamSprite, text, x0, y0, x1, y1, onClick, size, enabled);
+
         var c = bg ?? Accent;
-        if (!classic && !enabled) c = new Color(c.r, c.g, c.b, 0.35f); // 못 누르는 버튼은 35% 투명
+        if (!classic && !enabled) c = new Color(c.r, c.g, c.b, 0.35f); // 그림이 없을 때의 대체: 못 누르는 버튼은 35% 투명
         var rt = Box(parent, "Btn_" + text, x0, y0, x1, y1, c, false);
         if (classic || enabled)
         {
@@ -456,6 +461,28 @@ public static class UIKit
         if (onClick != null) b.onClick.AddListener(() => onClick());
         b.interactable = enabled;
         rt.gameObject.AddComponent<PressDown>().depth = 4f; // 효과는 눌렀을 때 살짝 내려앉는 것뿐 (커지고 줄어드는 반응은 없다)
+        return b;
+    }
+
+    static Button CreamBtn(Transform parent, Sprite sprite, string text, float x0, float y0, float x1, float y1, Action onClick, int size, bool enabled)
+    {
+        var rt = Box(parent, "Btn_" + text, x0, y0, x1, y1);
+        var img = rt.gameObject.AddComponent<Image>();
+        img.sprite = sprite;
+        img.type = Image.Type.Sliced; // 9칸 늘이기
+        img.color = enabled ? Color.white : new Color(0.45f, 0.44f, 0.43f); // 못 누르는 버튼은 투명이 아니라 어두운 회색
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = img;
+        var cb = b.colors;
+        cb.highlightedColor = new Color(1f, 0.93f, 0.50f); // 마우스를 올리면 노랗게
+        cb.pressedColor = new Color(0.90f, 0.78f, 0.38f);
+        cb.disabledColor = Color.white;
+        b.colors = cb;
+        var label = Label(rt, text, 0.06f, 0.14f, 0.94f, 0.86f, size, TextAnchor.MiddleCenter, enabled ? HudStyle.Text : HudStyle.DisabledText);
+        label.resizeTextForBestFit = true; label.resizeTextMinSize = 14; label.resizeTextMaxSize = size; // 글자가 길어도 버튼 안에
+        if (onClick != null) b.onClick.AddListener(() => onClick());
+        b.interactable = enabled;
+        rt.gameObject.AddComponent<PressDown>().depth = 4f;
         return b;
     }
 
