@@ -1194,8 +1194,7 @@ public partial class GameFlow : MonoBehaviour
     void Photo(Transform parent, float x0, float y0, float x1, float y1, Ingredient[] ings, Doneness[] stages, Method m, bool generate = true)
     {
         var made = generate ? DishArt.Load(ings, stages, m) : null;
-        var frame = UIKit.Box(parent, "DishPhoto", x0, y0, x1, y1, Color.white); // 폴라로이드 사진처럼 흰 테두리
-        frame.localRotation = Quaternion.Euler(0, 0, -2f);
+        var frame = UIKit.Box(parent, "DishPhoto", x0, y0, x1, y1, Color.white); // 흰 사진틀 (기울이지 않고 반듯하게)
         // 사진이 있으면 아래 테두리를 두껍게(0.19), 재료 그림이면 얇게
         var area = UIKit.Box(frame, "PicArea", 0.04f, made != null ? 0.19f : 0.10f, 0.96f, 0.97f);
         if (made == null) { IngredientRow(area, ings, stages); return; }
