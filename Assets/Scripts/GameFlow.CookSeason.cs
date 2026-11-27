@@ -54,7 +54,7 @@ public partial class GameFlow
     void BuildSeasonUI()
     {
         // 조리 화면 위를 어둡게 덮는다(뒤 화면은 보이지만 눌리지 않는다)
-        var dim = UIKit.Box(root, "SeasonDim", 0, 0, 1, 1, new Color(0f, 0f, 0f, 0.6f), false);
+        var dim = UIKit.Box(root, "SeasonDim", -0.2f, -0.2f, 1.2f, 1.2f, new Color(0f, 0f, 0f, 0.6f), false);
         seasonUI = dim.gameObject;
         UIKit.Box(dim, "SeasonPanel", 0.20f, 0.10f, 0.80f, 0.90f, UIKit.Card);
         UIKit.Label(dim, "간 고르기", 0.30f, 0.76f, 0.70f, 0.86f, 56, TextAnchor.MiddleCenter, UIKit.Ink);

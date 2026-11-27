@@ -38,10 +38,12 @@ public static class Lobby
         // 대표 칭호: 캐릭터 머리 위 말풍선. 눌러도 칭호 목록이 열린다
         var rep = Titles.Representative;
         var tagPiece = Piece(fit, "TitleTag", "lobby_titletag", 655, 406, 253, 76, openTitles);
+        tagRoot = tagPiece;
+        if (tagPiece != null) tagPiece.gameObject.SetActive(rep != null); // 칭호가 없으면 칭호칸을 아예 띄우지 않는다
         // 글자는 말풍선의 자식이라 말풍선과 함께 움직인다. 글자 칸은 말풍선 안쪽(시안 600~895, 437~522)
         if (tagPiece != null)
         {
-            var tag = LabelIn(tagPiece, 253, 76, rep == null ? "칭호 없음" : rep.name, 66, 8, 176, 56, 30, Color.white);
+            var tag = LabelIn(tagPiece, 253, 76, rep == null ? "" : rep.name, 66, 8, 176, 56, 30, Color.white);
             tagText = tag;
             var o = tag.gameObject.AddComponent<Outline>();
             o.effectColor = new Color(0.78f, 0.36f, 0.27f);
@@ -68,13 +70,15 @@ public static class Lobby
     }
 
     static Text tagText; // 캐릭터 머리 위 대표 칭호 글자
+    static RectTransform tagRoot; // 대표 칭호 말풍선 (칭호가 없으면 꺼 둔다)
 
     // 로비 위에서 대표 칭호를 바꿨을 때 뒤에 있는 로비 글자를 새로 고친다
     public static void RefreshTitle()
     {
         if (tagText == null) return;
         var rep = Titles.Representative;
-        tagText.text = rep == null ? "칭호 없음" : rep.name;
+        tagText.text = rep == null ? "" : rep.name;
+        if (tagRoot != null) tagRoot.gameObject.SetActive(rep != null);
     }
 
     // 시안 픽셀(왼쪽 위 기준)을 화면 비율로 바꿔 상자를 만든다

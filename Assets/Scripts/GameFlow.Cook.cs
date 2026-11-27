@@ -283,7 +283,7 @@ public partial class GameFlow : MonoBehaviour
         if (md.id == Method.Fry && newArt) FryFx.Attach(root, cook); // 튀기기 연출: 기름·거품·기름방울·김·소리 (FryFx.cs, 윤혁진)
 
         // 화면 번쩍임 칸: 모든 조리 그림 위에 덮이도록 마지막에 만든다. 클릭은 통과시킨다
-        flashImg = UIKit.Box(root, "Flash", 0f, 0f, 1f, 1f, new Color(1f, 1f, 1f, 0f), false).GetComponent<Image>();
+        flashImg = UIKit.Box(root, "Flash", -0.2f, -0.2f, 1.2f, 1.2f, new Color(1f, 1f, 1f, 0f), false).GetComponent<Image>();
         flashImg.raycastTarget = false;
         flashT = -1f;
         finishFx = -1f;
