@@ -187,34 +187,35 @@ public partial class GameFlow : MonoBehaviour
         Clear();
         Pad(1f);
         SetBg("bg_title");
-        var logo = Art.Load("title_logo");
-        var start = Art.Load("title_start");
-        var exit = Art.Load("title_exit");
-        if (logo != null && start != null && exit != null)
-        {
-            // 그림 배치는 원본 타이틀 이미지(1671x941)의 위치를 화면 비율로 옮긴 것이다. 겹치는 START와 EXIT는 원본처럼 EXIT가 위에 그려진다.
-            // 창 비율이 16:9가 아니어도 배치가 눌리지 않도록, 원본과 같은 비율의 영역 안에 놓는다.
-            var area = UIKit.Box(root, "TitleArea", 0, 0, 1, 1);
-            var fit = area.gameObject.AddComponent<AspectRatioFitter>();
-            fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-            fit.aspectRatio = 1671f / 941f;
-            TitleImage(area, logo, 0.1125f, 0.3921f, 0.9539f, 0.9341f);
-            var startImg = TitleImage(area, start, 0.2202f, 0.2136f, 0.7828f, 0.4262f);
-            var exitImg = TitleImage(area, exit, 0.2513f, 0.0839f, 0.7756f, 0.3411f);
-            // 두 그림이 겹치므로 눌리는 영역은 글자 높이에서 위아래로 나눈다.
-            TitleHit(area, "StartHit", 0.23f, 0.2667f, 0.78f, 0.4208f, startImg, StartRun);
-            TitleHit(area, "ExitHit", 0.26f, 0.09f, 0.775f, 0.2667f, exitImg, Quit);
-        }
-        else
-        {
-            UIKit.Label(root, "COOKER", 0.1f, 0.58f, 0.9f, 0.88f, 150, TextAnchor.MiddleCenter, UIKit.Accent);
-            UIKit.Label(root, "일주일치 장바구니로 최대한 오래 버텨라", 0.1f, 0.46f, 0.9f, 0.58f, 54);
-            UIKit.Btn(root, "시작  [Enter]", 0.35f, 0.26f, 0.65f, 0.40f, StartRun, null, 44, true, true);
-        }
-        // 이어하기: 저장된 주의 로비에서 다시 시작한다 (RunSave). 설정은 모든 화면의 톱니 버튼에서 연다 (Settings.cs).
-        if (RunSave.Has()) UIKit.Btn(root, "이어하기", 0.03f, 0.04f, 0.23f, 0.12f, Continue, UIKit.Accent, 36);
+        // 새 타이틀 시안(bg_title)에는 로고와 캐릭터가 그려져 있고, 버튼 자리에는 같은 모양의 진짜 버튼을 얹어 가린다 (1920x1080 픽셀 좌표).
+        bool hasSave = RunSave.Has();
+        TitleBtn("title_btn_gold", "새 게임", 1321f, 577f, 542f, 141f, 0.916f, 0.892f, 56, HudStyle.Text, StartRun, true);
+        TitleBtn("title_btn_cream", "이어하기", 1321f, 721f, 542f, 131f, 0.832f, 0.85f, 52, HudStyle.Text, Continue, hasSave);
+        TitleBtn("title_btn_cream", "나가기", 1321f, 859f, 542f, 131f, 0.832f, 0.85f, 52, HudStyle.Text, Quit, true);
         scr = Scr.Title;
         confirm = StartRun;
+    }
+
+    // 타이틀 버튼: 그림 속 알약 모양(가로 fw, 세로 fh 비율)이 중심 (cx,cy)에 pillW x pillH로 보이게 놓는다. 못 누르면 어두운 회색.
+    void TitleBtn(string file, string text, float cx, float cy, float pillW, float pillH, float fw, float fh, int size, Color textColor, System.Action onClick, bool enabled)
+    {
+        float w = pillW / fw, h = pillH / fh;
+        var rt = UIKit.Box(root, "TitleBtn_" + text, DX(cx - w / 2f), DY(cy + h / 2f), DX(cx + w / 2f), DY(cy - h / 2f));
+        var img = rt.gameObject.AddComponent<Image>();
+        img.sprite = Art.Load(file);
+        img.color = enabled ? Color.white : new Color(0.45f, 0.44f, 0.43f);
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = img;
+        var cb = b.colors;
+        cb.highlightedColor = new Color(1f, 1f, 0.92f);
+        cb.pressedColor = new Color(0.85f, 0.85f, 0.85f);
+        cb.disabledColor = Color.white;
+        b.colors = cb;
+        b.interactable = enabled;
+        b.onClick.AddListener(() => onClick());
+        if (enabled) { rt.gameObject.AddComponent<Bouncy>(); rt.gameObject.AddComponent<PressDown>().depth = 4f; }
+        var lbl = UIKit.Label(rt, text, 0.08f, 0.14f, 0.92f, 0.86f, size, TextAnchor.MiddleCenter, enabled ? textColor : HudStyle.DisabledText);
+        lbl.raycastTarget = false;
     }
 
     void Continue()
