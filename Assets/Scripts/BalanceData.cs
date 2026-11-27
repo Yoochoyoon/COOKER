@@ -7,10 +7,9 @@ public class BalanceData : ScriptableObject
     public int budget;
     public int minUnits;
     public int days;
-    // 한 요리에 넣을 수 있는 재료 수는 주차가 오를수록 늘어난다 (1주차 maxIngStart개, 주차마다 maxIngPerWeek개 더, 최대 maxIngCap개)
-    public int maxIngStart = 2;
-    public int maxIngPerWeek = 1;
-    public int maxIngCap = 7;
+    // 한 요리에 넣을 수 있는 재료 수는 주차가 오를수록 늘어난다. maxIngFromWeek[i]주차부터 maxIngCount[i]개 (두 배열은 같은 길이, 주차는 오름차순)
+    public int[] maxIngFromWeek = { 1, 2, 5, 7, 9 };
+    public int[] maxIngCount = { 2, 3, 4, 5, 7 };
     public float maxCookTime;
     public float nonFit;
     public float mixBonus;
