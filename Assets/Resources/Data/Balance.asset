@@ -51,3 +51,29 @@ MonoBehaviour:
   - "\uC57D\uBD88"
   - "\uC911\uBD88"
   - "\uAC15\uBD88"
+  gaugeDriftAmp: 0.22
+  gaugeValveStep: 0.2
+  gaugeValveSpeed: 1
+  gaugeWobbleRatio: 0.25
+  gaugeWobblePeriodRatio: 0.37
+  gaugeOutCoef: 0.6
+  gaugeWarnAfter: 0.6
+  gaugeDangerAfter: 2
+  gaugePeriod:
+  - 7
+  - 6
+  - 8
+  - 7
+  gaugeZoneHalf:
+  - 0.08
+  - 0.1
+  - 0.14
+  - 0.08
+  cookTimeLimit:
+  - 40
+  - 45
+  - 50
+  - 40
+  timePenaltyPerSecond: 0.5
+  timePenaltyCap: 30
+  cookOverGrace: 25

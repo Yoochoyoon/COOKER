@@ -1,30 +1,13 @@
 // 조리 시간 감점 (docs/30). 제한 시간을 넘기면 1초마다 맛 점수를 깎는다.
 // 이 파일은 계산만 맡는다. 타이머 표시와 강조는 유초윤 님이 맡는다.
-// 수치는 아직 BalanceData에 없으므로 아래 임시값을 쓴다. 확정되면 Balance로 옮긴다.
+// 수치는 Balance.asset(BalanceData의 "조리 시간 감점" 항목)에서 읽는다. 바꾸면 docs/09에 이유를 남긴다.
 public partial class Cook
 {
-    // 임시값 (docs/30 제안). TODO: BalanceData로 옮기고 Balance에서 읽는다.
-    const float PenaltyPerSecond = 0.5f;   // 초과 1초당 맛 점수 감점
-    const float PenaltyCap = 30f;          // 감점 상한
-
-    // 방식별 제한 시간 (초, docs/30 제안, 미확정)
-    public float TimeLimit
-    {
-        get
-        {
-            switch (m == null ? Method.Grill : m.id)
-            {
-                case Method.Grill: return 40f;
-                case Method.Stirfry: return 45f; // 35초면 1주차에 잘해도 감자가 알맞게 익기(39초) 전에 감점이 시작됐다 (docs/09, docs/30)
-                case Method.Boil: return 50f;
-                default: return 40f;
-            }
-        }
-    }
+    // 방식별 제한 시간 (초)
+    public float TimeLimit { get { return Balance.CookTimeLimit(m == null ? Method.Grill : m.id); } }
 
     // 제한 시간이 지나도 조리는 바로 끝나지 않고 이만큼 더 할 수 있다. 이 시간이 지나면 강제로 끝난다 (그동안 감점이 쌓인다).
-    const float OverGrace = 25f;
-    public float HardLimit { get { return TimeLimit + OverGrace; } }
+    public float HardLimit { get { return TimeLimit + Balance.CookOverGrace; } }
 
     // 제한 시간을 넘긴 초
     public float OverTime { get { return t > TimeLimit ? t - TimeLimit : 0f; } }
@@ -32,6 +15,6 @@ public partial class Cook
     // 지금까지 쌓인 감점 (상한 적용). 간 고르기 시간은 포함하지 않는다 (조리 완료 전까지만 센다).
     public float TimePenalty
     {
-        get { return System.Math.Min(OverTime * PenaltyPerSecond, PenaltyCap); }
+        get { return System.Math.Min(OverTime * Balance.TimePenaltyPerSecond, Balance.TimePenaltyCap); }
     }
 }

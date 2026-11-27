@@ -52,6 +52,31 @@ public static class Balance
     public static float[] Fire => D.fire;
     public static string[] FireName => D.fireName;
 
+    // 불 바늘 (docs/26)
+    public static float GaugeDriftAmp => D.gaugeDriftAmp;
+    public static float GaugeValveStep => D.gaugeValveStep;
+    public static float GaugeValveSpeed => D.gaugeValveSpeed;
+    public static float GaugeWobbleRatio => D.gaugeWobbleRatio;
+    public static float GaugeWobblePeriodRatio => D.gaugeWobblePeriodRatio;
+    public static float GaugeOutCoef => D.gaugeOutCoef;
+    public static float GaugeWarnAfter => D.gaugeWarnAfter;
+    public static float GaugeDangerAfter => D.gaugeDangerAfter;
+    public static float GaugePeriod(Method m) { return ByMethod(D.gaugePeriod, m); }
+    public static float GaugeZoneHalf(Method m) { return ByMethod(D.gaugeZoneHalf, m); }
+
+    // 조리 시간 감점 (docs/30)
+    public static float CookTimeLimit(Method m) { return ByMethod(D.cookTimeLimit, m); }
+    public static float TimePenaltyPerSecond => D.timePenaltyPerSecond;
+    public static float TimePenaltyCap => D.timePenaltyCap;
+    public static float CookOverGrace => D.cookOverGrace;
+
+    // 방식별 배열에서 값을 꺼낸다. 인스펙터에서 배열 길이를 줄여도 멈추지 않게 마지막 값을 쓴다
+    static float ByMethod(float[] a, Method m)
+    {
+        if (a == null || a.Length == 0) { Debug.LogError("밸런스 에셋에 방식별 값이 비어 있다"); return 0f; }
+        return a[Mathf.Clamp((int)m, 0, a.Length - 1)];
+    }
+
     // 난이도: 1주차는 쉽고 4주차에 원래 값이 된다
     public static float Ease(int week) { return Mathf.Clamp01(1f - (week - 1) / 3f); }
 }
