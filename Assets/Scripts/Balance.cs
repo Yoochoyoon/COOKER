@@ -21,7 +21,7 @@ public static class Balance
     public static int Budget => D.budget;
     public static int MinUnits => D.minUnits;
     public static int Days => D.days;
-    // 이번 주에 한 요리에 넣을 수 있는 재료 수: 1주차 2개, 2주차 3개, 5주차 4개, 7주차 5개, 9주차부터 7개 (값은 Balance.asset)
+    // 이번 주에 한 요리에 넣을 수 있는 재료 수: 1주차 2개, 2주차부터 3개 (값은 Balance.asset의 maxIngFromWeek/maxIngCount)
     public static int MaxIngredients(int week)
     {
         var from = D.maxIngFromWeek; var cnt = D.maxIngCount;
