@@ -11,7 +11,7 @@ public class CornerDock : MonoBehaviour
 
     const float Icon = 70f;       // 아이콘 한 변 (기준 1920x1080 픽셀)
     const float Gap = 14f;        // 두 아이콘 사이
-    const float Margin = 16f;     // 화면 가장자리와의 간격
+    const float Margin = 102f;    // 화면 가장자리 100픽셀은 비워 둔다 (여백 안에는 아무것도 두지 않는다)
     const float Step = 24f;       // 후보 자리를 훑는 간격 (기준 픽셀)
     const float CheckEvery = 0.3f;
     const float ObstaclePad = 10f; // 장애물 둘레 여유 (기준 픽셀)

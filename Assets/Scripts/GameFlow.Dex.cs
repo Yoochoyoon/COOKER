@@ -53,7 +53,7 @@ public partial class GameFlow : MonoBehaviour
         CloseModal();
         bool canEquip = scr == Scr.Title || scr == Scr.Lobby || scr == Scr.Result;
         var dishes = dex.Values.ToList();
-        modal = UIKit.Box(canvasRT, "Titles", 0.06f, 0.05f, 0.94f, 0.95f, UIKit.Card, true).gameObject;
+        modal = UIKit.Box(canvasRT, "Titles", 0.06f, 0.10f, 0.94f, 0.90f, UIKit.Card, true).gameObject;
         modal.transform.localScale = Vector3.one * 0.97f; // 가장자리 여백
         var m = modal.transform;
         // 아직 해금되지 않은 튀김 관련 칭호는 목록에 보이지 않는다

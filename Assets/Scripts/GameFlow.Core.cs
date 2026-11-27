@@ -121,7 +121,7 @@ public partial class GameFlow : MonoBehaviour
         root = UIKit.Box(canvasRT, "Screen", 0, 0, 1, 1);
         flyLayer = UIKit.Box(canvasRT, "Fly", 0, 0, 1, 1); // 화면이 다시 그려져도 남는, 날아가는 재료용 층
         // 어디서든 로비로 돌아가는 버튼. 화면이 바뀌어도 남아 있고, 판 도중 화면에서만 보인다 (Update)
-        lobbyBtn = UIKit.IconBtn(canvasRT, "icon_home", "로비", 0.905f, 0.915f, 0.99f, 0.99f, GoLobby, UIKit.Accent, 30).gameObject;
+        lobbyBtn = UIKit.IconBtn(canvasRT, "icon_home", "로비", 0.9063f, 0.8333f, 0.9479f, 0.9074f, GoLobby, UIKit.Accent, 30).gameObject;
         lobbyBtn.SetActive(false);
         // 타이틀 버튼: 로비에서만 보인다 (로비 버튼이 있던 자리). 로비는 주가 시작하는 자리라 나가도 잃는 것이 없다.
         // 위쪽 줄 오른쪽 끝 (x 1793~1863, y 30~100 픽셀): 시안 화면 안쪽 여백(22)에 맞춘다. 도움말·설정과 같은 줄
@@ -137,10 +137,14 @@ public partial class GameFlow : MonoBehaviour
     }
 
     // 화면 안쪽 여백: 내용 전체를 조금 줄여서 가장자리에 여백을 만든다 (그림 배경은 그대로 꽉 찬다)
+    // 화면 가장자리 100픽셀(위·아래·왼쪽·오른쪽)은 비워 둔다. 기준 화면 1080에서 880만 쓰므로 안쪽 크기는 880/1080.
+    // 1을 주면 줄이지 않는다 (하루 선택·로비처럼 좌표를 픽셀로 직접 정한 화면).
+    const float MarginScale = 880f / 1080f;
     void Pad(float s)
     {
-        root.localScale = new Vector3(s, s, 1f);
-        flyLayer.localScale = new Vector3(s, s, 1f);
+        float k = s >= 1f ? 1f : MarginScale;
+        root.localScale = new Vector3(k, k, 1f);
+        flyLayer.localScale = new Vector3(k, k, 1f);
     }
 
     void Clear()
@@ -148,8 +152,7 @@ public partial class GameFlow : MonoBehaviour
         CloseModal();
         CornerDock.Recheck(); // 화면이 바뀌면 도움말·설정 아이콘 자리를 바로 다시 잡는다
         SetBg(null);
-        root.localScale = Vector3.one;
-        flyLayer.localScale = Vector3.one;
+        Pad(0f); // 기본은 가장자리 100픽셀 여백. 좌표를 직접 정한 화면은 Pad(1f)로 다시 부른다
         cook = null;
         scr = Scr.Other;
         confirm = null;
@@ -182,6 +185,7 @@ public partial class GameFlow : MonoBehaviour
     void ShowTitle()
     {
         Clear();
+        Pad(1f);
         SetBg("bg_title");
         var logo = Art.Load("title_logo");
         var start = Art.Load("title_start");
@@ -271,6 +275,7 @@ public partial class GameFlow : MonoBehaviour
     void ShowLobby()
     {
         Lobby.Show(root, run, Clear, ShowShop, ShowDex, ShowTitles, ShowFridge);
+        Pad(1f);
         scr = Scr.Lobby;
         confirm = ShowShop;
         if (pendingGain.Count > 0)
@@ -650,10 +655,11 @@ public partial class GameFlow : MonoBehaviour
         var stOutline = stTxt.gameObject.AddComponent<Outline>(); stOutline.effectColor = HudStyle.Text; stOutline.effectDistance = new Vector2(2f, -2f); // 흐린 배경 위에서도 읽히게
 
         // 가운데: 철판 뒤의 갈색 탭에 오늘의 요리 한 줄. 고른 재료와 방식을 색으로 구분한다
-        HudStyle.Panel(root, "SummaryTab", DX(990), DY(352), DX(1340), DY(273), HudStyle.Tan);
-        string ingText = sel.Count == 0 ? "<color=#8C7060>재료를 골라 주세요</color>" : "<color=#D9533C>" + string.Join(" + ", sel.Select(i => i.name)) + "</color>";
+        DayFrame("ui_guide_board", "SummaryTab", DX(990), DY(352), DX(1340), DY(273), HudStyle.Tan); // 안내판
+        string ingText = "<color=#D9533C>" + string.Join(" + ", sel.Select(i => i.name)) + "</color>";
         string methodText = selMethod.HasValue ? "<color=#3F8F63>" + Data.GetMethod(selMethod.Value).name + "</color>" : "<color=#8C7060>방식을 골라 주세요</color>";
-        var sumTxt = UIKit.Label(root, ingText + " · " + methodText, DX(1002), DY(338), DX(1328), DY(284), 30, TextAnchor.MiddleCenter, HudStyle.Text);
+        string tabText = sel.Count == 0 ? "재료를 골라주세요" : ingText + " · " + methodText; // 아무것도 안 골랐을 때는 안내 문구
+        var sumTxt = UIKit.Label(root, tabText, DX(1002), DY(338), DX(1328), DY(284), 30, TextAnchor.MiddleCenter, HudStyle.Text);
         sumTxt.resizeTextForBestFit = true; sumTxt.resizeTextMinSize = 16; sumTxt.resizeTextMaxSize = 30;
         // 철판(요리할 재료): 여기로 끌어다 놓아서 고르고, 철판에서 밖으로 끌어내면 뺀다
         var board = DayFrame("ui_tray", "Pan", DX(876), DY(657), DX(1457), DY(340), HudStyle.SandSoft);
@@ -712,7 +718,7 @@ public partial class GameFlow : MonoBehaviour
         // 엄마 메시지: 파란 바 전체가 눌리는 알림 (아이콘 + 제목 + 내용)
         var hintCard = DayFrame("ui_bar_blue", "Hint", DX(891), DY(785), DX(1440), DY(688), HudStyle.Sand);
         string hint = sel.Count == 0
-            ? "밥은 잘 챙겨 먹고 있니? 아껴 쓰되, 굶지는 마라."
+            ? "밥을 잘 먹고 다니니?"
             : string.Join(" ", sel.Select(i => Data.MomHint(i)));
         var hintBg = hintCard.GetComponent<Image>();
         if (!guideMeal && hintBg != null)
@@ -725,7 +731,7 @@ public partial class GameFlow : MonoBehaviour
             hintCard.gameObject.AddComponent<Bouncy>();
         }
         DayIcon("icon_mail", DX(928), DY(762), DX(992), DY(710));
-        UIKit.Label(root, "엄마에게서 메시지", DX(1008), DY(728), DX(1280), DY(692), 24, TextAnchor.MiddleLeft, HudStyle.Text);
+        UIKit.Label(root, "[엄마]", DX(1008), DY(728), DX(1280), DY(692), 24, TextAnchor.MiddleLeft, HudStyle.Text);
         if (!guideMeal) UIKit.Label(root, "[M] 추천 요리", DX(1290), DY(728), DX(1425), DY(692), 20, TextAnchor.MiddleRight, HudStyle.TextSoft);
         var hintTxt = UIKit.Label(root, hint, DX(1008), DY(782), DX(1425), DY(726), 26, TextAnchor.MiddleLeft, HudStyle.Text);
         hintTxt.resizeTextForBestFit = true; hintTxt.resizeTextMinSize = 14; hintTxt.resizeTextMaxSize = 26;
@@ -1195,7 +1201,7 @@ public partial class GameFlow : MonoBehaviour
     {
         CloseModal();
         var list = Recipes.Suggest(run.inv.Keys, DaysLeft, 3, Data.Unlocked);
-        modal = UIKit.Box(canvasRT, "MomRecipes", 0.05f, 0.06f, 0.95f, 0.94f, UIKit.Card).gameObject;
+        modal = UIKit.Box(canvasRT, "MomRecipes", 0.05f, 0.10f, 0.95f, 0.90f, UIKit.Card).gameObject;
         modal.transform.localScale = Vector3.one * 0.97f; // 가장자리 여백
         var m = modal.transform;
         UIKit.Label(m, "엄마의 전언", 0.04f, 0.87f, 0.6f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
