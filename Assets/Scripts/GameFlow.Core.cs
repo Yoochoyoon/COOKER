@@ -690,7 +690,7 @@ public partial class GameFlow : MonoBehaviour
         DayFrame("ui_guide_board", "SummaryTab", DX(990), DY(352), DX(1340), DY(273), HudStyle.Tan); // 안내판
         string ingText = "<color=#D9533C>" + string.Join(" + ", sel.Select(i => i.name)) + "</color>";
         string methodText = selMethod.HasValue ? "<color=#3F8F63>" + Data.GetMethod(selMethod.Value).name + "</color>" : "<color=#8C7060>방식을 골라 주세요</color>";
-        string tabText = sel.Count == 0 ? "재료를 골라주세요" : ingText + " · " + methodText; // 아무것도 안 골랐을 때는 안내 문구
+        string tabText = sel.Count == 0 ? "재료를 골라주세요 (최대 " + Balance.MaxIngredients(run.week) + "개)" : ingText + " · " + methodText; // 아무것도 안 골랐을 때는 안내 문구
         var sumTxt = UIKit.Label(root, tabText, DX(1002), DY(338), DX(1328), DY(284), 30, TextAnchor.MiddleCenter, HudStyle.Text);
         sumTxt.resizeTextForBestFit = true; sumTxt.resizeTextMinSize = 16; sumTxt.resizeTextMaxSize = 30;
         // 철판(요리할 재료): 여기로 끌어다 놓아서 고르고, 철판에서 밖으로 끌어내면 뺀다
@@ -825,12 +825,19 @@ public partial class GameFlow : MonoBehaviour
 
     void ToggleIngredient(Ingredient ing)
     {
+        bool capped = false;
         if (sel.Contains(ing)) sel.Remove(ing);
-        else
-        {
-            sel.Add(ing);
-        }
+        else if (sel.Count >= Balance.MaxIngredients(run.week)) capped = true; // 이번 주에 넣을 수 있는 재료 수를 넘기지 않는다
+        else sel.Add(ing);
         ShowDay();
+        if (capped)
+        {
+            // 철판 아래에 잠깐 알려 준다. 다음 행동(ShowDay)으로 화면이 다시 그려지면 같이 사라진다.
+            var note = UIKit.Label(root, "이번 주는 재료를 최대 " + Balance.MaxIngredients(run.week) + "개까지 넣을 수 있어요", DX(830), DY(196), DX(1450), DY(146), 30, TextAnchor.MiddleLeft, UIKit.Bad);
+            var o = note.gameObject.AddComponent<Outline>(); o.effectColor = HudStyle.Cream; o.effectDistance = new Vector2(2f, -2f);
+            Destroy(note.gameObject, 2.2f);
+            Sound.Play("order_wrong");
+        }
     }
 
     // 조리 중이 아닐 때의 키보드 입력

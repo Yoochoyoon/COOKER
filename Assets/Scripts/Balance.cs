@@ -21,6 +21,8 @@ public static class Balance
     public static int Budget => D.budget;
     public static int MinUnits => D.minUnits;
     public static int Days => D.days;
+    // 이번 주에 한 요리에 넣을 수 있는 재료 수 (1주차 2개, 주차마다 1개씩 늘어 최대 7개)
+    public static int MaxIngredients(int week) { return Mathf.Clamp(D.maxIngStart + (Mathf.Max(1, week) - 1) * D.maxIngPerWeek, 1, D.maxIngCap); }
     public static float MaxCookTime => D.maxCookTime;
     public static float NonFit => D.nonFit;
     public static float MixBonus => D.mixBonus;
