@@ -189,7 +189,7 @@ public partial class GameFlow : MonoBehaviour
         SetBg("bg_title");
         // 새 타이틀 시안(bg_title)에는 로고와 캐릭터가 그려져 있고, 버튼 자리에는 같은 모양의 진짜 버튼을 얹어 가린다 (1920x1080 픽셀 좌표).
         bool hasSave = RunSave.Has();
-        TitleBtn("title_btn_gold", "새 게임", 1321f, 577f, 542f, 141f, 0.916f, 0.892f, 56, HudStyle.Text, StartRun, true);
+        TitleBtn("title_btn_cream", "새 게임", 1321f, 577f, 542f, 141f, 0.832f, 0.85f, 56, HudStyle.Text, StartRun, true);
         TitleBtn("title_btn_cream", "이어하기", 1321f, 721f, 542f, 131f, 0.832f, 0.85f, 52, HudStyle.Text, Continue, hasSave);
         TitleBtn("title_btn_cream", "나가기", 1321f, 859f, 542f, 131f, 0.832f, 0.85f, 52, HudStyle.Text, Quit, true);
         scr = Scr.Title;
@@ -213,7 +213,23 @@ public partial class GameFlow : MonoBehaviour
         b.colors = cb;
         b.interactable = enabled;
         b.onClick.AddListener(() => onClick());
-        if (enabled) { rt.gameObject.AddComponent<Bouncy>(); rt.gameObject.AddComponent<PressDown>().depth = 4f; }
+        if (enabled)
+        {
+            rt.gameObject.AddComponent<Bouncy>(); rt.gameObject.AddComponent<PressDown>().depth = 4f;
+            // 노란색은 마우스를 올렸을 때만 보인다. 알약 크기가 같도록 노란 그림은 자기 비율로 따로 늘린다.
+            float gw = pillW / 0.916f / w, gh = pillH / 0.892f / h;
+            var goldRt = UIKit.Box(rt, "Hover", 0.5f - gw / 2f, 0.5f - gh / 2f, 0.5f + gw / 2f, 0.5f + gh / 2f);
+            var gold = goldRt.gameObject.AddComponent<Image>();
+            gold.sprite = Art.Load("title_btn_gold");
+            gold.raycastTarget = false;
+            goldRt.gameObject.SetActive(false);
+            var trig = rt.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            var enter = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter };
+            enter.callback.AddListener(_ => goldRt.gameObject.SetActive(true));
+            var exit = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit };
+            exit.callback.AddListener(_ => goldRt.gameObject.SetActive(false));
+            trig.triggers.Add(enter); trig.triggers.Add(exit);
+        }
         var lbl = UIKit.Label(rt, text, 0.08f, 0.14f, 0.92f, 0.86f, size, TextAnchor.MiddleCenter, enabled ? textColor : HudStyle.DisabledText);
         lbl.raycastTarget = false;
     }
