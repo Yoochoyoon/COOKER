@@ -49,15 +49,18 @@ public static class Recipes
     [System.Serializable] class DishTextItem { public string key, name; public string[] steps; }
     [System.Serializable] class DishTextFile { public DishTextItem[] items; }
     static Dictionary<string, DishTextItem> aiText;
+    static TextAsset aiAsset;   // 마지막으로 읽은 파일. 에디터에서 도메인 리로드를 꺼 두면 static이 남아서, 파일이 바뀌면 다시 읽는다
 
     static DishTextItem AiText(string key)
     {
-        if (aiText == null)
+        TextAsset ta = null;
+        try { ta = Resources.Load<TextAsset>("Data/DishText"); } catch (Exception) { }
+        if (aiText == null || ta != aiAsset)
         {
+            aiAsset = ta;
             aiText = new Dictionary<string, DishTextItem>();
             try
             {
-                var ta = Resources.Load<TextAsset>("Data/DishText");
                 var f = ta == null ? null : JsonUtility.FromJson<DishTextFile>(ta.text);
                 if (f != null && f.items != null) foreach (var it in f.items) if (!string.IsNullOrEmpty(it.key)) aiText[it.key] = it;
             }
