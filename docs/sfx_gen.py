@@ -177,6 +177,22 @@ def pop():
     write('pop', s, 0.85)
 
 
-for fn in (put, take, flip, stir, lid, boil_over, success, fail, click, pop):
+# warn: 불 바늘 위험 경고 (삐-삐 두 번). 앞 소리들의 난수 순서가 바뀌지 않게 맨 뒤에 만든다
+def warn():
+    n = N(0.32); s = []
+    for i in range(n):
+        t = i / SR
+        beep = 0.0
+        for st in (0.0, 0.16):
+            tt = t - st
+            if 0 <= tt < 0.11:
+                # 사각파 느낌 (홀수 배음)으로 귀에 잘 띄게. 1200Hz는 지글·보글 소리와 겹치지 않는 높이
+                f = 1200
+                beep += sum(math.sin(2 * math.pi * f * h * tt) / h for h in (1, 3, 5)) * min(1, tt / 0.004) * min(1, (0.11 - tt) / 0.01)
+        s.append(beep)
+    write('warn', s, 0.6)
+
+
+for fn in (put, take, flip, stir, lid, boil_over, success, fail, click, pop, warn):
     fn()
 print('ok')
