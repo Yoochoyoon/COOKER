@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 // 엄마의 전언: 보유 재료로 만들 수 있는 추천 요리와 간단한 레시피. 화면과 무관한 순수 로직.
 // 고르는 기준: 재료와 방식이 잘 맞는지(만족도) + 유통기한이 급한 재료를 먼저 쓰는지.
@@ -43,11 +44,39 @@ public static class Recipes
     // 이름이 정해진 대표 요리인지 (칭호의 "대표 레시피 수집" 조건). key는 Dish.key와 같은 형식이다.
     public static bool IsNamed(string key) { return names.ContainsKey(key); }
 
+    // ---- AI가 미리 만들어 둔 요리 이름과 레시피 (Resources/Data/DishText.json). 실행 중에 AI를 부르지 않고 이 파일만 읽는다.
+    // 기록: docs/32AI요리글생성기록.md. 파일이 없거나 항목이 없으면 아래 기본 이름·기본 레시피로 대신한다.
+    [System.Serializable] class DishTextItem { public string key, name; public string[] steps; }
+    [System.Serializable] class DishTextFile { public DishTextItem[] items; }
+    static Dictionary<string, DishTextItem> aiText;
+
+    static DishTextItem AiText(string key)
+    {
+        if (aiText == null)
+        {
+            aiText = new Dictionary<string, DishTextItem>();
+            try
+            {
+                var ta = Resources.Load<TextAsset>("Data/DishText");
+                var f = ta == null ? null : JsonUtility.FromJson<DishTextFile>(ta.text);
+                if (f != null && f.items != null) foreach (var it in f.items) if (!string.IsNullOrEmpty(it.key)) aiText[it.key] = it;
+            }
+            catch (Exception) { /* 읽지 못해도 기본 이름으로 계속한다 */ }
+        }
+        DishTextItem x;
+        return aiText.TryGetValue(key, out x) ? x : null;
+    }
+
+    static string KeyOf(Ingredient[] ings, Method m) { return string.Join("+", ings.Select(i => i.name).OrderBy(s => s)) + "/" + m; }
+
     public static string NameOf(Ingredient[] ings, Method m)
     {
-        string key = string.Join("+", ings.Select(i => i.name).OrderBy(s => s)) + "/" + m;
+        string key = KeyOf(ings, m);
         string n;
-        return names.TryGetValue(key, out n) ? n : string.Join("", ings.Select(i => i.name)) + suffix[m];
+        if (names.TryGetValue(key, out n)) return n;
+        var ai = AiText(key);
+        if (ai != null && !string.IsNullOrEmpty(ai.name)) return ai.name;
+        return string.Join("", ings.Select(i => i.name)) + suffix[m];
     }
 
     // daysLeft: 오늘 포함 며칠 더 쓸 수 있는지 (1이면 오늘까지)
@@ -164,6 +193,8 @@ public static class Recipes
     // 실제 요리 레시피. 한 줄에 한 단계.
     public static string[] Real(Ingredient[] c, Method m)
     {
+        var ai = AiText(KeyOf(c, m));
+        if (ai != null && ai.steps != null && ai.steps.Length > 0) return ai.steps; // AI가 미리 쓴 레시피
         var s = new List<string>();
         foreach (var i in c) s.Add(Prep(i.name, m));
 
