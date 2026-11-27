@@ -325,6 +325,7 @@ public partial class GameFlow : MonoBehaviour
         for (int j = 0; j < cook.items.Length; j++)
             if (cook.items[j].spot == it.spot) { if (j < i) k++; n++; }
         float x0, x1, y0, y1;
+        float labelHalf = -1f; // 이름표 절반 폭 (재료 그림 폭 기준). -1이면 만들 때 정한 폭 그대로
         if (cookArt)
         {
             // 그림의 팬/트레이/접시 영역 안쪽으로 좁혀서(팬·접시는 둥글어서 모서리가 비어 있다) 격자로 나눠 놓는다.
@@ -344,6 +345,8 @@ public partial class GameFlow : MonoBehaviour
             float s = Mathf.Min(1f, Mathf.Min(cellW * 0.9f / itemW, cellH * 0.9f / itemH));
             float w = itemW * s, h = itemH * s;
             x0 = cx - w * 0.5f; x1 = cx + w * 0.5f; y0 = cy - h * 0.5f; y1 = cy + h * 0.5f;
+            // 이름표는 그림보다 넓어서, 볶기처럼 재료가 많아 도마에 3열로 놓이면 옆 칸 이름표와 겹쳤다. 칸 폭을 넘지 않게 한다
+            labelHalf = cellW * LabelCellFill / w * 0.5f;
         }
         else if (it.spot == Spot.Pan)
         {
@@ -379,10 +382,33 @@ public partial class GameFlow : MonoBehaviour
         if (i < shakeT.Length && shakeT[i] > 0f)
             rt.anchoredPosition = new Vector2(Mathf.Sin(shakeT[i] * 90f) * ShakePx * (shakeT[i] / ShakeTime), 0f); // 망친 재료는 접시에서 부르르 떤다
         string key = i < 6 ? "ZXCVBN".Substring(i, 1) : "-";
-        itemLabels[i].text = it.spot == Spot.Tray ? "[" + key + "] " + it.ing.name + " 넣기"
+        var label = itemLabels[i];
+        if (labelHalf > 0f && label.rectTransform.anchorMax.y <= 0f) // 이름표가 그림 아래에 있는 새 조리대 배치에서만 (옛 배경은 그림 안쪽에 쓴다)
+        {
+            // 새 조리 화면: 키와 이름을 두 줄로 나눠 좁은 칸에도 들어가게 하고, 그래도 넘치면 글자를 줄인다
+            var lr = label.rectTransform;
+            lr.anchorMin = new Vector2(0.5f - labelHalf, LabelBottom);
+            lr.anchorMax = new Vector2(0.5f + labelHalf, LabelTop);
+            lr.offsetMin = Vector2.zero; lr.offsetMax = Vector2.zero;
+            label.resizeTextForBestFit = true;
+            label.resizeTextMinSize = LabelMinFont;
+            label.resizeTextMaxSize = LabelMaxFont;
+            label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            label.verticalOverflow = VerticalWrapMode.Truncate;
+            label.lineSpacing = LabelLineSpacing;
+            label.text = it.spot == Spot.Tray ? "[" + key + "] 넣기\n" + it.ing.name
+                : it.spot == Spot.Pan ? "" // 팬의 재료는 하나씩 꺼내지 않으므로 글자를 쓰지 않는다 (docs/27)
+                : it.ing.name;
+            return;
+        }
+        label.text = it.spot == Spot.Tray ? "[" + key + "] " + it.ing.name + " 넣기"
             : it.spot == Spot.Pan ? "" // 팬의 재료는 하나씩 꺼내지 않으므로 글자를 쓰지 않는다 (docs/27)
             : it.ing.name;
     }
+
+    // 재료 이름표 크기 (재료 그림 높이 기준, 아래쪽이 음수). 두 줄이 위아래 줄 재료와 겹치지 않는 높이
+    const float LabelCellFill = 0.96f, LabelBottom = -0.52f, LabelTop = -0.02f, LabelLineSpacing = 0.9f;
+    const int LabelMinFont = 16, LabelMaxFont = 26;
 
     // 1~9 숫자키 (윗줄·숫자패드). 눌린 게 없으면 0.
     static int DigitPressed(Keyboard kb)
@@ -408,6 +434,7 @@ public partial class GameFlow : MonoBehaviour
         int n = cook.items.Length;
         sfxSpots = cook.items.Select(it => it.spot).ToArray();
         sfxFlipped = false; sfxLid = false; sfxBubble = false; sfxStirTimer = 0f; sfxFlipMissed = false;
+        sfxOrderViolations = 0; sfxSeasonDone = false;
         flyFrom = new Vector4[n];
         flyT = Enumerable.Repeat(1f, n).ToArray();
         shakeT = new float[n];
@@ -446,7 +473,12 @@ public partial class GameFlow : MonoBehaviour
         sfxLid = lid;
         if (cook.bubble && !sfxBubble) Sound.Play("boil_over");
         sfxBubble = cook.bubble;
+        if (cook.OrderViolations > sfxOrderViolations) Sound.Play("order_wrong"); // 순서 판정(Cook.Order.cs)은 넣는 순간 센다
+        sfxOrderViolations = cook.OrderViolations;
     }
+
+    int sfxOrderViolations;
+    bool sfxSeasonDone;
 
     // ---- 조리 피드백 연출 (docs/19 4번): 성공은 접시로 날아감, 실패는 빨간 번쩍임과 떨림
     Vector4[] flyFrom = new Vector4[0]; // 날아가기 시작한 자리 (anchorMin.x, anchorMin.y, anchorMax.x, anchorMax.y)
@@ -458,6 +490,7 @@ public partial class GameFlow : MonoBehaviour
     float flashPeak;
     Color flashColor;
     float finishFx = -1f;               // 조리가 끝난 뒤 연출을 보여 주는 시간. -1이면 아직 안 끝남
+    bool finishResultPlayed;            // 이번 조리의 결과 소리(실패)를 이미 냈는지
     const float FlyTime = 0.4f, FlyArc = 0.12f, ShakeTime = 0.35f, ShakePx = 14f;
     const float FlashOn = 0.05f, FlashGap = 0.05f, FlashFade = 0.35f; // 번쩍-깜빡-번쩍 후 서서히 사라진다
     const float BoomGap = 0.1f;         // 같은 프레임에 여러 번 번쩍여도 펑은 한 번만
@@ -752,15 +785,22 @@ public partial class GameFlow : MonoBehaviour
         if (finishFx < 0f)
         {
             finishFx = 0f;
+            // [조리 완료] 버튼은 Update 밖(UI 이벤트)에서 눌려 RefreshCookUI를 거치지 않는다. 날아가는 연출과 꺼내기 소리를 여기서 챙긴다
+            PlayCookSfx();
             bool allRuined = cook.GoodIngredients.Length == 0;
             if (allRuined && cook.Used.Length > 0) Flash(UIKit.Bad, 0.85f, true);
-            Sound.Play(allRuined ? "fail" : "success");
+            Sound.Play(allRuined ? "fail" : "complete"); // 성공 소리는 간을 고르고 요리가 완성될 때 낸다
+            finishResultPlayed = allRuined;
         }
         finishFx += Time.deltaTime;
         UpdateCookFx();
         for (int i = 0; i < itemRects.Count && i < cook.items.Length; i++) PlaceItem(i);
         if (finishFx < FinishFxTime) return;
-        if (!SeasonStep()) return; // 간 고르기(docs/29)를 마칠 때까지 기다린다
+        bool seasonOk = SeasonStep(); // 간 고르기(docs/29)를 마칠 때까지 기다린다
+        if (cook.SeasonDone && !sfxSeasonDone) Sound.Play("season"); // 고른 순간 (간 고르기 화면 파일은 건드리지 않고 상태로 본다)
+        sfxSeasonDone = cook.SeasonDone;
+        if (!seasonOk) return;
+        if (!finishResultPlayed) Sound.Play("success");
         finishFx = -1f;
 
         var used = cook.Used;                 // 접시에 올린 재료(소비됨). 트레이에 남은 재료는 쓰지 않은 것

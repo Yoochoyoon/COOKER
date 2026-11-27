@@ -193,6 +193,43 @@ def warn():
     write('warn', s, 0.6)
 
 
-for fn in (put, take, flip, stir, lid, boil_over, success, fail, click, pop, warn):
+# complete: 조리 완료 (불을 끄는 칙 + 맑은 딩). 결과 소리(success/fail)와 헷갈리지 않게 음 하나만 쓴다
+def complete():
+    n = N(0.7); nz = lowpass(noise(n), 0.4); s = []
+    for i in range(n):
+        t = i / SR
+        hiss = nz[i] * env(t, 0.005, 0.06) * 0.5
+        tt = t - 0.06
+        ding = 0 if tt < 0 else (math.sin(2 * math.pi * 1568 * tt) + 0.4 * math.sin(2 * math.pi * 3136 * tt) * math.exp(-tt / 0.08)) * env(tt, 0.002, 0.25)
+        s.append(hiss + ding)
+    write('complete', s, 0.65)
+
+
+# season: 간 고르기 선택 (양념 통을 탁탁탁 세 번 흔드는 소리)
+def season():
+    n = N(0.36); s = [0.0] * n
+    for k in range(3):
+        st = N(0.11 * k)
+        burst = lowpass(noise(N(0.07)), 0.7)
+        for i, v in enumerate(burst):
+            t = i / SR
+            # 높은 소리만 남겨 알갱이가 부딪는 느낌으로 (저역 빼기)
+            hp = v - (burst[i - 1] if i > 0 else 0)
+            s[st + i] += hp * env(t, 0.002, 0.02) * (1 - 0.15 * k)
+    write('season', s, 0.6)
+
+
+# order_wrong: 순서 틀림 (띠요옹 내려가는 소리). 실패(fail)보다 짧고 가볍게
+def order_wrong():
+    n = N(0.4); s = []; ph = 0.0
+    for i in range(n):
+        t = i / SR
+        f = 700 * (1 - 0.55 * (t / 0.4)) * (1 + 0.04 * math.sin(2 * math.pi * 18 * t))
+        ph += 2 * math.pi * f / SR
+        s.append((math.sin(ph) + 0.3 * math.sin(2 * ph)) * env(t, 0.005, 0.18))
+    write('order_wrong', s, 0.6)
+
+
+for fn in (put, take, flip, stir, lid, boil_over, success, fail, click, pop, warn, complete, season, order_wrong):
     fn()
 print('ok')

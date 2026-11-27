@@ -15,7 +15,7 @@ public partial class Cook
             switch (m == null ? Method.Grill : m.id)
             {
                 case Method.Grill: return 40f;
-                case Method.Stirfry: return 35f;
+                case Method.Stirfry: return 45f; // 35초면 1주차에 잘해도 감자가 알맞게 익기(39초) 전에 감점이 시작됐다 (docs/09, docs/30)
                 case Method.Boil: return 50f;
                 default: return 40f;
             }
