@@ -298,6 +298,7 @@ public partial class GameFlow : MonoBehaviour
         cart.Clear();
         sel.Clear();
         selMethod = null;
+        RunSave.Save(run); // 새 판을 시작하자마자 저장해 둔다 (첫 하루가 끝나기 전에 꺼도 이어하기가 켜져 있게)
         ShowLobby(); // 타이틀 다음 로비
     }
 
