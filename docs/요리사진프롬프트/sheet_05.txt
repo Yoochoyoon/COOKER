@@ -6,4 +6,4 @@ Row 3: 11) tofu, shrimp and onion pancake (jeon), pan-fried, on a plate  12) sti
 
 Same style for all 14: glossy semi-realistic cartoon game-icon illustration, vivid warm colors, soft highlights, thin dark outline around each plate or bowl, slightly top-down three-quarter view, every dish drawn at the same scale.
 Pure solid white (#FFFFFF) background everywhere, no grid lines, no borders, no shadows on the background, no numbers, no text, no letters, no watermark, no hands, no utensils, no props.
-Highest resolution available, 5:3 landscape aspect ratio.
+Image size: exactly 2000 x 1200 pixels (5:3 landscape). Every cell is exactly 400 x 400 pixels, so each dish fits inside its own 400 x 400 pixel square with at least 40 pixels of white margin on every side.
