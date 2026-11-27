@@ -343,6 +343,16 @@ public partial class GameFlow : MonoBehaviour
             float cellW = (zx1 - zx0) / cols, cellH = (zy1 - zy0) / rows;
             float cx = zx0 + (k % cols + 0.5f) * cellW, cy = zy1 - (k / cols + 0.5f) * cellH;
             float s = Mathf.Min(1f, Mathf.Min(cellW * 0.9f / itemW, cellH * 0.9f / itemH));
+            if (it.spot == Spot.Plate)
+            {
+                // 접시: 칸으로 흩어 놓지 않고 가운데에 한 요리처럼 모은다. 하나면 한가운데, 여럿이면 가운데 둘레에 살짝 겹쳐 담는다
+                float pcx = (zx0 + zx1) * 0.5f, pcy = (zy0 + zy1) * 0.5f;
+                float r = n <= 1 ? 0f : PlatePileRadius * Mathf.Min(zx1 - zx0, (zy1 - zy0) * RefH / RefW);
+                float ang = Mathf.PI * 0.5f + Mathf.PI * 2f * k / Mathf.Max(1, n); // 첫 재료는 위쪽부터
+                cx = pcx + Mathf.Cos(ang) * r;
+                cy = pcy + Mathf.Sin(ang) * r * RefW / RefH; // 화면 비율 때문에 세로를 늘려야 둥글게 보인다
+                s = n <= 1 ? 1f : n == 2 ? PlatePile2Scale : PlatePileManyScale;
+            }
             float w = itemW * s, h = itemH * s;
             x0 = cx - w * 0.5f; x1 = cx + w * 0.5f; y0 = cy - h * 0.5f; y1 = cy + h * 0.5f;
             // 이름표는 그림보다 넓어서, 볶기처럼 재료가 많아 도마에 3열로 놓이면 옆 칸 이름표와 겹쳤다. 칸 폭을 넘지 않게 한다
@@ -397,8 +407,7 @@ public partial class GameFlow : MonoBehaviour
             label.verticalOverflow = VerticalWrapMode.Truncate;
             label.lineSpacing = LabelLineSpacing;
             label.text = it.spot == Spot.Tray ? "[" + key + "] 넣기\n" + it.ing.name
-                : it.spot == Spot.Pan ? "" // 팬의 재료는 하나씩 꺼내지 않으므로 글자를 쓰지 않는다 (docs/27)
-                : it.ing.name;
+                : "";  // 팬의 재료는 하나씩 꺼내지 않고(docs/27), 접시는 가운데에 모여 이름표끼리 겹치므로 글자를 쓰지 않는다
             return;
         }
         label.text = it.spot == Spot.Tray ? "[" + key + "] " + it.ing.name + " 넣기"
@@ -409,6 +418,8 @@ public partial class GameFlow : MonoBehaviour
     // 재료 이름표 크기 (재료 그림 높이 기준, 아래쪽이 음수). 두 줄이 위아래 줄 재료와 겹치지 않는 높이
     const float LabelCellFill = 0.96f, LabelBottom = -0.52f, LabelTop = -0.02f, LabelLineSpacing = 0.9f;
     const int LabelMinFont = 16, LabelMaxFont = 26;
+    // 접시에 모아 담을 때: 가운데에서 떨어지는 거리(접시 안쪽 폭 기준)와 재료 크기
+    const float PlatePileRadius = 0.20f, PlatePile2Scale = 0.95f, PlatePileManyScale = 0.85f;
 
     // 1~9 숫자키 (윗줄·숫자패드). 눌린 게 없으면 0.
     static int DigitPressed(Keyboard kb)
