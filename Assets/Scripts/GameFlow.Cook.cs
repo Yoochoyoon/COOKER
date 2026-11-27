@@ -116,7 +116,7 @@ public partial class GameFlow : MonoBehaviour
         else
         {
             UIKit.Label(root, md.name + " 중", 0.03f, 0.88f, 0.5f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
-            UIKit.Label(root, guideMeal ? "[첫날 가이드] 재료를 팬에 넣고, 게이지가 주황일 때 꺼내! 너무 오래 두면 탄다. " + md.guide : md.guide,
+            UIKit.Label(root, guideMeal ? "[첫날 가이드] 재료를 팬에 넣고, 전체 익힘 막대가 주황이면 조리 완료! 너무 오래 두면 탄다. " + md.guide : md.guide,
                 0.03f, 0.78f, 0.97f, 0.88f, 32, TextAnchor.MiddleLeft, UIKit.Muted);
             timeLabel = UIKit.Label(root, "", 0.6f, 0.88f, 0.97f, 0.98f, 40, TextAnchor.MiddleRight, UIKit.Muted);
             panRect = UIKit.Box(root, "Pan", 0.03f, 0.30f, 0.60f, 0.77f, new Color(0.25f, 0.2f, 0.18f));

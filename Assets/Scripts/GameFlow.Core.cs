@@ -1114,7 +1114,9 @@ public partial class GameFlow : MonoBehaviour
         UIKit.Label(budgetCard, NextBudget(sat).ToString("N0") + "원", 0.05f, 0.30f, 0.95f, 0.74f, 72, TextAnchor.MiddleLeft, UIKit.Ink);
         UIKit.Label(budgetCard, "재료값 +" + Mathf.RoundToInt((Balance.PriceGrowth - 1f) * 100f) + "%", 0.05f, 0.06f, 0.95f, 0.30f, 30, TextAnchor.MiddleLeft, UIKit.Bad);
 
-        UIKit.DexBtn(root, 0.06f, 0.05f, 0.15f, ShowDex);
+        // 도감 버튼 높이는 그림 비율로 정해진다. 새 그림(153x124)은 예전보다 세로가 길어서 폭 0.15면 먹은 요리 카드(0.215부터)의 7일차 줄을 가렸다.
+        // 다음 주 버튼과 같은 띠(0.05~0.19) 안에 들어가는 폭으로 둔다.
+        UIKit.DexBtn(root, 0.06f, 0.05f, 0.10f, ShowDex);
         UIKit.PrimaryBtn(root, "다음 주 [Enter]", 0.57f, 0.05f, 0.94f, 0.19f, NextWeek, 40); // 오른쪽 카드들과 좌우 끝을 맞춘다
         scr = Scr.Result;
         confirm = NextWeek;

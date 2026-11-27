@@ -321,11 +321,26 @@ public class Help : MonoBehaviour
         Row(1.0f, h, "공통", "Enter / Space = 화면의 기본 버튼     F1 = 이 도움말     Esc = 팝업 닫기");
         Row(1.0f - h, h, "로비", "Enter = 게임 시작     D = 도감     T = 칭호");
         Row(1.0f - 2 * h, h, "장보기", "숫자 1~" + active.Length + " = 재료 담기     Shift + 숫자 = 빼기     Enter = 구매 확정");
-        Row(1.0f - 3 * h, h, "하루 선택", "재료를 끌어서 도마에 올리거나 숫자키로 고르기\n" + qwer + " = " + pick + "     M = 엄마의 전언     D = 도감     Enter = 조리 시작");
+        Row(1.0f - 3 * h, h, "하루 선택", "재료를 끌어서 철판에 올리거나 숫자키로 고르기 (" + IngredientLimitText() + ")\n" + qwer + " = " + pick + "     M = 엄마의 전언     D = 도감     Enter = 조리 시작");
         Row(1.0f - 4 * h, h * 1.3f, "조리", "1 / 2 / 3 = 약불 / 중불 / 강불 (밸브 손잡이를 돌려도 돼요). 왼쪽 바늘을 초록 구간에 맞추세요\n"
             + "Z X C V B N = 재료를 팬에 넣기 (오래 익는 재료부터)     Enter = 조리 완료     Q W E R = 간 고르기\n"
             + "Space = 방식별 동작 (굽기: 뒤집기 · 볶기: 연타해서 젓기 · 끓이기: 누르고 있으면 뚜껑)");
         Row(1.0f - 4 * h - h * 1.3f, h, "도감", "위쪽 버튼과 검색창으로 요리를 찾고, 카드를 누르면 자세히 볼 수 있어요     Esc = 닫기");
+    }
+
+    // 재료 한도 안내 ("최대 2개, 2주차부터 3개"). 값은 Balance.asset의 maxIngFromWeek/maxIngCount를 따른다
+    static string IngredientLimitText()
+    {
+        const int MaxWeekToScan = 20;
+        int first = Balance.MaxIngredients(1);
+        string s = "최대 " + first + "개";
+        int prev = first;
+        for (int w = 2; w <= MaxWeekToScan; w++)
+        {
+            int n = Balance.MaxIngredients(w);
+            if (n != prev) { s += ", " + w + "주차부터 " + n + "개"; prev = n; }
+        }
+        return s;
     }
 
     void MethodsTab()
@@ -387,7 +402,8 @@ public class Help : MonoBehaviour
             + Balance.BudgetMin.ToString("N0") + "~" + Balance.BudgetMax.ToString("N0") + "원이에요.\n"
             + "• 재료는 유통기한이 지나면 버려져요. 남은 재료는 다음 주로 이어져요.\n"
             + "• 재료와 방식을 골라 조리하고, 재료는 하나씩 팬에 넣어요. 오래 익는 재료를 먼저 넣어야 해요(틀리면 맛이 줄어요). 다 익으면 조리 완료로 한꺼번에 담고, 마지막에 간을 골라요.\n"
-            + "• 간이 맞으면 점수가 오르고 틀리면 내려가요. 제한 시간을 넘겨도 점수가 깎여요.\n"
+            + "• 한 요리에 넣을 수 있는 재료는 " + IngredientLimitText() + "예요.\n"
+            + "• 간이 맞으면 점수가 오르고 틀리면 내려가요. 제한 시간을 넘기거나, 불 바늘이 초록 구간 밖에 " + Mathf.RoundToInt(Balance.GaugeDangerAfter) + "초 넘게 있어도 점수가 깎여요.\n"
             + "• 재료 2개를 모두 성공시키면 만족도가 " + Mathf.RoundToInt(Balance.MixBonus * 100f) + "% 올라가요.\n"
             + "• 요리를 못 만들어 굶으면 주마다 " + Balance.Lifelines + "번은 엄마가 비상 라면(만족도 " + Balance.RamenSat + ")으로 넘겨 줘요. 또 굶으면 끝이에요.\n"
             + "• 한 주를 마치면 결산 점수가 나와요: 만족도 50% + 요리 다양성 30% + 남은 재료 20%.\n"
