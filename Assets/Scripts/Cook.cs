@@ -201,7 +201,7 @@ public partial class Cook
         float avg = sum / plated.Length;
         // 재료 2개를 섞어 모두 성공시키면 보너스
         if (plated.Length >= 2 && plated.All(it => it.ok)) avg *= 1f + Balance.MixBonus;
-        avg += SeasonDelta - TimePenalty; // 간 고르기 보정(docs/29)과 시간 초과 감점(docs/30). 고르기 전이면 보정은 0
+        avg += SeasonDelta - TimePenalty - GaugePenalty; // 간 고르기 보정(docs/29), 시간 초과 감점(docs/30), 불 바늘 구간 밖 감점(docs/26). 고르기 전이면 보정은 0
         return Mathf.Clamp(Mathf.RoundToInt(avg), 0, 100);
     }
 

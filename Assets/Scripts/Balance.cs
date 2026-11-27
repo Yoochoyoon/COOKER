@@ -54,13 +54,16 @@ public static class Balance
 
     // 불 바늘 (docs/26)
     public static float GaugeDriftAmp => D.gaugeDriftAmp;
+    public static float GaugeHoldSharpness => D.gaugeHoldSharpness;
     public static float GaugeValveStep => D.gaugeValveStep;
     public static float GaugeValveSpeed => D.gaugeValveSpeed;
-    public static float GaugeWobbleRatio => D.gaugeWobbleRatio;
+    public static float GaugeWobbleAmp => D.gaugeWobbleAmp;
     public static float GaugeWobblePeriodRatio => D.gaugeWobblePeriodRatio;
     public static float GaugeOutCoef => D.gaugeOutCoef;
     public static float GaugeWarnAfter => D.gaugeWarnAfter;
     public static float GaugeDangerAfter => D.gaugeDangerAfter;
+    public static float GaugePenaltyPerSecond => D.gaugePenaltyPerSecond;
+    public static float GaugePenaltyCap => D.gaugePenaltyCap;
     public static float GaugePeriod(Method m) { return ByMethod(D.gaugePeriod, m); }
     public static float GaugeZoneHalf(Method m) { return ByMethod(D.gaugeZoneHalf, m); }
 

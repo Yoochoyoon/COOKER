@@ -51,14 +51,17 @@ MonoBehaviour:
   - "\uC57D\uBD88"
   - "\uC911\uBD88"
   - "\uAC15\uBD88"
-  gaugeDriftAmp: 0.22
+  gaugeDriftAmp: 0.2
+  gaugeHoldSharpness: 3
   gaugeValveStep: 0.2
   gaugeValveSpeed: 1
-  gaugeWobbleRatio: 0.25
+  gaugeWobbleAmp: 0.04
   gaugeWobblePeriodRatio: 0.37
   gaugeOutCoef: 0.6
   gaugeWarnAfter: 0.6
   gaugeDangerAfter: 2
+  gaugePenaltyPerSecond: 2
+  gaugePenaltyCap: 30
   gaugePeriod:
   - 7
   - 6
