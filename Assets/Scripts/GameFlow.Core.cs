@@ -152,6 +152,7 @@ public partial class GameFlow : MonoBehaviour
         CloseModal();
         CornerDock.Recheck(); // 화면이 바뀌면 도움말·설정 아이콘 자리를 바로 다시 잡는다
         SetBg(null);
+        CornerDock.ForceTopLeft = false;
         Pad(0f); // 기본은 가장자리 100픽셀 여백. 좌표를 직접 정한 화면은 Pad(1f)로 다시 부른다
         cook = null;
         scr = Scr.Other;
@@ -186,6 +187,7 @@ public partial class GameFlow : MonoBehaviour
     {
         Clear();
         Pad(1f);
+        CornerDock.ForceTopLeft = true; // 타이틀 배경 위에서는 창틀에 걸치지 않게 왼쪽 위 고정
         SetBg("bg_title");
         // 새 타이틀 시안(bg_title)에는 로고와 캐릭터가 그려져 있고, 버튼 자리에는 같은 모양의 진짜 버튼을 얹어 가린다 (1920x1080 픽셀 좌표).
         bool hasSave = RunSave.Has();
@@ -207,29 +209,13 @@ public partial class GameFlow : MonoBehaviour
         var b = rt.gameObject.AddComponent<Button>();
         b.targetGraphic = img;
         var cb = b.colors;
-        cb.highlightedColor = new Color(1f, 1f, 0.92f);
-        cb.pressedColor = new Color(0.85f, 0.85f, 0.85f);
+        cb.highlightedColor = new Color(1f, 0.93f, 0.50f); // 마우스를 올리면 베이지가 노랗게
+        cb.pressedColor = new Color(0.90f, 0.78f, 0.38f);
         cb.disabledColor = Color.white;
         b.colors = cb;
         b.interactable = enabled;
         b.onClick.AddListener(() => onClick());
-        if (enabled)
-        {
-            rt.gameObject.AddComponent<Bouncy>(); rt.gameObject.AddComponent<PressDown>().depth = 4f;
-            // 노란색은 마우스를 올렸을 때만 보인다. 알약 크기가 같도록 노란 그림은 자기 비율로 따로 늘린다.
-            float gw = pillW / 0.916f / w, gh = pillH / 0.892f / h;
-            var goldRt = UIKit.Box(rt, "Hover", 0.5f - gw / 2f, 0.5f - gh / 2f, 0.5f + gw / 2f, 0.5f + gh / 2f);
-            var gold = goldRt.gameObject.AddComponent<Image>();
-            gold.sprite = Art.Load("title_btn_gold");
-            gold.raycastTarget = false;
-            goldRt.gameObject.SetActive(false);
-            var trig = rt.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
-            var enter = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter };
-            enter.callback.AddListener(_ => goldRt.gameObject.SetActive(true));
-            var exit = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit };
-            exit.callback.AddListener(_ => goldRt.gameObject.SetActive(false));
-            trig.triggers.Add(enter); trig.triggers.Add(exit);
-        }
+        if (enabled) { rt.gameObject.AddComponent<Bouncy>(); rt.gameObject.AddComponent<PressDown>().depth = 4f; }
         var lbl = UIKit.Label(rt, text, 0.08f, 0.14f, 0.92f, 0.86f, size, TextAnchor.MiddleCenter, enabled ? textColor : HudStyle.DisabledText);
         lbl.raycastTarget = false;
     }
@@ -940,6 +926,7 @@ public partial class GameFlow : MonoBehaviour
     {
         if (Settings.IsOpen) return; // 설정 화면이 열려 있으면 뒤의 게임은 입력을 받지 않는다
         var kb = Keyboard.current;
+        CornerDock.Suppress = modal != null || dexDetail != null; // 팝업이 가장 위: 도움말·설정 아이콘도 팝업 뒤로 숨긴다
         if (lobbyBtn != null)
             lobbyBtn.SetActive((scr == Scr.Shop || scr == Scr.Day || scr == Scr.Cook || scr == Scr.Meal) && modal == null && dexDetail == null);
         if (titleBtn != null)

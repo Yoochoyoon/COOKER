@@ -18,6 +18,8 @@ public class CornerDock : MonoBehaviour
 
     static int forceFrames;   // 화면이 바뀐 직후 몇 프레임은 기다리지 않고 바로 다시 자리를 잡는다
     public static void Recheck() { forceFrames = 3; }
+    public static bool ForceTopLeft;   // 왼쪽 위 가로 한 쌍으로 고정 (타이틀처럼 배경 그림이 복잡한 화면)
+    public static bool Suppress;       // 팝업이 열려 있으면 아이콘을 숨긴다 (팝업이 가장 위)
 
     float next;
     bool placed;
@@ -37,6 +39,8 @@ public class CornerDock : MonoBehaviour
     {
         if (Help.IconRect == null || SettingsButton.GearRect == null) return;
         Active = true;
+        SetVisible(Help.IconRect, !Suppress);
+        SetVisible(SettingsButton.GearRect, !Suppress);
         if (forceFrames > 0) forceFrames--;
         else if (Time.unscaledTime < next) return;
         next = Time.unscaledTime + CheckEvery;
@@ -50,6 +54,12 @@ public class CornerDock : MonoBehaviour
         float s = W / 1920f;                  // 기준 픽셀 → 화면 픽셀
         float ic = Icon * s, gap = Gap * s, mg = Margin * s, step = Step * s;
 
+        if (ForceTopLeft)
+        {
+            curRect = new Rect(mg, H - mg - ic, ic * 2f + gap, ic); curVertical = false; placed = true;
+            Apply(curRect, false, ic, W, H);
+            return;
+        }
         var obstacles = Obstacles(W, H);
 
         // 지금 자리가 비어 있으면 그대로 둔다
@@ -102,6 +112,15 @@ public class CornerDock : MonoBehaviour
         }
         SetRect(Help.IconRect, help, W, H);
         SetRect(SettingsButton.GearRect, gear, W, H);
+    }
+
+    static void SetVisible(RectTransform rt, bool on)
+    {
+        var cg = rt.GetComponent<CanvasGroup>();
+        if (cg == null) cg = rt.gameObject.AddComponent<CanvasGroup>();
+        cg.alpha = on ? 1f : 0f;
+        cg.blocksRaycasts = on;
+        cg.interactable = on;
     }
 
     static void SetRect(RectTransform rt, Rect px, float W, float H)
