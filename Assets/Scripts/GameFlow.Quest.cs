@@ -117,14 +117,14 @@ public partial class GameFlow
             nameTxt.resizeTextForBestFit = true; nameTxt.resizeTextMinSize = 20; nameTxt.resizeTextMaxSize = 34;
             var descTxt = UIKit.Label(row, q.desc, 0.03f, 0.04f, 0.43f, 0.52f, 24, TextAnchor.MiddleLeft, HudStyle.TextSoft);
             descTxt.resizeTextForBestFit = true; descTxt.resizeTextMinSize = 14; descTxt.resizeTextMaxSize = 24;
-            // 보상: 예산과 재료 (받을 수 있는 줄은 진하게, 아닌 줄은 흐리게)
-            var rewTxt = UIKit.Label(row, "+" + Quests.Reward + "원\n+" + q.item + " 1", 0.44f, 0.06f, 0.60f, 0.94f, 24, TextAnchor.MiddleCenter,
-                Quests.IsPending(run, i) ? new Color(0.78f, 0.36f, 0.27f) : HudStyle.TextSoft);
-            rewTxt.resizeTextForBestFit = true; rewTxt.resizeTextMinSize = 14; rewTxt.resizeTextMaxSize = 24;
+            // 보상 그림 두 칸: 돈 주머니(+금액)와 재료 그림(+개수). 오른쪽 아래에 숫자가 붙는다. 받을 수 있는 줄이 아니면 흐리게
+            bool canClaim = Quests.IsPending(run, i);
+            RewardSlot(row, 0.450f, "icon_money", null, Quests.Reward.ToString(), canClaim);
+            RewardSlot(row, 0.545f, null, Quests.Item(q), "1", canClaim);
             int cur = run.questLast != null && i < run.questLast.Length ? Mathf.Min(q.target, run.questLast[i]) : 0;
-            UIKit.Label(row, cur + " / " + q.target, 0.62f, 0.50f, 0.78f, 0.98f, 26, TextAnchor.MiddleRight, HudStyle.Text);
-            UIKit.Box(row, "BarBg", 0.62f, 0.18f, 0.78f, 0.40f, new Color(0.35f, 0.27f, 0.22f), false);
-            UIKit.Box(row, "BarFill", 0.62f, 0.18f, 0.62f + 0.16f * cur / q.target, 0.40f, cur >= q.target ? UIKit.Good : HudStyle.Gold, false);
+            UIKit.Label(row, cur + " / " + q.target, 0.65f, 0.50f, 0.765f, 0.98f, 26, TextAnchor.MiddleRight, HudStyle.Text);
+            UIKit.Box(row, "BarBg", 0.65f, 0.18f, 0.775f, 0.40f, new Color(0.35f, 0.27f, 0.22f), false);
+            UIKit.Box(row, "BarFill", 0.65f, 0.18f, 0.65f + 0.125f * cur / q.target, 0.40f, cur >= q.target ? UIKit.Good : HudStyle.Gold, false);
             bool pending = Quests.IsPending(run, i);
             UIKit.Btn(row, pending ? "받기" : cur >= q.target ? "받음" : "도전 중", 0.79f, 0.12f, 0.98f, 0.88f, () => ClaimQuest(qi), UIKit.Good, 30, pending);
         }
@@ -133,6 +133,26 @@ public partial class GameFlow
         UIKit.Label(m, "예산 " + run.budget.ToString("N0") + "원", 0.05f, 0.03f, 0.34f, 0.12f, 30, TextAnchor.MiddleLeft, HudStyle.Text);
         UIKit.PrimaryBtn(m, "확인", 0.36f, 0.025f, 0.62f, 0.125f, CloseModal, 38);
         UIKit.Btn(m, count > 0 ? "모두 받기 (" + count + "개)" : "모두 받기", 0.66f, 0.03f, 0.96f, 0.12f, ClaimAllQuests, UIKit.Good, 30, count > 0);
+    }
+
+    // 줄 안의 보상 칸 하나: 어두운 모래색 정사각 칸에 그림 + 오른쪽 아래 숫자
+    void RewardSlot(Transform row, float x0, string iconFile, Ingredient ing, string count, bool lit)
+    {
+        float a = lit ? 1f : 0.45f;
+        var slot = HudStyle.Panel(row, "Reward", x0, 0.10f, x0 + 0.085f, 0.90f, new Color(0.83f, 0.74f, 0.62f), true);
+        var img = UIKit.Box(slot, "Icon", 0.10f, 0.14f, 0.90f, 0.90f).gameObject.AddComponent<Image>();
+        if (ing != null) SetIcon(img, ing);
+        else img.sprite = Art.Load(iconFile);
+        img.preserveAspect = true;
+        img.raycastTarget = false;
+        img.color = new Color(1f, 1f, 1f, a);
+        if (img.sprite == null) img.enabled = false;
+        var n = UIKit.Label(slot, count, 0.20f, 0f, 1.0f, 0.50f, 26, TextAnchor.LowerRight, Color.white);
+        n.resizeTextForBestFit = true; n.resizeTextMinSize = 18; n.resizeTextMaxSize = 26;
+        n.raycastTarget = false;
+        var o = n.gameObject.AddComponent<Outline>();
+        o.effectColor = new Color(0.29f, 0.20f, 0.14f);
+        o.effectDistance = new Vector2(1.5f, -1.5f);
     }
 
     void ClaimQuest(int i)
