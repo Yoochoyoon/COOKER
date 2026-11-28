@@ -33,15 +33,19 @@ public static class HudStyle
         return rt;
     }
 
-    public static Sprite Make(Color fill, bool small, bool gloss)
+    // edge/lipOverride: 바깥 선·아래 두께의 색과 두께를 따로 줄 때(없으면 기본 갈색, 기본 두께)
+    public static Sprite Make(Color fill, bool small, bool gloss, Color? edge = null, float lipOverride = -1f)
     {
-        string key = ColorUtility.ToHtmlStringRGB(fill) + (small ? "s" : "b") + (gloss ? "g" : "n");
+        string key = ColorUtility.ToHtmlStringRGB(fill) + (small ? "s" : "b") + (gloss ? "g" : "n")
+            + (edge.HasValue ? "e" + ColorUtility.ToHtmlStringRGB(edge.Value) : "") + (lipOverride >= 0f ? "l" + lipOverride : "");
         Sprite sp;
         if (cache.TryGetValue(key, out sp) && sp != null) return sp;
 
         // 크기·반지름·선 두께·아래 두께·안쪽 선 두께
         int size = small ? 48 : 96;
         float r = small ? 12f : 26f, t = small ? 2.5f : 4f, lip = small ? 4f : 8f, inner = small ? 2f : 3f;
+        if (lipOverride >= 0f) lip = lipOverride;
+        Color edgeColor = edge ?? Outline;
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
         tex.wrapMode = TextureWrapMode.Clamp;
         tex.filterMode = FilterMode.Bilinear;
@@ -56,7 +60,7 @@ public static class HudStyle
                 float dFace = RoundDist(fx, fy, t, t + lip, size - t, size - t, Mathf.Max(2f, r - t));
                 float dIn = RoundDist(fx, fy, t + inner, t + lip + inner, size - t - inner, size - t - inner, Mathf.Max(2f, r - t - inner));
 
-                Color c = Outline;
+                Color c = edgeColor;
                 // 바탕: 위가 살짝 밝고 아래가 살짝 어둡다
                 float v = Mathf.InverseLerp(t + lip, size - t, fy);
                 Color body = Color.Lerp(Shade(fill, 0.93f), Shade(fill, 1.06f), v);

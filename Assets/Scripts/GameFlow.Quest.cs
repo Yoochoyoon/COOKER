@@ -68,10 +68,13 @@ public partial class GameFlow
     void BuildQuestBtn()
     {
         int pend = Quests.PendingCount(run);
-        var btn = HudStyle.Panel(root, "QuestBtn", DX(1013), DY(978), DX(1143), DY(873), UIKit.Good, true, true); // 초록 (받기 버튼과 같은 색). small: 아래 그림자 두께를 옆 버튼들처럼 얇게
-        var img = btn.GetComponent<Image>();
+        // 초록(받기 버튼과 같은 색). 옆 버튼들보다 조금 작고, 바깥 선과 아래 그림자는 검정에 아주 얇게 (2px)
+        var btn = UIKit.Box(root, "QuestBtn", DX(1024), DY(969), DX(1132), DY(881));
+        var btnImg = btn.gameObject.AddComponent<Image>();
+        btnImg.sprite = HudStyle.Make(UIKit.Good, true, true, new Color(0.06f, 0.05f, 0.05f), 2f);
+        btnImg.type = Image.Type.Sliced;
         var b = btn.gameObject.AddComponent<Button>();
-        b.targetGraphic = img;
+        b.targetGraphic = btnImg;
         var cb = b.colors;
         cb.highlightedColor = new Color(1f, 0.93f, 0.62f);
         cb.pressedColor = new Color(0.85f, 0.75f, 0.55f);
