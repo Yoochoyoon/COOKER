@@ -43,7 +43,7 @@ public partial class GameFlow : MonoBehaviour
         string bgFile = newArt ? "bg_cook" : md.id == Method.Grill ? "bg_cook_grill" : md.id == Method.Stirfry ? "bg_cook_wok"
             : md.id == Method.Fry ? (Art.Load("bg_cook_fry") != null ? "bg_cook_fry" : "bg_cook_wok") : "bg_cook_pot";
         cookArt = Art.Load(bgFile) != null;
-        if (cookArt) SetBg(bgFile);
+        if (cookArt) SetBgScaled(bgFile); // 배경 그림도 내용과 같은 비율로 (접시·도마·가스레인지 위치가 어긋나지 않게)
 
         if (cookArt)
         {
@@ -75,7 +75,7 @@ public partial class GameFlow : MonoBehaviour
                 trayRect = UIKit.Box(root, "Tray", 0.05f, 0.345f, 0.32f, 0.655f); // 도마
                 plateRect = UIKit.Box(root, "Plate", 0.70f, 0.34f, 0.945f, 0.655f); // 접시
                 // 접시 빛: 알맞게 익은 재료가 있으면 접시 둘레가 은은하게 깜빡여 "여기에 담아요"를 알려 준다
-                plateGlow = UIKit.Box(root, "PlateGlow", 0.692f, 0.325f, 0.953f, 0.668f).gameObject.AddComponent<Image>();
+                plateGlow = UIKit.Box(root, "PlateGlow", 0.697f, 0.333f, 0.948f, 0.662f).gameObject.AddComponent<Image>(); // 배경 그림의 접시(x 0.708~0.935, y 0.353~0.641)보다 조금만 크게
                 plateGlow.sprite = RingSprite();
                 plateGlow.raycastTarget = false;
                 plateGlow.color = new Color(1f, 0.85f, 0.35f, 0f);
@@ -98,6 +98,16 @@ public partial class GameFlow : MonoBehaviour
             // 다이얼 이름: 눈에 띄게 "불 세기"로 표시하고, 지금 단계를 글자로도 보여 준다
             var fireTitle = UIKit.Label(root, "불 세기", 0.040f, 0.06f, 0.105f, 0.135f, 32, TextAnchor.MiddleCenter, UIKit.Ink);
             fireTitle.raycastTarget = false;
+            // 밸브 둘레에 숫자키 표시: 1 약불(왼쪽 위) · 2 중불(위) · 3 강불(오른쪽 위)
+            float[] keyAngle = { 150f, 90f, 30f };
+            for (int kk = 0; kk < 3; kk++)
+            {
+                float ka = keyAngle[kk] * Mathf.Deg2Rad;
+                float kx = 0.17f * RefW + Mathf.Cos(ka) * 108f, ky = 0.095f * RefH + Mathf.Sin(ka) * 108f;
+                var keyChip = UIKit.Label(root, (kk + 1).ToString(), (kx - 22f) / RefW, (ky - 22f) / RefH, (kx + 22f) / RefW, (ky + 22f) / RefH, 36, TextAnchor.MiddleCenter, UIKit.Ink);
+                keyChip.raycastTarget = false;
+                var kco = keyChip.gameObject.AddComponent<Outline>(); kco.effectColor = new Color(1f, 0.97f, 0.9f, 0.95f); kco.effectDistance = new Vector2(2f, -2f);
+            }
             fireLevelLabel = UIKit.Label(root, "", 0.235f, 0.05f, 0.33f, 0.14f, 44, TextAnchor.MiddleLeft, UIKit.Ink);
             fireLevelLabel.raycastTarget = false;
             var flo = fireLevelLabel.gameObject.AddComponent<Outline>(); // 밝은 단계 색이 밝은 바탕에서도 읽히게 진한 테두리

@@ -61,7 +61,7 @@ public partial class GameFlow : MonoBehaviour
         UIKit.Label(m, "칭호 (" + Titles.EarnedCount + " / " + shownTitles.Length + ")", 0.04f, 0.88f, 0.5f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
         var rep = Titles.Representative;
         UIKit.Label(m, rep == null ? "대표 칭호가 없다" : "대표 칭호: [" + rep.name + "]", 0.45f, 0.88f, 0.74f, 0.98f, 30, TextAnchor.MiddleRight, UIKit.Muted);
-        UIKit.IconBtn(m, "icon_close", "", 0.90f, 0.88f, 0.97f, 0.98f, CloseModal, UIKit.Muted, 34);
+        UIX.CloseX(m, 0.915f, 0.895f, 0.975f, 0.975f, CloseModal);
         for (int i = 0; i < shownTitles.Length; i++)
         {
             var t = shownTitles[i];
@@ -109,7 +109,7 @@ public partial class GameFlow : MonoBehaviour
             UIKit.Label(row, x.ing.name + "  ×" + x.qty, 0.17f, 0f, 0.62f, 1f, 38, TextAnchor.MiddleLeft, UIKit.Ink);
             UIKit.Label(row, x.left >= 99 ? "" : x.left <= 1 ? "오늘까지!" : x.left + "일 남음", 0.60f, 0f, 0.97f, 1f, 32, TextAnchor.MiddleRight, x.left <= 1 ? UIKit.Bad : UIKit.Muted);
         }
-        UIKit.IconBtn(m, "icon_close", "닫기", 0.38f, 0.03f, 0.62f, 0.14f, CloseModal, UIKit.Muted, 36);
+        UIX.CloseX(m, 0.86f, 0.90f, 0.97f, 0.985f, CloseModal); // 냉장고 닫기도 오른쪽 위 X
     }
 
     void ShowTitleGain(List<TitleDef> gained)
@@ -284,7 +284,7 @@ public partial class GameFlow : MonoBehaviour
         var m = modal.transform;
         UIKit.Label(m, "도감 (" + found + " / " + slots.Count + ")", 0.05f, 0.88f, 0.45f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
         dexInfo = UIKit.Label(m, "", 0.40f, 0.88f, 0.74f, 0.98f, 28, TextAnchor.MiddleRight, UIKit.Muted);
-        UIKit.IconBtn(m, "icon_close", "", 0.90f, 0.88f, 0.97f, 0.98f, CloseModal, UIKit.Muted, 34);
+        UIX.CloseX(m, 0.915f, 0.895f, 0.975f, 0.975f, CloseModal);
 
         // 1줄: 검색창 + 필터 토글. 정렬·재료·방식 필터는 토글을 켜야 펼쳐진다 (켠 필터 수가 버튼에 보인다)
         System.Action applyFilter = null;
@@ -442,10 +442,14 @@ public partial class GameFlow : MonoBehaviour
         }
         var b = card.gameObject.AddComponent<Button>();
         b.targetGraphic = card.GetComponent<Image>();
-        var cb = b.colors;
-        cb.highlightedColor = new Color(1f, 0.92f, 0.7f);
-        cb.pressedColor = new Color(0.9f, 0.8f, 0.55f);
-        b.colors = cb;
+        b.transition = Selectable.Transition.None; // 카드 전체를 물들이면 누끼 없는 사진의 흰 바탕이 드러난다. 안쪽 테두리 하이라이트로 대신한다
+        var ringRt = UIKit.Box(card, "HoverRing", 0.025f, 0.015f, 0.975f, 0.985f);
+        var ringImg = ringRt.gameObject.AddComponent<Image>();
+        ringImg.sprite = HudStyle.Ring(new Color(0.976f, 0.72f, 0.2f));
+        ringImg.type = Image.Type.Sliced;
+        ringImg.raycastTarget = false;
+        ringRt.gameObject.SetActive(false);
+        card.gameObject.AddComponent<HoverRing>().ring = ringRt.gameObject;
         b.onClick.AddListener(() =>
         {
             if (dexNew.Remove(s.key)) SaveDex();
@@ -471,7 +475,7 @@ public partial class GameFlow : MonoBehaviour
         var panel = UIKit.Box(card, "Pic", 0.04f, 0.18f, 0.44f, 0.94f, Color.white);
         dtPic = UIKit.Box(panel, "Img", 0.04f, 0.10f, 0.96f, 0.96f);
         dtImgNote = UIKit.Label(panel, "", 0.04f, 0.01f, 0.96f, 0.10f, 26, TextAnchor.MiddleCenter, UIKit.Muted);
-        dtName = UIKit.Label(card, "", 0.48f, 0.80f, 0.96f, 0.95f, 60, TextAnchor.MiddleLeft);
+        dtName = UIKit.Label(card, "", 0.48f, 0.80f, 0.89f, 0.95f, 60, TextAnchor.MiddleLeft);
 
         string ings = string.Join(", ", d.ings.Select((i, k) =>
             i.name + (d.stages != null && k < d.stages.Length ? "(" + StageName[(int)d.stages[k]] + ")" : "")).ToArray());
@@ -483,7 +487,7 @@ public partial class GameFlow : MonoBehaviour
         UIKit.Label(card, sb.ToString().TrimEnd(), 0.48f, 0.30f, 0.96f, 0.74f, 28, TextAnchor.UpperLeft, UIKit.Muted);
         UIKit.Label(card, "최고 만족도  " + d.satisfaction + "   " + Stars(d.satisfaction), 0.48f, 0.19f, 0.96f, 0.30f, 38, TextAnchor.MiddleLeft, UIKit.Accent);
         if (!string.IsNullOrEmpty(d.note)) UIKit.Label(card, d.note, 0.04f, 0.08f, 0.62f, 0.18f, 28, TextAnchor.MiddleLeft, UIKit.Bad);
-        UIKit.IconBtn(card, "icon_close", "닫기", 0.74f, 0.04f, 0.96f, 0.16f, CloseDexDetail, UIKit.Muted, 34);
+        UIX.CloseX(card, 0.90f, 0.88f, 0.98f, 0.98f, CloseDexDetail);
         BuildDexPic(dtPic, d.ings, d, false);
         RefreshDexDetail(d);
     }

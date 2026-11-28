@@ -75,6 +75,35 @@ public static class HudStyle
         return sp;
     }
 
+    // 테두리만 있는 늘이기 그림(안쪽은 투명). 마우스를 올린 카드의 "안쪽 테두리 하이라이트"에 쓴다.
+    public static Sprite Ring(Color color, float thickness = 5f)
+    {
+        string key = "ring" + ColorUtility.ToHtmlStringRGB(color) + thickness;
+        Sprite sp;
+        if (cache.TryGetValue(key, out sp) && sp != null) return sp;
+        const int size = 64;
+        float r = 14f;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        tex.filterMode = FilterMode.Bilinear;
+        var px = new Color[size * size];
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float d = RoundDist(x + 0.5f, y + 0.5f, 0f, 0f, size, size, r); // 안쪽이 음수
+                float a = Cover(d) * Mathf.Clamp01(d + thickness + 0.5f);          // 바깥선 안쪽으로 thickness만큼만
+                float glow = Mathf.Clamp01(1f - (-d - thickness) / 7f) * 0.22f * (d < -thickness ? 1f : 0f); // 테두리 안쪽으로 살짝 번지는 빛
+                var c = new Color(color.r, color.g, color.b, Mathf.Clamp01(a + glow));
+                px[y * size + x] = c;
+            }
+        tex.SetPixels(px);
+        tex.Apply();
+        float b = r + 2f;
+        sp = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(b, b, b, b));
+        cache[key] = sp;
+        return sp;
+    }
+
     // 둥근 사각형까지의 부호 있는 거리 (안쪽이 음수)
     static float RoundDist(float x, float y, float x0, float y0, float x1, float y1, float r)
     {

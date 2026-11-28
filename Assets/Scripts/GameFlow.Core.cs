@@ -367,16 +367,16 @@ public partial class GameFlow : MonoBehaviour
                 0.10f, bot, 0.225f, top, 36, TextAnchor.MiddleLeft, ShopBrown);
             UIKit.Label(root, Price(ing).ToString("N0") + "원", 0.225f, bot, 0.315f, top, 36, TextAnchor.MiddleCenter, ShopBrown);
             UIKit.Label(root, ing.shelf + "일", 0.315f, bot, 0.385f, top, 36, TextAnchor.MiddleCenter, new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 1f));
-            ShopBtn("−", 0.392f, bot + 0.005f, 0.442f, top - 0.005f, () => ChangeCart(ing, -1), HudStyle.Tan, false, HudStyle.Text, 52, qty > 0);
-            UIKit.Label(root, qty.ToString(), 0.442f, bot, 0.476f, top, 40, TextAnchor.MiddleCenter, qty > 0 ? ShopOrange : ShopBrown);
-            ShopBtn("+", 0.476f, bot + 0.005f, 0.526f, top - 0.005f, () => ChangeCart(ing, 1), HudStyle.Gold, true, HudStyle.Text, 52, Price(ing) <= left);
+            ShopBtn("−", 0.388f, bot + 0.013f, 0.434f, top - 0.013f, () => ChangeCart(ing, -1), HudStyle.Tan, false, HudStyle.Text, 52, qty > 0);
+            UIKit.Label(root, qty.ToString(), 0.434f, bot, 0.470f, top, 40, TextAnchor.MiddleCenter, qty > 0 ? ShopOrange : ShopBrown);
+            ShopBtn("+", 0.470f, bot + 0.013f, 0.516f, top - 0.013f, () => ChangeCart(ing, 1), HudStyle.Gold, true, HudStyle.Text, 52, Price(ing) <= left);
         }
 
         UIKit.Box(root, "FootLine", 0.035f, 0.148f, 0.53f, 0.152f, new Color(0.6f, 0.45f, 0.3f, 0.45f), false); // 아래 영역 구분선
-        UIKit.Label(root, "담은 재료 <color=#E9684F>" + units + "</color>개", 0.04f, 0.035f, 0.25f, 0.14f, 38, TextAnchor.MiddleLeft, ShopBrown);
+        UIKit.Label(root, "담은 재료 <color=#E9684F>" + units + "</color>개", 0.04f, 0.055f, 0.25f, 0.14f, 38, TextAnchor.MiddleLeft, ShopBrown);
         bool ok = units >= Need();
         // 주요 버튼 (로비 "게임 시작"과 같은 그림·글자 모양). 아직 못 누르면 연하게 보인다
-        UIKit.PrimaryBtn(root, ok ? "구매 확정  [Enter]" : "최소 " + Need() + "개 필요", 0.27f, 0.04f, 0.525f, 0.14f, ConfirmShop, 40, ok);
+        UIKit.PrimaryBtn(root, ok ? "구매 확정  [Enter]" : "최소 " + Need() + "개 필요", 0.27f, 0.058f, 0.512f, 0.14f, ConfirmShop, 40, ok);
 
         DrawBasket();
         scr = Scr.Shop;
@@ -409,7 +409,8 @@ public partial class GameFlow : MonoBehaviour
             rt = UIKit.Box(root, "Method_" + name, x0, y0, x1, y1);
             img = rt.gameObject.AddComponent<Image>();
             img.sprite = sp;
-            img.preserveAspect = false;
+            img.type = Image.Type.Sliced; // 9칸 늘이기: 크기가 달라도 모서리와 테두리가 일그러지지 않는다
+            rt.gameObject.AddComponent<SlicedFit>();
             img.color = on ? new Color(0.72f, 1f, 0.66f) : Color.white; // 고른 방식은 초록 바
         }
         else
@@ -431,14 +432,14 @@ public partial class GameFlow : MonoBehaviour
         var sprite = Art.Load(icon);
         if (sprite != null)
         {
-            var ir = UIKit.Box(rt, "Icon", 0.05f, 0.08f, 0.42f, 0.92f).gameObject.AddComponent<Image>();
+            var ir = UIKit.Box(rt, "Icon", 0.07f, 0.14f, 0.40f, 0.86f).gameObject.AddComponent<Image>();
             ir.sprite = sprite; ir.preserveAspect = true; ir.raycastTarget = false;
             ir.color = enabled ? Color.white : new Color(1f, 1f, 1f, 0.6f);
         }
         Color nameColor = enabled ? new Color(0.25f, 0.13f, 0.08f) : new Color(0.78f, 0.77f, 0.75f);
-        var nameTxt = UIKit.Label(rt, name, 0.43f, 0.46f, 0.98f, 0.96f, size, TextAnchor.MiddleLeft, nameColor);
+        var nameTxt = UIKit.Label(rt, name, 0.43f, 0.52f, 0.94f, 0.92f, size, TextAnchor.MiddleLeft, nameColor);
         nameTxt.resizeTextForBestFit = true; nameTxt.resizeTextMinSize = 18; nameTxt.resizeTextMaxSize = size;
-        var tipTxt = UIKit.Label(rt, tip, 0.43f, 0.04f, 0.98f, 0.50f, 18, TextAnchor.UpperLeft, new Color(nameColor.r, nameColor.g, nameColor.b, 0.8f));
+        var tipTxt = UIKit.Label(rt, tip, 0.43f, 0.13f, 0.94f, 0.54f, 18, TextAnchor.UpperLeft, new Color(nameColor.r, nameColor.g, nameColor.b, 0.8f));
         tipTxt.resizeTextForBestFit = true; tipTxt.resizeTextMinSize = 11; tipTxt.resizeTextMaxSize = 18;
         return b;
     }
@@ -573,6 +574,7 @@ public partial class GameFlow : MonoBehaviour
     }
 
     // 화면마다 배경 그림(Resources/Art/<파일>.png)을 깐다. 파일이 없으면 기본 물방울 무늬 배경이 보인다. 16:9 그림을 권장한다.
+    Image bgFill;
     void SetBg(string file)
     {
         if (bgImg == null) return;
@@ -580,6 +582,28 @@ public partial class GameFlow : MonoBehaviour
         bgImg.sprite = s;
         bgImg.preserveAspect = true; // 창 비율이 달라도 그림이 늘어나지 않는다
         bgImg.enabled = s != null;
+        bgImg.rectTransform.localScale = Vector3.one; // 기본은 화면 전체
+        if (bgFill != null) bgFill.gameObject.SetActive(false);
+    }
+
+    // 조리 화면: 접시·도마·가스레인지처럼 배경 그림 위치에 맞춰 놓는 것들이 내용(root)과 같은 비율로 줄어드므로, 배경 그림도 같은 비율로 줄인다.
+    // 줄어든 만큼 생기는 바깥은 같은 그림을 어둡게 깔아 채운다 (가장자리 100픽셀 여백 규칙 + 그림과 요소의 위치 일치)
+    void SetBgScaled(string file)
+    {
+        SetBg(file);
+        if (bgImg == null || !bgImg.enabled) return;
+        bgImg.rectTransform.localScale = new Vector3(MarginScale, MarginScale, 1f);
+        if (bgFill == null)
+        {
+            var fr = UIKit.Box(canvasRT, "BackgroundFill", 0, 0, 1, 1);
+            bgFill = fr.gameObject.AddComponent<Image>();
+            bgFill.raycastTarget = false;
+            bgFill.preserveAspect = true;
+        }
+        bgFill.gameObject.SetActive(true);
+        bgFill.sprite = null; // 단색: 조리대 그림 가장자리 네 변의 평균색(식탁 나무 색). 같은 그림을 크게 깔면 도마·접시 가장자리가 비쳐 보인다
+        bgFill.color = new Color(0.989f, 0.775f, 0.652f);
+        bgFill.transform.SetSiblingIndex(bgImg.transform.GetSiblingIndex()); // 그림 바로 아래
     }
 
     // 이번 주 재료 가격: 매주 오른다
@@ -725,8 +749,8 @@ public partial class GameFlow : MonoBehaviour
                 else
                 {
                     // 도마 위 2칸 x 4줄 (도마 안쪽 x 250~785, y 332~945)
-                    float x0 = 250f + (onTable % 2) * 262f, top = 332f + (onTable / 2) * 154f;
-                    IngredientToken(ing, kv.Value, r, DX(x0), DY(top + 140f), DX(x0 + 248f), DY(top), board, false, true);
+                    float x0 = 276f + (onTable % 2) * 250f, top = 346f + (onTable / 2) * 148f;
+                    IngredientToken(ing, kv.Value, r, DX(x0), DY(top + 128f), DX(x0 + 236f), DY(top), board, false, true);
                     onTable++;
                 }
             }
@@ -747,12 +771,15 @@ public partial class GameFlow : MonoBehaviour
                 on, 36, !guideMeal || on);
         }
 
-        // 엄마 메시지: 파란 바 전체가 눌리는 알림 (아이콘 + 제목 + 내용)
-        var hintCard = DayFrame("ui_bar_blue", "Hint", DX(891), DY(785), DX(1440), DY(688), HudStyle.Sand);
+        // 엄마 메시지: 파란 바 전체가 눌리는 알림 (아이콘 + 제목 + 내용). 글이 길면 바가 아래로 늘어나고, 눌러 볼 수 있다는 것이 보이게 느리게 두근거린다.
         string hint = sel.Count == 0
             ? "밥을 잘 먹고 다니니?"
             : string.Join(" ", sel.Select(i => Data.MomHint(i)));
+        int hintLines = Mathf.Max(2, Mathf.CeilToInt(hint.Length / 17f));
+        float barBot = Mathf.Clamp(688f + 62f + hintLines * 31f, 785f, 852f);
+        var hintCard = DayFrame("ui_bar_blue", "Hint", DX(891), DY(barBot), DX(1440), DY(688), HudStyle.Sand);
         var hintBg = hintCard.GetComponent<Image>();
+        if (hintBg != null && hintBg.sprite != null && hintBg.sprite.border.sqrMagnitude > 1f) { hintBg.type = Image.Type.Sliced; hintCard.gameObject.AddComponent<SlicedFit>(); }
         if (!guideMeal && hintBg != null)
         {
             hintBg.raycastTarget = true;
@@ -760,13 +787,14 @@ public partial class GameFlow : MonoBehaviour
             hb.targetGraphic = hintBg;
             hb.transition = Selectable.Transition.None;
             hb.onClick.AddListener(ShowMomRecipes);
-            hintCard.gameObject.AddComponent<Bouncy>();
+            var pulse = hintCard.gameObject.AddComponent<Pulse>(); pulse.scaleAmp = 0.014f; pulse.speed = 2.6f;
         }
-        DayIcon("icon_mail", DX(928), DY(762), DX(992), DY(710));
+        var mail = DayIcon("icon_mail", DX(928), DY(762), DX(992), DY(710));
+        if (!guideMeal) { var mp = mail.gameObject.AddComponent<Pulse>(); mp.scaleAmp = 0.06f; mp.rotAmp = 7f; mp.speed = 4.2f; }
         UIKit.Label(root, "[엄마]", DX(1008), DY(728), DX(1280), DY(692), 24, TextAnchor.MiddleLeft, HudStyle.Text);
         if (!guideMeal) UIKit.Label(root, "[M] 추천 요리", DX(1290), DY(728), DX(1425), DY(692), 20, TextAnchor.MiddleRight, HudStyle.TextSoft);
-        var hintTxt = UIKit.Label(root, hint, DX(1008), DY(782), DX(1425), DY(726), 26, TextAnchor.MiddleLeft, HudStyle.Text);
-        hintTxt.resizeTextForBestFit = true; hintTxt.resizeTextMinSize = 14; hintTxt.resizeTextMaxSize = 26;
+        var hintTxt = UIKit.Label(root, hint, DX(1008), DY(barBot - 10f), DX(1425), DY(728), 26, TextAnchor.UpperLeft, HudStyle.Text);
+        hintTxt.resizeTextForBestFit = true; hintTxt.resizeTextMinSize = 18; hintTxt.resizeTextMaxSize = 26;
 
         // 아래: 도감, 조리 시작
         UIKit.DexBtn(root, DX(1275), DY(978), 130f / 1920f, ShowDex);
@@ -779,11 +807,13 @@ public partial class GameFlow : MonoBehaviour
     static float DX(float px) { return px / 1920f; }
     static float DY(float px) { return 1f - px / 1080f; } // 위에서 잰 픽셀을 아래 기준 비율로
 
-    void DayIcon(string file, float x0, float y0, float x1, float y1)
+    RectTransform DayIcon(string file, float x0, float y0, float x1, float y1)
     {
-        var im = UIKit.Box(root, "Icon_" + file, x0, y0, x1, y1).gameObject.AddComponent<Image>();
+        var rt = UIKit.Box(root, "Icon_" + file, x0, y0, x1, y1);
+        var im = rt.gameObject.AddComponent<Image>();
         im.sprite = Art.Load(file); im.preserveAspect = true; im.raycastTarget = false;
         if (im.sprite == null) im.enabled = false;
+        return rt;
     }
 
     // 식탁/도마 위의 재료 카드. 끌어서 도마에 놓으면 고르고, 도마에서 밖으로 끌어내면 뺀다. 숫자키로도 된다.
@@ -1252,7 +1282,7 @@ public partial class GameFlow : MonoBehaviour
         modal.transform.localScale = Vector3.one * 0.97f; // 가장자리 여백
         var m = modal.transform;
         UIKit.Label(m, "엄마의 전언", 0.04f, 0.87f, 0.6f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
-        UIKit.IconBtn(m, "icon_close", "", 0.90f, 0.88f, 0.97f, 0.97f, CloseModal, UIKit.Muted, 32);
+        UIX.CloseX(m, 0.915f, 0.885f, 0.975f, 0.975f, CloseModal);
         UIKit.Label(m, list.Count == 0 ? "엄마: 냉장고가 텅 비었네... 비상 라면이라도 챙겨 먹어라."
             : "엄마: 냉장고 보니까 이거 해 먹으면 되겠더라. 엄마 말 들어서 손해 볼 거 없다!",
             0.04f, 0.79f, 0.96f, 0.87f, 36, TextAnchor.MiddleLeft);

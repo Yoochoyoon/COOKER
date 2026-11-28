@@ -270,7 +270,7 @@ public class Help : MonoBehaviour
         panel = UIKit.Box(canvasGo.transform, "HelpPanel", 0, 0, 1, 1, new Color(0f, 0f, 0f, 0.6f), false).gameObject; // 뒤쪽 화면을 가리고 클릭을 막는다
         var card = UIKit.Box(panel.transform, "Card", 0.08f, 0.10f, 0.92f, 0.90f, UIKit.Card, true);
         UIKit.Label(card, "도움말", 0.04f, 0.89f, 0.4f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
-        UIKit.Btn(card, "닫기 [F1·Esc]", 0.74f, 0.89f, 0.96f, 0.98f, Close, UIKit.Muted, 32, true, true);
+        UIX.CloseX(card, 0.90f, 0.885f, 0.985f, 0.985f, Close); // 닫기: F1·Esc도 된다 (오른쪽 위 X)
 
         tabImgs.Clear();
         for (int i = 0; i < TabNames.Length; i++)

@@ -470,6 +470,7 @@ public static class UIKit
         var img = rt.gameObject.AddComponent<Image>();
         img.sprite = sprite;
         img.type = Image.Type.Sliced; // 9칸 늘이기
+        rt.gameObject.AddComponent<SlicedFit>(); // 작은 버튼(+, −)에서 테두리가 겹쳐 깨지지 않게 칸 크기에 맞춘다
         img.color = enabled ? Color.white : new Color(0.45f, 0.44f, 0.43f); // 못 누르는 버튼은 투명이 아니라 어두운 회색
         var b = rt.gameObject.AddComponent<Button>();
         b.targetGraphic = img;

@@ -78,7 +78,7 @@ public static class Settings
             Refresh();
         }, null, 44).GetComponentInChildren<Text>();
 
-        UIKit.PrimaryBtn(panel, "돌아가기 [Esc]", 0.30f, 0.07f, 0.70f, 0.19f, close, 44);
+        UIX.CloseX(panel, 0.89f, 0.88f, 0.98f, 0.97f, close); // 닫기: Esc·Enter도 된다 (오른쪽 위 X)
         Refresh();
     }
 
