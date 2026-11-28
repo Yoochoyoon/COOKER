@@ -58,7 +58,7 @@ public static class UIX
     static Sprite circle;
 
     // 동그란 버튼 바탕(테두리가 어두운 흰 원). 색은 Image.color로 입힌다.
-    static Sprite Circle()
+    public static Sprite Circle()
     {
         if (circle != null) return circle;
         const int S = 96;
