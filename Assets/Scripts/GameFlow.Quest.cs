@@ -132,7 +132,7 @@ public partial class GameFlow
         int count = Quests.PendingCount(run);
         UIKit.Label(m, "예산 " + run.budget.ToString("N0") + "원", 0.05f, 0.03f, 0.34f, 0.12f, 30, TextAnchor.MiddleLeft, HudStyle.Text);
         // 닫기는 오른쪽 위 X(와 Esc·Enter)가 맡으므로 아래에는 [모두 받기] 하나만 둔다. 노란 주요 버튼(lobby_start)과 같은 그림을 초록으로 바꿔 쓴다
-        GreenPrimaryBtn(m, count > 0 ? "모두 받기 (" + count + "개)" : "모두 받기", 0.40f, 0.025f, 0.96f, 0.125f, ClaimAllQuests, 44, count > 0);
+        GreenPrimaryBtn(m, count > 0 ? "모두 받기 (" + count + "개)" : "모두 받기", 0.62f, 0.025f, 0.96f, 0.125f, ClaimAllQuests, 40, count > 0);
     }
 
     // 주요 버튼(lobby_start, 노란색)의 색상만 초록으로 돌린 그림. 처음 한 번 만들어 두고 계속 쓴다. 그림이 없으면 null
