@@ -16,8 +16,8 @@ MonoBehaviour:
   methodName: "\uAD7D\uAE30"
   verb: "\uAD6C\uC6B4"
   speed: 6
-  lo: 60
-  hi: 75
+  lo: 58
+  hi: 80
   guide: "\uAD7D\uAE30: \uBE68\uB9AC \uC775\uB294\uB2E4. [\uB4A4\uC9D1\uAE30!] \uBC84\uD2BC
     \uB730 \uB54C \uC548 \uB204\uB974\uBA74 \uD55C\uCABD\uB9CC \uC775\uC5B4\uC11C
     \uD0C8 \uD655\uB960\uC774 \uB192\uC544\uC9C4\uB2E4."

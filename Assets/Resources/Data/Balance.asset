@@ -16,21 +16,21 @@ MonoBehaviour:
   minUnits: 6
   days: 7
   maxCookTime: 45
-  nonFit: 0.6
-  mixBonus: 0.1
+  nonFit: 0.75
+  mixBonus: 0.15
   rawLimit: 40
   burnLimit: 100
   bubbleInterval: 5
   lidHoldTime: 0.5
   stirSlow: 0.7
   bubbleFast: 1.2
-  flipPenalty: 10
+  flipPenalty: 6
   stirGrace: 1.2
-  noStirCoef: 0.6
+  noStirCoef: 0.8
   overflowGrace: 2
-  boilOverCoef: 0.7
+  boilOverCoef: 0.85
   oilGrace: 1.5
-  soggyCoef: 0.7
+  soggyCoef: 0.85
   easeBand: 5
   easeSpeed: 0.2
   priceGrowth: 1.08
@@ -59,9 +59,9 @@ MonoBehaviour:
   gaugeWobblePeriodRatio: 0.37
   gaugeOutCoef: 0.6
   gaugeWarnAfter: 0.6
-  gaugeDangerAfter: 2
-  gaugePenaltyPerSecond: 2
-  gaugePenaltyCap: 30
+  gaugeDangerAfter: 3
+  gaugePenaltyPerSecond: 1
+  gaugePenaltyCap: 15
   gaugePeriod:
   - 7
   - 6
@@ -77,6 +77,6 @@ MonoBehaviour:
   - 45
   - 50
   - 40
-  timePenaltyPerSecond: 0.5
-  timePenaltyCap: 30
+  timePenaltyPerSecond: 0.3
+  timePenaltyCap: 15
   cookOverGrace: 25

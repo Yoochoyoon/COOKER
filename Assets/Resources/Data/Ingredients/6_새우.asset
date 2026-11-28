@@ -17,7 +17,7 @@ MonoBehaviour:
   price: 2000
   shelf: 2
   fits: 03000000
-  baseScore: 80
+  baseScore: 90
   speedMod: 1.1
   raw: {r: 0.85, g: 0.75, b: 0.75, a: 1}
   cooked: {r: 1, g: 0.55, b: 0.35, a: 1}

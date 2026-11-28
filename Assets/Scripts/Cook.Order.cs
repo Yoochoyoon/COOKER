@@ -7,7 +7,7 @@ using UnityEngine;
 public partial class Cook
 {
     // 임시값 (docs/28 제안). TODO: BalanceData로 옮기고 Balance에서 읽는다.
-    const float OrderCoefPerViolation = 0.9f; // 순서를 한 번 틀릴 때마다 곱하는 보정
+    const float OrderCoefPerViolation = 0.95f; // 순서를 한 번 틀릴 때마다 곱하는 보정
     const int OrderHintRuns = 3;              // 처음 이 판 수까지 힌트를 보여 준다
     const string OrderHintKey = "cooker.orderHintRuns";
     const float OrderMessageSeconds = 3f;     // 틀렸을 때 안내를 보여 주는 시간

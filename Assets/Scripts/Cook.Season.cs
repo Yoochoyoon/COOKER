@@ -9,8 +9,8 @@ public enum SeasonOption { Salt, Pepper, SoySauce, Sugar, Gochugaru, SoupSoy }
 public partial class Cook
 {
     // 임시값 (docs/29 제안). TODO: BalanceData로 옮기고 Balance에서 읽는다.
-    const float SeasonGainCorrect = 10f;   // 정답일 때 맛 점수 가산
-    const float SeasonLossWrong = 10f;     // 오답일 때 맛 점수 감산
+    const float SeasonGainCorrect = 15f;   // 정답일 때 맛 점수 가산
+    const float SeasonLossWrong = 5f;      // 오답일 때 맛 점수 감산
 
     public SeasonOption[] SeasonChoices { get { return ChoicesOf(m == null ? Method.Grill : m.id); } }
     public SeasonOption? SeasonPicked { get; private set; }
