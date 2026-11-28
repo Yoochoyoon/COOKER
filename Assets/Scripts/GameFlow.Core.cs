@@ -362,14 +362,14 @@ public partial class GameFlow : MonoBehaviour
             cart.TryGetValue(ing, out qty);
             int own;
             run.inv.TryGetValue(ing, out own);
-            SetIcon(UIKit.Box(root, "Icon", 0.045f, bot + 0.008f, 0.095f, top - 0.008f).gameObject.AddComponent<Image>(), ing);
+            SetIcon(UIKit.Box(root, "Icon", 0.054f, bot + 0.014f, 0.100f, top - 0.014f).gameObject.AddComponent<Image>(), ing); // 줄 왼쪽 테두리와 위아래에서 띄운다
             UIKit.Label(root, "<color=#A67C6DCC><size=24>[" + (r + 1) + "]</size></color> " + ing.name + (own > 0 ? " <color=#3F8F63><size=24>보유 " + own + "개</size></color>" : ""),
-                0.10f, bot, 0.225f, top, 36, TextAnchor.MiddleLeft, ShopBrown);
+                0.106f, bot, 0.225f, top, 36, TextAnchor.MiddleLeft, ShopBrown);
             UIKit.Label(root, Price(ing).ToString("N0") + "원", 0.225f, bot, 0.315f, top, 36, TextAnchor.MiddleCenter, ShopBrown);
             UIKit.Label(root, ing.shelf + "일", 0.315f, bot, 0.385f, top, 36, TextAnchor.MiddleCenter, new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 1f));
-            ShopBtn("−", 0.388f, bot + 0.013f, 0.434f, top - 0.013f, () => ChangeCart(ing, -1), HudStyle.Tan, false, HudStyle.Text, 52, qty > 0);
-            UIKit.Label(root, qty.ToString(), 0.434f, bot, 0.470f, top, 40, TextAnchor.MiddleCenter, qty > 0 ? ShopOrange : ShopBrown);
-            ShopBtn("+", 0.470f, bot + 0.013f, 0.516f, top - 0.013f, () => ChangeCart(ing, 1), HudStyle.Gold, true, HudStyle.Text, 52, Price(ing) <= left);
+            ShopBtn("−", 0.380f, bot + 0.014f, 0.424f, top - 0.014f, () => ChangeCart(ing, -1), HudStyle.Tan, false, HudStyle.Text, 52, qty > 0);
+            UIKit.Label(root, qty.ToString(), 0.424f, bot, 0.458f, top, 40, TextAnchor.MiddleCenter, qty > 0 ? ShopOrange : ShopBrown);
+            ShopBtn("+", 0.458f, bot + 0.014f, 0.502f, top - 0.014f, () => ChangeCart(ing, 1), HudStyle.Gold, true, HudStyle.Text, 52, Price(ing) <= left);
         }
 
         UIKit.Box(root, "FootLine", 0.035f, 0.148f, 0.53f, 0.152f, new Color(0.6f, 0.45f, 0.3f, 0.45f), false); // 아래 영역 구분선
