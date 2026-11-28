@@ -131,8 +131,8 @@ public partial class GameFlow
 
         int count = Quests.PendingCount(run);
         UIKit.Label(m, "예산 " + run.budget.ToString("N0") + "원", 0.05f, 0.03f, 0.34f, 0.12f, 30, TextAnchor.MiddleLeft, HudStyle.Text);
-        UIKit.PrimaryBtn(m, "확인", 0.36f, 0.025f, 0.62f, 0.125f, CloseModal, 38);
-        UIKit.Btn(m, count > 0 ? "모두 받기 (" + count + "개)" : "모두 받기", 0.66f, 0.03f, 0.96f, 0.12f, ClaimAllQuests, UIKit.Good, 30, count > 0, false, count == 0);
+        // 닫기는 오른쪽 위 X(와 Esc·Enter)가 맡으므로 아래에는 [모두 받기] 하나만 둔다
+        UIKit.Btn(m, count > 0 ? "모두 받기 (" + count + "개)" : "모두 받기", 0.40f, 0.025f, 0.96f, 0.125f, ClaimAllQuests, UIKit.Good, 38, count > 0, false, count == 0);
     }
 
     // 줄 안의 보상 칸 하나: 어두운 모래색 정사각 칸에 그림 + 오른쪽 아래 숫자
