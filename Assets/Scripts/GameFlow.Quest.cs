@@ -126,7 +126,9 @@ public partial class GameFlow
             BarBox(row, "BarBg", 0.65f, 0.18f, 0.775f, 0.40f, new Color(0.35f, 0.27f, 0.22f));
             if (cur > 0) BarBox(row, "BarFill", 0.65f, 0.18f, 0.65f + 0.125f * cur / q.target, 0.40f, cur >= q.target ? UIKit.Good : HudStyle.Gold);
             bool pending = Quests.IsPending(run, i);
-            UIKit.Btn(row, pending ? "받기" : cur >= q.target ? "받음" : "도전 중", 0.80f, 0.17f, 0.965f, 0.83f, () => ClaimQuest(qi), UIKit.Good, 30, pending, false, !pending); // 받을 수 있는 줄은 초록 버튼, 아니면 회색 (크림 버튼의 못 누르는 모양)
+            // 도전 중·받음 버튼과 같은 크림 버튼 그림을 쓰고, 받을 수 있을 때만 초록으로 물들인다 (못 누르면 그림이 회색으로 어두워진다)
+            var claimBtn = UIKit.Btn(row, pending ? "받기" : cur >= q.target ? "받음" : "도전 중", 0.80f, 0.17f, 0.965f, 0.83f, () => ClaimQuest(qi), UIKit.Good, 30, pending);
+            if (pending) TintGreen(claimBtn);
         }
 
         int count = Quests.PendingCount(run);
@@ -187,6 +189,22 @@ public partial class GameFlow
         var o = label.GetComponent<Outline>();
         if (o != null) o.effectColor = new Color(0.16f, 0.40f, 0.26f); // 글자 테두리도 주황 대신 진한 초록
         return b;
+    }
+
+    // 크림 버튼(UIKit.Btn 기본 그림)을 게임의 초록으로 물들인다. 글자는 흰색, 마우스를 올리면 밝아지고 누르면 어두워진다
+    static void TintGreen(Button b)
+    {
+        var img = b.GetComponent<Image>();
+        if (img == null) return;
+        var cream = new Color(1f, 0.965f, 0.86f); // 크림 버튼 그림의 바탕색 쯤
+        img.color = new Color(UIKit.Good.r / cream.r, UIKit.Good.g / cream.g, UIKit.Good.b / cream.b);
+        var cb = b.colors;
+        cb.normalColor = new Color(0.92f, 0.92f, 0.92f);
+        cb.highlightedColor = Color.white;
+        cb.pressedColor = new Color(0.78f, 0.78f, 0.78f);
+        b.colors = cb;
+        var label = b.GetComponentInChildren<Text>();
+        if (label != null) label.color = Color.white;
     }
 
     // 진행 막대: 거의 사각형이고 모서리만 2px 정도 둥글다 (9칸 늘이기 그림 한 장을 만들어 둘 다 쓴다)
