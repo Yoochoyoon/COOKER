@@ -94,21 +94,21 @@ public partial class GameFlow : MonoBehaviour
             // (아래 갈색 바는 없앴다: 밸브·글자·버튼이 조리대 위에 바로 놓인다)
             // 불 조절: 가스 밸브 손잡이를 돌린다(왼쪽 약불 · 위 중불 · 오른쪽 강불). 숫자키 1·2·3도 된다
             knobRT = UIKit.ToolImage(root, "Knob", UIKit.Knob(), 0, 0, 0, 0);
-            SetSquare(knobRT, new Vector2(0.17f * RefW, 0.095f * RefH), 145f);
+            SetSquare(knobRT, KnobCenter, 145f); // 밸브는 왼쪽 타이밍 바(불 바늘 게이지) 바로 아래 같은 줄에 둔다 (자리는 GameFlow.CookGauge.cs의 KnobFx, KnobFy)
             // 다이얼 이름: 눈에 띄게 "불 세기"로 표시하고, 지금 단계를 글자로도 보여 준다
-            var fireTitle = UIKit.Label(root, "불 세기", 0.040f, 0.06f, 0.105f, 0.135f, 32, TextAnchor.MiddleCenter, UIKit.Ink);
+            var fireTitle = UIKit.Label(root, "불 세기", 0.100f, 0.095f, 0.175f, 0.150f, 32, TextAnchor.MiddleLeft, UIKit.Ink); // 글자들은 밸브 오른쪽에 모은다
             fireTitle.raycastTarget = false;
             // 밸브 둘레에 숫자키 표시: 1 약불(왼쪽 위) · 2 중불(위) · 3 강불(오른쪽 위)
             float[] keyAngle = { 150f, 90f, 30f };
             for (int kk = 0; kk < 3; kk++)
             {
                 float ka = keyAngle[kk] * Mathf.Deg2Rad;
-                float kx = 0.17f * RefW + Mathf.Cos(ka) * 108f, ky = 0.095f * RefH + Mathf.Sin(ka) * 108f;
+                float kx = KnobCenter.x + Mathf.Cos(ka) * 108f, ky = KnobCenter.y + Mathf.Sin(ka) * 108f;
                 var keyChip = UIKit.Label(root, (kk + 1).ToString(), (kx - 22f) / RefW, (ky - 22f) / RefH, (kx + 22f) / RefW, (ky + 22f) / RefH, 36, TextAnchor.MiddleCenter, UIKit.Ink);
                 keyChip.raycastTarget = false;
                 var kco = keyChip.gameObject.AddComponent<Outline>(); kco.effectColor = new Color(1f, 0.97f, 0.9f, 0.95f); kco.effectDistance = new Vector2(2f, -2f);
             }
-            fireLevelLabel = UIKit.Label(root, "", 0.235f, 0.05f, 0.33f, 0.14f, 44, TextAnchor.MiddleLeft, UIKit.Ink);
+            fireLevelLabel = UIKit.Label(root, "", 0.178f, 0.088f, 0.262f, 0.157f, 44, TextAnchor.MiddleLeft, UIKit.Ink);
             fireLevelLabel.raycastTarget = false;
             var flo = fireLevelLabel.gameObject.AddComponent<Outline>(); // 밝은 단계 색이 밝은 바탕에서도 읽히게 진한 테두리
             flo.effectColor = new Color(UIKit.Ink.r, UIKit.Ink.g, UIKit.Ink.b, 0.9f);

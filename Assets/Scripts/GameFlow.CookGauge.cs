@@ -54,7 +54,7 @@ public partial class GameFlow
         gaugeArrowImg.raycastTarget = false;
         gaugeArrowImg.color = new Color(UIKit.Bad.r, UIKit.Bad.g, UIKit.Bad.b, 0f);
 
-        gaugeLabel = UIKit.Label(root, "", 0.0f, 0.165f, 0.14f, 0.225f, 34, TextAnchor.MiddleCenter, UIKit.Bad);
+        gaugeLabel = UIKit.Label(root, "", 0.100f, 0.030f, 0.30f, 0.088f, 34, TextAnchor.MiddleLeft, UIKit.Bad); // 상태 메시지도 밸브 오른쪽, 불 세기 글자 아래
         gaugeLabel.raycastTarget = false;
 
         // 밸브 둘레 점선 링 (위험일 때만 보인다). 밸브와 같은 자리, 같은 중심
@@ -79,7 +79,9 @@ public partial class GameFlow
     }
 
     // 밸브 손잡이 중심 (StartCook의 SetSquare(knobRT, ...)와 같은 값)
-    static Vector2 KnobCenter { get { return new Vector2(0.17f * RefW, 0.095f * RefH); } }
+    // 밸브 중심을 세로 타이밍 바의 가운데(GaugeX0과 GaugeX1의 가운데)에 맞춰 바 바로 아래 같은 줄에 놓는다
+    const float KnobFx = (GaugeX0 + GaugeX1) * 0.5f, KnobFy = 0.095f;
+    static Vector2 KnobCenter { get { return new Vector2(KnobFx * RefW, KnobFy * RefH); } }
 
     // 매 프레임: 바늘 위치, 구간 밖 경고, 밸브 강조
     void UpdateGaugeUI()
