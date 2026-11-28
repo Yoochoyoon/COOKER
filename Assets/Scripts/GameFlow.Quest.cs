@@ -68,7 +68,7 @@ public partial class GameFlow
     void BuildQuestBtn()
     {
         int pend = Quests.PendingCount(run);
-        var btn = HudStyle.Panel(root, "QuestBtn", DX(1013), DY(978), DX(1143), DY(873), HudStyle.Tan, false, true);
+        var btn = HudStyle.Panel(root, "QuestBtn", DX(1013), DY(978), DX(1143), DY(873), UIKit.Good, false, true); // 초록 (받기 버튼과 같은 색)
         var img = btn.GetComponent<Image>();
         var b = btn.gameObject.AddComponent<Button>();
         b.targetGraphic = img;
@@ -90,13 +90,13 @@ public partial class GameFlow
         if (pend > 0)
         {
             // 받을 퀘스트가 있다는 표시: 닫기 X 버튼과 같은 빨간 동그라미 안에 느낌표 (개수는 창 안에서 보여 준다)
-            var badge = UIKit.Box(btn, "Badge", 0.68f, 0.66f, 1.06f, 1.16f);
+            var badge = UIKit.Box(btn, "Badge", 0.76f, 0.74f, 1.06f, 1.14f);
             var bi = badge.gameObject.AddComponent<Image>();
             bi.sprite = UIX.Circle();
             bi.preserveAspect = true;
             bi.color = new Color(0.88f, 0.29f, 0.27f);
             bi.raycastTarget = false;
-            var mark = UIKit.Label(badge, "!", 0f, 0f, 1f, 1f, 36, TextAnchor.MiddleCenter, Color.white);
+            var mark = UIKit.Label(badge, "!", 0f, 0f, 1f, 1f, 30, TextAnchor.MiddleCenter, Color.white);
             mark.fontStyle = FontStyle.Bold;
             mark.raycastTarget = false;
         }
