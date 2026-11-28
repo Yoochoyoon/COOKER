@@ -713,7 +713,7 @@ public partial class GameFlow : MonoBehaviour
         // 가운데: 철판 뒤의 갈색 탭에 오늘의 요리 한 줄. 고른 재료와 방식을 색으로 구분한다
         DayFrame("ui_guide_board", "SummaryTab", DX(990), DY(352), DX(1340), DY(273), HudStyle.Tan); // 안내판
         string ingText = "<color=#D9533C>" + string.Join(" + ", sel.Select(i => i.name)) + "</color>";
-        string methodText = selMethod.HasValue ? "<color=#3F8F63>" + Data.GetMethod(selMethod.Value).name + "</color>" : "<color=#8C7060>방식을 골라 주세요</color>";
+        string methodText = selMethod.HasValue ? "<color=#3F8F63>" + Data.GetMethod(selMethod.Value).name + "</color>" : "<color=#8C7060>방식 선택</color>";
         string tabText = sel.Count == 0 ? "재료를 골라주세요 (최대 " + Balance.MaxIngredients(run.week) + "개)" : ingText + " · " + methodText; // 아무것도 안 골랐을 때는 안내 문구
         var sumTxt = UIKit.Label(root, tabText, DX(1002), DY(338), DX(1328), DY(284), 30, TextAnchor.MiddleCenter, HudStyle.Text);
         sumTxt.resizeTextForBestFit = true; sumTxt.resizeTextMinSize = 16; sumTxt.resizeTextMaxSize = 30;
