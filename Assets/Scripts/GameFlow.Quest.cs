@@ -119,7 +119,7 @@ public partial class GameFlow
         icon.raycastTarget = false;
         icon.color = any ? Color.white : new Color(0.85f, 0.62f, 0.2f); // 달성이 없으면 연한 바탕에서도 보이게 금색 별
         if (icon.sprite == null) icon.enabled = false;
-        Color main = any ? Color.white : HudStyle.Text, sub = any ? new Color(1f, 1f, 1f, 0.92f) : HudStyle.TextSoft;
+        Color main = any ? Color.black : HudStyle.Text, sub = any ? new Color(0f, 0f, 0f, 0.9f) : HudStyle.TextSoft; // 달성했을 때 초록 카드 위 글자는 검정
         var t1 = UIKit.Label(card, "퀘스트 " + done + "/" + Quests.All.Length + "개 달성", 0.23f, 0.50f, 0.96f, 0.92f, 36, TextAnchor.MiddleLeft, main);
         t1.resizeTextForBestFit = true; t1.resizeTextMinSize = 20; t1.resizeTextMaxSize = 36;
         string tip = any ? "로비에서 받기 · +" + (done * Quests.Reward).ToString("N0") + "원 · 재료 " + done + "개" : "로비 퀘스트에서 목표 확인";
