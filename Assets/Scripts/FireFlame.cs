@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // 불꽃: 팬/냄비 둘레로 삐져나오는 파란·주황 불꽃. 불 세기(약불·중불·강불)에 따라 불꽃 혀 길이가 달라지고 살랑거린다.
-// 안쪽은 비어 있어서 팬 그림은 그대로 보이고, 가장자리에서만 불꽃이 핥듯이 보인다.
+// 가운데까지 채운 원이지만 조리도구 그림 밑에 깔려서, 도구 가장자리 밖으로 삐져나온 불꽃만 보인다.
 // GameFlow.StartCook 끝에서 Attach 한 줄로 붙인다.
 public class FireFlame : MonoBehaviour
 {
@@ -11,7 +11,7 @@ public class FireFlame : MonoBehaviour
     const float Inner = 118f;                // 그림 안에서 팬 가장자리에 맞출 반지름 (이 안쪽은 비움)
     static readonly float[] Tongue = { 10f, 24f, 40f }; // 약불·중불·강불의 불꽃 혀 길이 (그림 픽셀)
     static Sprite[] sprites;
-    const int PaletteVer = 2; // 색을 바꿀 때 올린다 (에디터에서 도메인 리로드를 꺼 두면 예전 그림이 남아 있어서)
+    const int PaletteVer = 3; // 색을 바꿀 때 올린다 (에디터에서 도메인 리로드를 꺼 두면 예전 그림이 남아 있어서)
     static int builtVer;
     // 불 세기 단계 색 (글자 등에 같이 쓴다)
     public static readonly Color[] LevelColor = { new Color(0.55f, 0.82f, 1f), new Color(1f, 0.78f, 0.35f), new Color(1f, 0.45f, 0.30f) };
@@ -84,12 +84,13 @@ public class FireFlame : MonoBehaviour
                 float jitter = 0.75f + 0.25f * Mathf.Sin(a * 5f + 1.3f);
                 float outer = Inner + 4f + tongue * wave * jitter;
                 var col = new Color(0, 0, 0, 0);
-                if (d >= Inner - 6f && d <= outer)
+                // 가운데까지 채운다: 조리도구 그림이 불꽃 위에 그려져 가운데는 가려지고, 도구 모양과 원이 조금 어긋나도 빈틈이 안 보인다
+                if (d <= outer)
                 {
-                    float k = Mathf.Clamp01((d - (Inner - 6f)) / (outer - (Inner - 6f))); // 안쪽 파랑 -> 바깥 주황·노랑
+                    float k = Mathf.Clamp01((d - (Inner - 6f)) / (outer - (Inner - 6f))); // 안쪽 파랑 -> 바깥 주황·노랑 (가운데는 안쪽 색)
                     col = k < 0.4f ? Color.Lerp(pal[0], pal[1], k / 0.4f)
                         : Color.Lerp(pal[2], pal[3], (k - 0.4f) / 0.6f);
-                    col.a = Mathf.Clamp01((outer - d) / 3f) * Mathf.Clamp01((d - (Inner - 6f)) / 3f) * 0.95f;
+                    col.a = Mathf.Clamp01((outer - d) / 3f) * 0.95f;
                 }
                 px[y * S + x] = col;
             }
