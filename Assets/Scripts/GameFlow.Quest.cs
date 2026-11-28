@@ -10,28 +10,29 @@ using UnityEngine.UI;
 public class QuestDef
 {
     public string name, desc;
+    public string item; // 받을 때 함께 주는 재료 (이름은 저장·식별에 쓰는 재료 이름 그대로)
     public int target;
     public System.Func<IList<Dish>, int> progress;
 }
 
 public static class Quests
 {
-    public const int Reward = 300; // 퀘스트 하나를 받을 때 늘어나는 예산 (원). 바꾸면 docs/09에 한 줄 남긴다
+    public const int Reward = 300; // 퀘스트 하나를 받을 때 늘어나는 예산 (원). 재료는 퀘스트마다 1개 (QuestDef.item). 바꾸면 docs/09에 한 줄 남긴다
     const string Ramen = "비상 라면";
 
     static IEnumerable<Dish> Cooked(IList<Dish> dishes) { return dishes.Where(d => d.key != Ramen); }
 
     public static readonly QuestDef[] All =
     {
-        new QuestDef { name = "직접 해 먹기", desc = "비상 라면 없이 끼니 7번 먹기", target = 7,
+        new QuestDef { name = "직접 해 먹기", desc = "비상 라면 없이 끼니 7번 먹기", target = 7, item = "달걀",
             progress = d => Cooked(d).Count() },
-        new QuestDef { name = "맛있는 한 끼", desc = "만족도 70 이상 요리 3번 만들기", target = 3,
+        new QuestDef { name = "맛있는 한 끼", desc = "만족도 70 이상 요리 3번 만들기", target = 3, item = "감자",
             progress = d => Cooked(d).Count(x => x.satisfaction >= 70) },
-        new QuestDef { name = "골고루 먹기", desc = "서로 다른 요리 5가지 만들기", target = 5,
+        new QuestDef { name = "골고루 먹기", desc = "서로 다른 요리 5가지 만들기", target = 5, item = "김치",
             progress = d => Cooked(d).Select(x => x.key).Distinct().Count() },
-        new QuestDef { name = "푸짐한 한 상", desc = "재료를 2가지 이상 섞은 요리 3번 만들기", target = 3,
+        new QuestDef { name = "푸짐한 한 상", desc = "재료를 2가지 이상 섞은 요리 3번 만들기", target = 3, item = "양파",
             progress = d => Cooked(d).Count(x => x.ings != null && x.ings.Length >= 2) },
-        new QuestDef { name = "방식 두루두루", desc = "굽기·볶기·끓이기를 모두 써 보기", target = 3,
+        new QuestDef { name = "방식 두루두루", desc = "굽기·볶기·끓이기를 모두 써 보기", target = 3, item = "달걀",
             progress = d => Cooked(d).Select(x => x.method).Distinct().Count(m => m == Method.Grill || m == Method.Stirfry || m == Method.Boil) },
     };
 
@@ -47,6 +48,8 @@ public static class Quests
         for (int i = 0; i < All.Length; i++)
             if (run.questLast[i] >= All[i].target) run.questPending |= 1 << i;
     }
+
+    public static Ingredient Item(QuestDef q) { return Data.All.FirstOrDefault(x => x.name == q.item); }
 
     public static bool IsPending(Run run, int i) { return (run.questPending & (1 << i)) != 0; }
 
@@ -100,7 +103,7 @@ public partial class GameFlow
         m.localScale = Vector3.one * 0.97f; // 가장자리 여백
         UIKit.Label(m, "퀘스트", 0.05f, 0.88f, 0.85f, 0.985f, 60, TextAnchor.MiddleCenter, HudStyle.Text);
         UIX.CloseX(m, 0.88f, 0.89f, 0.97f, 0.985f, CloseModal);
-        string note = run.week == 1 ? "이번 주에 달성하면 다음 주 로비에서 받을 수 있어요" : "지난주에 달성한 퀘스트예요. 받으면 예산이 늘어요";
+        string note = run.week == 1 ? "이번 주에 달성하면 다음 주 로비에서 받을 수 있어요" : "지난주에 달성한 퀘스트예요. 받으면 예산과 재료를 받아요";
         UIKit.Label(m, note, 0.05f, 0.80f, 0.95f, 0.875f, 28, TextAnchor.MiddleCenter, HudStyle.TextSoft);
 
         float rowH = 0.112f, step = 0.124f;
@@ -110,12 +113,18 @@ public partial class GameFlow
             var q = Quests.All[i];
             float top = 0.79f - i * step, bot = top - rowH;
             var row = HudStyle.Panel(m, "Row", 0.04f, bot, 0.96f, top, HudStyle.SandSoft, true);
-            UIKit.Label(row, q.name, 0.03f, 0.50f, 0.56f, 0.98f, 34, TextAnchor.MiddleLeft, HudStyle.Text);
-            UIKit.Label(row, q.desc, 0.03f, 0.04f, 0.56f, 0.52f, 24, TextAnchor.MiddleLeft, HudStyle.TextSoft);
+            var nameTxt = UIKit.Label(row, q.name, 0.03f, 0.50f, 0.43f, 0.98f, 34, TextAnchor.MiddleLeft, HudStyle.Text);
+            nameTxt.resizeTextForBestFit = true; nameTxt.resizeTextMinSize = 20; nameTxt.resizeTextMaxSize = 34;
+            var descTxt = UIKit.Label(row, q.desc, 0.03f, 0.04f, 0.43f, 0.52f, 24, TextAnchor.MiddleLeft, HudStyle.TextSoft);
+            descTxt.resizeTextForBestFit = true; descTxt.resizeTextMinSize = 14; descTxt.resizeTextMaxSize = 24;
+            // 보상: 예산과 재료 (받을 수 있는 줄은 진하게, 아닌 줄은 흐리게)
+            var rewTxt = UIKit.Label(row, "+" + Quests.Reward + "원\n+" + q.item + " 1", 0.44f, 0.06f, 0.60f, 0.94f, 24, TextAnchor.MiddleCenter,
+                Quests.IsPending(run, i) ? new Color(0.78f, 0.36f, 0.27f) : HudStyle.TextSoft);
+            rewTxt.resizeTextForBestFit = true; rewTxt.resizeTextMinSize = 14; rewTxt.resizeTextMaxSize = 24;
             int cur = run.questLast != null && i < run.questLast.Length ? Mathf.Min(q.target, run.questLast[i]) : 0;
-            UIKit.Label(row, cur + " / " + q.target, 0.58f, 0.50f, 0.77f, 0.98f, 26, TextAnchor.MiddleRight, HudStyle.Text);
-            UIKit.Box(row, "BarBg", 0.58f, 0.18f, 0.77f, 0.40f, new Color(0.35f, 0.27f, 0.22f), false);
-            UIKit.Box(row, "BarFill", 0.58f, 0.18f, 0.58f + 0.19f * cur / q.target, 0.40f, cur >= q.target ? UIKit.Good : HudStyle.Gold, false);
+            UIKit.Label(row, cur + " / " + q.target, 0.62f, 0.50f, 0.78f, 0.98f, 26, TextAnchor.MiddleRight, HudStyle.Text);
+            UIKit.Box(row, "BarBg", 0.62f, 0.18f, 0.78f, 0.40f, new Color(0.35f, 0.27f, 0.22f), false);
+            UIKit.Box(row, "BarFill", 0.62f, 0.18f, 0.62f + 0.16f * cur / q.target, 0.40f, cur >= q.target ? UIKit.Good : HudStyle.Gold, false);
             bool pending = Quests.IsPending(run, i);
             UIKit.Btn(row, pending ? "받기" : cur >= q.target ? "받음" : "도전 중", 0.79f, 0.12f, 0.98f, 0.88f, () => ClaimQuest(qi), UIKit.Good, 30, pending);
         }
@@ -123,28 +132,42 @@ public partial class GameFlow
         int count = Quests.PendingCount(run);
         UIKit.Label(m, "예산 " + run.budget.ToString("N0") + "원", 0.05f, 0.03f, 0.34f, 0.12f, 30, TextAnchor.MiddleLeft, HudStyle.Text);
         UIKit.PrimaryBtn(m, "확인", 0.36f, 0.025f, 0.62f, 0.125f, CloseModal, 38);
-        UIKit.Btn(m, count > 0 ? "모두 받기 +" + (count * Quests.Reward) : "모두 받기", 0.66f, 0.03f, 0.96f, 0.12f, ClaimAllQuests, UIKit.Good, 30, count > 0);
+        UIKit.Btn(m, count > 0 ? "모두 받기 (" + count + "개)" : "모두 받기", 0.66f, 0.03f, 0.96f, 0.12f, ClaimAllQuests, UIKit.Good, 30, count > 0);
     }
 
     void ClaimQuest(int i)
     {
         if (!Quests.IsPending(run, i)) return;
         run.questPending &= ~(1 << i);
-        AfterQuestClaim(Quests.Reward);
+        AfterQuestClaim(Quests.Reward, new[] { Quests.Item(Quests.All[i]) });
     }
 
     void ClaimAllQuests()
     {
         int n = Quests.PendingCount(run);
         if (n == 0) return;
+        var items = new List<Ingredient>();
+        for (int i = 0; i < Quests.All.Length; i++) if (Quests.IsPending(run, i)) items.Add(Quests.Item(Quests.All[i]));
         run.questPending = 0;
-        AfterQuestClaim(n * Quests.Reward);
+        AfterQuestClaim(n * Quests.Reward, items);
     }
 
-    void AfterQuestClaim(int gained)
+    // 퀘스트 재료를 냉장고에 넣는다. 유통기한은 장보기와 같게 오늘부터 센다 (이미 가진 재료와 섞이면 먼저 상하는 쪽을 따른다)
+    void AddQuestItem(Ingredient ing)
+    {
+        if (ing == null) return;
+        int have;
+        run.inv.TryGetValue(ing, out have);
+        run.inv[ing] = have + 1;
+        int last = run.Abs + ing.shelf - 1, old;
+        run.expire[ing] = run.expire.TryGetValue(ing, out old) && have > 0 ? Mathf.Min(old, last) : last;
+    }
+
+    void AfterQuestClaim(int gained, IEnumerable<Ingredient> items)
     {
         string before = run.budget.ToString("N0");
         run.budget += gained;
+        foreach (var it in items) AddQuestItem(it);
         Sound.Play("click");
         RunSave.Save(run); // 받은 돈과 받은 표시를 바로 저장한다 (끄고 다시 켜도 두 번 받지 못하게)
         ShowQuests(); // 창을 새로 그려 버튼 상태와 예산을 갱신한다
