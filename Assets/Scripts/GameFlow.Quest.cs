@@ -126,13 +126,13 @@ public partial class GameFlow
             UIKit.Box(row, "BarBg", 0.65f, 0.18f, 0.775f, 0.40f, new Color(0.35f, 0.27f, 0.22f), false);
             UIKit.Box(row, "BarFill", 0.65f, 0.18f, 0.65f + 0.125f * cur / q.target, 0.40f, cur >= q.target ? UIKit.Good : HudStyle.Gold, false);
             bool pending = Quests.IsPending(run, i);
-            UIKit.Btn(row, pending ? "받기" : cur >= q.target ? "받음" : "도전 중", 0.79f, 0.12f, 0.98f, 0.88f, () => ClaimQuest(qi), UIKit.Good, 30, pending);
+            UIKit.Btn(row, pending ? "받기" : cur >= q.target ? "받음" : "도전 중", 0.79f, 0.12f, 0.98f, 0.88f, () => ClaimQuest(qi), UIKit.Good, 30, pending, false, !pending); // 받을 수 있는 줄은 초록 버튼, 아니면 회색 (크림 버튼의 못 누르는 모양)
         }
 
         int count = Quests.PendingCount(run);
         UIKit.Label(m, "예산 " + run.budget.ToString("N0") + "원", 0.05f, 0.03f, 0.34f, 0.12f, 30, TextAnchor.MiddleLeft, HudStyle.Text);
         UIKit.PrimaryBtn(m, "확인", 0.36f, 0.025f, 0.62f, 0.125f, CloseModal, 38);
-        UIKit.Btn(m, count > 0 ? "모두 받기 (" + count + "개)" : "모두 받기", 0.66f, 0.03f, 0.96f, 0.12f, ClaimAllQuests, UIKit.Good, 30, count > 0);
+        UIKit.Btn(m, count > 0 ? "모두 받기 (" + count + "개)" : "모두 받기", 0.66f, 0.03f, 0.96f, 0.12f, ClaimAllQuests, UIKit.Good, 30, count > 0, false, count == 0);
     }
 
     // 줄 안의 보상 칸 하나: 어두운 모래색 정사각 칸에 그림 + 오른쪽 아래 숫자
