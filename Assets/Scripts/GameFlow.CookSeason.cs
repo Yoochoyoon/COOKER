@@ -56,9 +56,12 @@ public partial class GameFlow
         // 조리 화면 위를 어둡게 덮는다(뒤 화면은 보이지만 눌리지 않는다)
         var dim = UIKit.Box(root, "SeasonDim", -0.2f, -0.2f, 1.2f, 1.2f, new Color(0f, 0f, 0f, 0.6f), false);
         seasonUI = dim.gameObject;
-        UIKit.Box(dim, "SeasonPanel", 0.20f, 0.10f, 0.80f, 0.90f, UIKit.Card);
-        UIKit.Label(dim, "간 고르기", 0.30f, 0.76f, 0.70f, 0.86f, 56, TextAnchor.MiddleCenter, UIKit.Ink);
-        UIKit.Label(dim, "맛을 고르면 완성돼요", 0.30f, 0.69f, 0.70f, 0.76f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
+        // 어둡게 덮는 칸은 여백까지 넓게(-0.2~1.2) 깔지만, 창과 버튼은 내용 영역(root) 기준으로 놓는다 (여백 침범 방지)
+        const float a0 = 0.2f / 1.4f, a1 = 1.2f / 1.4f;
+        var area = UIKit.Box(dim, "SeasonArea", a0, a0, a1, a1);
+        UIKit.Box(area, "SeasonPanel", 0.20f, 0.10f, 0.80f, 0.90f, UIKit.Card);
+        UIKit.Label(area, "간 고르기", 0.30f, 0.76f, 0.70f, 0.86f, 56, TextAnchor.MiddleCenter, UIKit.Ink);
+        UIKit.Label(area, "맛을 고르면 완성돼요", 0.30f, 0.69f, 0.70f, 0.76f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
         var choices = cook.SeasonChoices;
         string[] keyNames = { "Q", "W", "E", "R" };
         for (int i = 0; i < choices.Length && i < 4; i++)
@@ -66,7 +69,7 @@ public partial class GameFlow
             var opt = choices[i];
             float x0 = i % 2 == 0 ? 0.24f : 0.51f;
             float y0 = i < 2 ? 0.43f : 0.15f;
-            UIKit.Btn(dim, SeasonName(opt) + " [" + keyNames[i] + "]", x0, y0, x0 + 0.25f, y0 + 0.22f, () => PickSeasonOption(opt), UIKit.Accent, 44);
+            UIKit.Btn(area, SeasonName(opt) + " [" + keyNames[i] + "]", x0, y0, x0 + 0.25f, y0 + 0.22f, () => PickSeasonOption(opt), UIKit.Accent, 44);
         }
     }
 }
