@@ -106,33 +106,33 @@ public partial class GameFlow
         string note = run.week == 1 ? "이번 주에 달성하면 다음 주 로비에서 받을 수 있어요" : "지난주에 달성한 퀘스트예요. 받으면 예산과 재료를 받아요";
         UIKit.Label(m, note, 0.05f, 0.80f, 0.95f, 0.875f, 28, TextAnchor.MiddleCenter, HudStyle.TextSoft);
 
-        float rowH = 0.112f, step = 0.124f;
+        float rowH = 0.104f, step = 0.124f; // 줄 사이 간격을 벌린다
         for (int i = 0; i < Quests.All.Length; i++)
         {
             int qi = i;
             var q = Quests.All[i];
             float top = 0.79f - i * step, bot = top - rowH;
-            var row = HudStyle.Panel(m, "Row", 0.04f, bot, 0.96f, top, HudStyle.SandSoft, true);
-            var nameTxt = UIKit.Label(row, q.name, 0.03f, 0.50f, 0.43f, 0.98f, 34, TextAnchor.MiddleLeft, HudStyle.Text);
+            var row = HudStyle.Panel(m, "Row", 0.055f, bot, 0.945f, top, HudStyle.SandSoft, true);
+            var nameTxt = UIKit.Label(row, q.name, 0.035f, 0.50f, 0.43f, 0.94f, 34, TextAnchor.MiddleLeft, HudStyle.Text);
             nameTxt.resizeTextForBestFit = true; nameTxt.resizeTextMinSize = 20; nameTxt.resizeTextMaxSize = 34;
-            var descTxt = UIKit.Label(row, q.desc, 0.03f, 0.04f, 0.43f, 0.52f, 24, TextAnchor.MiddleLeft, HudStyle.TextSoft);
+            var descTxt = UIKit.Label(row, q.desc, 0.035f, 0.06f, 0.43f, 0.52f, 24, TextAnchor.MiddleLeft, HudStyle.TextSoft);
             descTxt.resizeTextForBestFit = true; descTxt.resizeTextMinSize = 14; descTxt.resizeTextMaxSize = 24;
             // 보상 그림 두 칸: 돈 주머니(+금액)와 재료 그림(+개수). 오른쪽 아래에 숫자가 붙는다. 받을 수 있는 줄이 아니면 흐리게
             bool canClaim = Quests.IsPending(run, i);
-            RewardSlot(row, 0.450f, "icon_money", null, Quests.Reward.ToString(), canClaim);
+            RewardSlot(row, 0.455f, "icon_money", null, Quests.Reward.ToString(), canClaim);
             RewardSlot(row, 0.545f, null, Quests.Item(q), "1", canClaim);
             int cur = run.questLast != null && i < run.questLast.Length ? Mathf.Min(q.target, run.questLast[i]) : 0;
-            UIKit.Label(row, cur + " / " + q.target, 0.65f, 0.50f, 0.765f, 0.98f, 26, TextAnchor.MiddleRight, HudStyle.Text);
+            UIKit.Label(row, cur + " / " + q.target, 0.65f, 0.50f, 0.76f, 0.94f, 26, TextAnchor.MiddleRight, HudStyle.Text);
             UIKit.Box(row, "BarBg", 0.65f, 0.18f, 0.775f, 0.40f, new Color(0.35f, 0.27f, 0.22f), false);
             UIKit.Box(row, "BarFill", 0.65f, 0.18f, 0.65f + 0.125f * cur / q.target, 0.40f, cur >= q.target ? UIKit.Good : HudStyle.Gold, false);
             bool pending = Quests.IsPending(run, i);
-            UIKit.Btn(row, pending ? "받기" : cur >= q.target ? "받음" : "도전 중", 0.79f, 0.12f, 0.98f, 0.88f, () => ClaimQuest(qi), UIKit.Good, 30, pending, false, !pending); // 받을 수 있는 줄은 초록 버튼, 아니면 회색 (크림 버튼의 못 누르는 모양)
+            UIKit.Btn(row, pending ? "받기" : cur >= q.target ? "받음" : "도전 중", 0.80f, 0.17f, 0.965f, 0.83f, () => ClaimQuest(qi), UIKit.Good, 30, pending, false, !pending); // 받을 수 있는 줄은 초록 버튼, 아니면 회색 (크림 버튼의 못 누르는 모양)
         }
 
         int count = Quests.PendingCount(run);
-        UIKit.Label(m, "예산 " + run.budget.ToString("N0") + "원", 0.05f, 0.03f, 0.34f, 0.12f, 30, TextAnchor.MiddleLeft, HudStyle.Text);
+        UIKit.Label(m, "예산 " + run.budget.ToString("N0") + "원", 0.07f, 0.04f, 0.34f, 0.13f, 30, TextAnchor.MiddleLeft, HudStyle.Text);
         // 닫기는 오른쪽 위 X(와 Esc·Enter)가 맡으므로 아래에는 [모두 받기] 하나만 둔다. 노란 주요 버튼(lobby_start)과 같은 그림을 초록으로 바꿔 쓴다
-        GreenPrimaryBtn(m, count > 0 ? "모두 받기 (" + count + "개)" : "모두 받기", 0.62f, 0.025f, 0.96f, 0.125f, ClaimAllQuests, 40, count > 0);
+        GreenPrimaryBtn(m, count > 0 ? "모두 받기 (" + count + "개)" : "모두 받기", 0.62f, 0.04f, 0.94f, 0.135f, ClaimAllQuests, 40, count > 0);
     }
 
     // 주요 버튼(lobby_start, 노란색)의 색상만 초록으로 돌린 그림. 처음 한 번 만들어 두고 계속 쓴다. 그림이 없으면 null
@@ -193,7 +193,7 @@ public partial class GameFlow
     void RewardSlot(Transform row, float x0, string iconFile, Ingredient ing, string count, bool lit)
     {
         float a = lit ? 1f : 0.45f;
-        var slot = HudStyle.Panel(row, "Reward", x0, 0.10f, x0 + 0.085f, 0.90f, new Color(0.83f, 0.74f, 0.62f), true);
+        var slot = HudStyle.Panel(row, "Reward", x0, 0.14f, x0 + 0.08f, 0.86f, new Color(0.83f, 0.74f, 0.62f), true);
         var img = UIKit.Box(slot, "Icon", 0.10f, 0.14f, 0.90f, 0.90f).gameObject.AddComponent<Image>();
         if (ing != null) SetIcon(img, ing);
         else img.sprite = Art.Load(iconFile);
