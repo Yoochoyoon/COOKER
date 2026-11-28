@@ -18,6 +18,7 @@ public class Dish
     public Method method;
     public int satisfaction;
     public string note;      // 일부 재료를 망쳤을 때의 안내
+    public string why;       // 점수가 낮은 이유 한두 가지 (식사 화면에서만 쓰고 저장하지 않는다)
 }
 
 public class Run
@@ -723,6 +724,8 @@ public partial class GameFlow : MonoBehaviour
         string tabText = sel.Count == 0 ? "재료를 골라주세요 (최대 " + Balance.MaxIngredients(run.week) + "개)" : ingText + " · " + methodText; // 아무것도 안 골랐을 때는 안내 문구
         var sumTxt = UIKit.Label(root, tabText, DX(1002), DY(338), DX(1328), DY(284), 30, TextAnchor.MiddleCenter, HudStyle.Text);
         sumTxt.resizeTextForBestFit = true; sumTxt.resizeTextMinSize = 16; sumTxt.resizeTextMaxSize = 30;
+        if (!guideMeal) BuildQuestChip();      // 이번 주 퀘스트 진행 (GameFlow.Quest.cs)
+
         // 철판(요리할 재료): 여기로 끌어다 놓아서 고르고, 철판에서 밖으로 끌어내면 뺀다
         var board = DayFrame("ui_tray", "Pan", DX(876), DY(657), DX(1457), DY(340), HudStyle.SandSoft);
         if (sel.Count == 0) UIKit.Label(board, "재료를 여기로 끌어다 놓기", 0.10f, 0.30f, 0.90f, 0.70f, 34, TextAnchor.MiddleCenter, new Color(0.96f, 0.93f, 0.85f, 0.85f));
@@ -778,6 +781,8 @@ public partial class GameFlow : MonoBehaviour
                 on, 36, !guideMeal || on);
         }
 
+        ShowSpeedWarning(); // 익는 속도가 크게 다른 재료를 같이 고르면 철판 위에 알린다 (철판을 그린 뒤라야 위에 보인다)
+
         // 엄마 메시지: 파란 바 전체가 눌리는 알림 (아이콘 + 제목 + 내용). 글이 길면 바가 아래로 늘어나고, 눌러 볼 수 있다는 것이 보이게 느리게 두근거린다.
         string hint = sel.Count == 0
             ? "밥을 잘 먹고 다니니?"
@@ -827,7 +832,7 @@ public partial class GameFlow : MonoBehaviour
     void IngredientToken(Ingredient ing, int qty, int? key, float x0, float y0, float x1, float y1, RectTransform board, bool onBoard, bool draggable)
     {
         int dl = run.expire.ContainsKey(ing) ? DaysLeft(ing) : 99;
-        string tag = dl == 1 ? "오늘까지!" : dl >= 99 ? "" : "D-" + (dl - 1);
+        string tag = dl == 1 ? "오늘까지!" : dl == 2 ? "내일까지" : dl >= 99 ? "" : dl + "일 남음"; // 남은 날은 글자로 (D-17 같은 말은 처음 보면 헷갈린다)
         RectTransform rt;
         if (onBoard)
         {
@@ -842,7 +847,7 @@ public partial class GameFlow : MonoBehaviour
             SetIcon(UIKit.Box(rt, "Icon", 0.03f, 0.08f, 0.40f, 0.92f).gameObject.AddComponent<Image>(), ing); // 왼쪽에 재료 그림
             var nameTxt = UIKit.Label(rt, ing.name, 0.38f, 0.48f, 0.98f, 0.94f, 32, TextAnchor.MiddleCenter, HudStyle.Text);
             nameTxt.resizeTextForBestFit = true; nameTxt.resizeTextMinSize = 16; nameTxt.resizeTextMaxSize = 32; // 이름이 길어도 한 줄에
-            var subTxt = UIKit.Label(rt, (key.HasValue ? "[" + key.Value + "] " : "") + "x" + qty + (tag == "" ? "" : " " + tag), 0.34f, 0.06f, 0.98f, 0.50f, 20, TextAnchor.MiddleCenter, dl == 1 ? UIKit.Bad : HudStyle.TextSoft);
+            var subTxt = UIKit.Label(rt, (key.HasValue ? "[" + key.Value + "] " : "") + "x" + qty + (tag == "" ? "" : " " + tag), 0.34f, 0.06f, 0.98f, 0.50f, 20, TextAnchor.MiddleCenter, dl <= 2 ? UIKit.Bad : HudStyle.TextSoft);
             subTxt.resizeTextForBestFit = true; subTxt.resizeTextMinSize = 12; subTxt.resizeTextMaxSize = 20; // 오른쪽 끝이 잘리지 않게
         }
         if (!draggable) return;
@@ -1045,22 +1050,32 @@ public partial class GameFlow : MonoBehaviour
     {
         Clear();
         Pad(0.97f);
+        SetBg("bg_kitchen_blur"); // 다른 화면처럼 사진 배경 위에 카드를 올린다
         string reaction = dish.satisfaction >= 80 ? "엄청 맛있다! 자취 만세!"
             : dish.satisfaction >= 60 ? "나쁘지 않은데?"
             : dish.satisfaction >= 40 ? "먹을 만은 하다..."
             : "일단 배는 채웠다.";
-        UIKit.Label(root, run.week + "주차 " + run.day + "일차 식사", 0.03f, 0.88f, 0.5f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
+        HudStyle.Panel(root, "MealHeader", 0.03f, 0.885f, 0.43f, 0.985f, HudStyle.Sand);
+        UIKit.Label(root, run.week + "주차 " + run.day + "일차 식사", 0.05f, 0.89f, 0.42f, 0.98f, 52, TextAnchor.MiddleLeft, UIKit.Accent);
         // 요리 그림이 있으면 왼쪽에 그림, 오른쪽에 글을 놓는다 (비상 라면은 재료가 없어 그림 없음)
         bool photo = dish.ings.Length > 0 && dish.stages != null;
         if (photo) Photo(root, 0.04f, 0.23f, 0.40f, 0.87f, dish.ings, dish.stages, dish.method);
         float x0 = photo ? 0.42f : 0.05f, x1 = photo ? 0.97f : 0.95f;
+        HudStyle.Panel(root, "MealCard", x0 - 0.012f, 0.225f, x1 + 0.008f, 0.875f, HudStyle.SandSoft); // 글자가 사진 배경 위에서 읽히게 카드 위에 놓는다
         mealDish = dish;
-        mealName = UIKit.Label(root, dish.name, x0, 0.62f, x1, 0.80f, 100);
-        if (isNew) UIKit.Label(root, "도감에 새로 등록!", photo ? x0 : 0.3f, 0.54f, photo ? x1 : 0.7f, 0.62f, 40, TextAnchor.MiddleCenter, UIKit.Good);
-        UIKit.Label(root, "만족도 " + dish.satisfaction, photo ? x0 : 0.2f, 0.45f, photo ? x1 : 0.8f, 0.57f, 76, TextAnchor.MiddleCenter, UIKit.Accent);
-        UIKit.Label(root, Stars(dish.satisfaction), photo ? x0 : 0.2f, 0.36f, photo ? x1 : 0.8f, 0.45f, 60, TextAnchor.MiddleCenter, new Color(0.95f, 0.7f, 0.05f));
-        UIKit.Label(root, reaction, photo ? x0 : 0.1f, 0.27f, photo ? x1 : 0.9f, 0.36f, 46);
-        if (!string.IsNullOrEmpty(dish.note)) UIKit.Label(root, dish.note, photo ? x0 : 0.1f, 0.21f, photo ? x1 : 0.9f, 0.28f, 32, TextAnchor.MiddleCenter, UIKit.Bad);
+        mealName = UIKit.Label(root, dish.name, x0, 0.64f, x1, 0.82f, 100);
+        if (isNew) UIKit.Label(root, "도감에 새로 등록!", photo ? x0 : 0.3f, 0.575f, photo ? x1 : 0.7f, 0.64f, 40, TextAnchor.MiddleCenter, UIKit.Good);
+        UIKit.Label(root, "만족도 " + dish.satisfaction, photo ? x0 : 0.2f, 0.47f, photo ? x1 : 0.8f, 0.58f, 76, TextAnchor.MiddleCenter, UIKit.Accent);
+        UIKit.Label(root, Stars(dish.satisfaction), photo ? x0 : 0.2f, 0.395f, photo ? x1 : 0.8f, 0.47f, 60, TextAnchor.MiddleCenter, new Color(0.95f, 0.7f, 0.05f));
+        UIKit.Label(root, reaction, photo ? x0 : 0.1f, 0.325f, photo ? x1 : 0.9f, 0.395f, 46);
+        // 망친 재료 안내와 점수가 낮은 이유 (다음 판에 뭘 고칠지 알 수 있게)
+        string extra = (string.IsNullOrEmpty(dish.note) ? "" : "<color=#D9533C>" + dish.note + "</color>")
+            + (string.IsNullOrEmpty(dish.why) ? "" : (string.IsNullOrEmpty(dish.note) ? "" : "\n") + "아쉬운 점: " + dish.why);
+        if (extra.Length > 0)
+        {
+            var ex = UIKit.Label(root, extra, photo ? x0 : 0.1f, 0.235f, photo ? x1 : 0.9f, 0.322f, 36, TextAnchor.MiddleCenter, UIKit.Ink);
+            ex.resizeTextForBestFit = true; ex.resizeTextMinSize = 20; ex.resizeTextMaxSize = 36;
+        }
         bool last = run.day >= Balance.Days;
         UIKit.PrimaryBtn(root, (last ? "결산 보기" : "다음 날") + " [Enter]", 0.30f, 0.07f, 0.70f, 0.21f, NextDay, 48);
         scr = Scr.Meal;
@@ -1121,6 +1136,7 @@ public partial class GameFlow : MonoBehaviour
     {
         Clear();
         Pad(0.96f);
+        SetBg("bg_kitchen_blur"); // 식사 화면과 같은 사진 배경
         float sat = (float)run.dishes.Average(d => (float)d.satisfaction);
         int combos = run.dishes.Where(d => d.key != "비상 라면").Select(d => d.key).Distinct().Count();
         float div = 100f * combos / Balance.Days;
@@ -1129,7 +1145,8 @@ public partial class GameFlow : MonoBehaviour
         float total = sat * 0.5f + div * 0.3f + left * 0.2f;
         string grade = total >= Balance.GradeS ? "S" : total >= Balance.GradeA ? "A" : total >= Balance.GradeB ? "B" : "C";
 
-        UIKit.Label(root, run.week + "주차 생존!", 0.05f, 0.87f, 0.95f, 0.99f, 80, TextAnchor.MiddleCenter, UIKit.Good);
+        HudStyle.Panel(root, "ResultHeader", 0.31f, 0.865f, 0.69f, 0.995f, HudStyle.Sand);
+        UIKit.Label(root, run.week + "주차 생존!", 0.31f, 0.87f, 0.69f, 0.99f, 80, TextAnchor.MiddleCenter, UIKit.Good);
 
         // 등급 카드: 큰 등급 글자와 총점
         Color gradeColor = grade == "S" ? new Color(0.95f, 0.7f, 0.05f) : grade == "A" ? UIKit.Good : grade == "B" ? UIKit.Accent : new Color(0.5f, 0.45f, 0.4f);
@@ -1140,9 +1157,9 @@ public partial class GameFlow : MonoBehaviour
 
         // 점수 카드: 항목마다 막대로 한눈에 (만족도 50% · 다양성 30% · 남은 재료 20%)
         var scoreCard = UIKit.Box(root, "ScoreCard", 0.34f, 0.53f, 0.94f, 0.85f, UIKit.Card);
-        ScoreBar(scoreCard, "만족도", "50%", sat, UIKit.Accent, 0.68f, 0.96f);
+        ScoreBar(scoreCard, "만족도", "50%", sat, UIKit.Good, 0.68f, 0.96f); // 막대 색은 모두 같은 초록 (빨강이 나쁨으로 읽히지 않게)
         ScoreBar(scoreCard, "다양성 " + combos + "종류", "30%", div, UIKit.Good, 0.36f, 0.64f);
-        ScoreBar(scoreCard, "남은 재료 " + leftover + "개", "20%", left, new Color(0.25f, 0.55f, 0.85f), 0.04f, 0.32f);
+        ScoreBar(scoreCard, "남은 재료 " + leftover + "개", "20%", left, UIKit.Good, 0.04f, 0.32f);
 
         DishRowsCard("이번 주 먹은 요리", 0.06f, 0.215f, 0.52f, 0.49f);
 
@@ -1230,9 +1247,12 @@ public partial class GameFlow : MonoBehaviour
     {
         Clear();
         Pad(0.97f);
+        SetBg("bg_kitchen_blur"); // 식사 화면과 같은 사진 배경과 카드
         string how = stages.Contains(Doneness.Burnt) ? "새까맣게 탄 " : "날것 그대로인 ";
         Photo(root, 0.04f, 0.23f, 0.40f, 0.87f, used, stages, md.id, false); // 망친 요리는 AI 그림을 만들지 않는다
-        UIKit.Label(root, how + md.verb + " " + string.Join(" ", used.Select(i => i.name)), 0.42f, 0.62f, 0.97f, 0.80f, 90, TextAnchor.MiddleCenter, UIKit.Bad);
+        HudStyle.Panel(root, "RuinedCard", 0.408f, 0.225f, 0.978f, 0.875f, HudStyle.SandSoft);
+        var ruinedTitle = UIKit.Label(root, how + md.verb + " " + string.Join(" ", used.Select(i => i.name)), 0.42f, 0.62f, 0.97f, 0.80f, 90, TextAnchor.MiddleCenter, UIKit.Bad);
+        ruinedTitle.resizeTextForBestFit = true; ruinedTitle.resizeTextMinSize = 40; ruinedTitle.resizeTextMaxSize = 90;
         UIKit.Label(root, msg, 0.42f, 0.34f, 0.97f, 0.60f, 52);
         UIKit.PrimaryBtn(root, btn + " [Enter]", 0.30f, 0.07f, 0.70f, 0.21f, next, 48);
         confirm = next;

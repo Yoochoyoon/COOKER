@@ -96,7 +96,7 @@ public partial class GameFlow : MonoBehaviour
             knobRT = UIKit.ToolImage(root, "Knob", UIKit.Knob(), 0, 0, 0, 0);
             SetSquare(knobRT, KnobCenter, 145f); // 밸브는 왼쪽 타이밍 바(불 바늘 게이지) 바로 아래 같은 줄에 둔다 (자리는 GameFlow.CookGauge.cs의 KnobFx, KnobFy)
             // 다이얼 이름: 눈에 띄게 "불 세기"로 표시하고, 지금 단계를 글자로도 보여 준다
-            var fireTitle = UIKit.Label(root, "불 세기", 0.100f, 0.095f, 0.175f, 0.150f, 32, TextAnchor.MiddleLeft, UIKit.Ink); // 글자들은 밸브 오른쪽에 모은다
+            var fireTitle = UIKit.Label(root, "불 세기", 0.100f, 0.085f, 0.175f, 0.140f, 32, TextAnchor.MiddleLeft, UIKit.Ink); // 글자들은 밸브 오른쪽에 모은다
             fireTitle.raycastTarget = false;
             // 밸브 둘레에 숫자키 표시: 1 약불(왼쪽 위) · 2 중불(위) · 3 강불(오른쪽 위)
             float[] keyAngle = { 150f, 90f, 30f };
@@ -108,7 +108,7 @@ public partial class GameFlow : MonoBehaviour
                 keyChip.raycastTarget = false;
                 var kco = keyChip.gameObject.AddComponent<Outline>(); kco.effectColor = new Color(1f, 0.97f, 0.9f, 0.95f); kco.effectDistance = new Vector2(2f, -2f);
             }
-            fireLevelLabel = UIKit.Label(root, "", 0.178f, 0.088f, 0.262f, 0.157f, 44, TextAnchor.MiddleLeft, UIKit.Ink);
+            fireLevelLabel = UIKit.Label(root, "", 0.178f, 0.078f, 0.262f, 0.147f, 44, TextAnchor.MiddleLeft, UIKit.Ink);
             fireLevelLabel.raycastTarget = false;
             var flo = fireLevelLabel.gameObject.AddComponent<Outline>(); // 밝은 단계 색이 밝은 바탕에서도 읽히게 진한 테두리
             flo.effectColor = new Color(UIKit.Ink.r, UIKit.Ink.g, UIKit.Ink.b, 0.9f);
@@ -800,6 +800,24 @@ public partial class GameFlow : MonoBehaviour
             : "거품이 올라오면 뚜껑을 꾹 눌러서 가라앉혀라.";
     }
 
+    // 조리 결과에서 점수가 깎인 이유를 한두 가지 말로 돌려준다 (없으면 null). 식사 화면의 "아쉬운 점"에 쓴다.
+    static string MealWhy(Cook c)
+    {
+        var r = new System.Collections.Generic.List<string>();
+        var plated = c.items.Where(it => it.spot == Spot.Plate && it.ok).Select(c.Stage).ToArray();
+        if (plated.Contains(Doneness.Under)) r.Add("덜 익혔어요");
+        if (plated.Contains(Doneness.Over)) r.Add("너무 익혔어요");
+        if (c.stirLapsed) r.Add("젓기를 쉬어서 눌어붙었어요");
+        if (c.hadOverflow) r.Add("끓어넘쳤어요");
+        if (c.hadSoggy) r.Add("기름이 식어 눅눅해졌어요");
+        if (c.flipMissed) r.Add("뒤집기 타이밍을 놓쳤어요");
+        if (c.OrderViolations > 0) r.Add("재료 넣는 순서가 달랐어요");
+        if (c.GaugePenalty >= 3f) r.Add("불 세기가 적정 구간을 벗어났어요");
+        if (c.TimePenalty >= 3f) r.Add("제한 시간을 넘겼어요");
+        if (c.SeasonDelta < 0f) r.Add("간이 안 맞았어요");
+        return r.Count == 0 ? null : string.Join(" · ", r.Take(2));
+    }
+
     void FinishCook()
     {
         // 끝나자마자 화면을 바꾸면 마지막 재료가 날아가는 모습과 번쩍임이 보이지 않는다.
@@ -833,6 +851,7 @@ public partial class GameFlow : MonoBehaviour
         string fail = cook.FailText;
         var md = cook.m;
         int sat = cook.Satisfaction();
+        string lowWhy = sat < 80 ? MealWhy(cook) : null; // 점수가 낮은 이유 (식사 화면에서 보여 준다)
         cook = null;
         Sound.Music("bgm_lobby"); // 조리가 끝나면 식사·하루 선택 화면으로 가므로 평소 곡으로 돌아간다
 
@@ -862,6 +881,7 @@ public partial class GameFlow : MonoBehaviour
             method = md.id,
             satisfaction = sat,
             note = lost.Length == 0 ? null : string.Join(", ", lost.Select(i => i.name)) + "은(는) 망쳐서 버렸다...",
+            why = lowWhy,
         };
         run.dishes.Add(dish);
         bool isNew = !dex.ContainsKey(dish.key);

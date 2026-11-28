@@ -127,6 +127,58 @@ public partial class GameFlow
         t2.resizeTextForBestFit = true; t2.resizeTextMinSize = 14; t2.resizeTextMaxSize = 24;
     }
 
+    // 하루 선택 화면: 이번 주 퀘스트를 몇 개 달성했는지, 가장 가까운 다음 퀘스트의 진행을 보여 준다 (위쪽 주차·돈 바 오른쪽 빈 자리)
+    void BuildQuestChip()
+    {
+        var prog = Quests.Progress(run.dishes);
+        int done = 0, next = -1;
+        float best = -1f;
+        for (int i = 0; i < Quests.All.Length; i++)
+        {
+            if (prog[i] >= Quests.All[i].target) { done++; continue; }
+            float r = (float)prog[i] / Quests.All[i].target;
+            if (r > best) { best = r; next = i; }
+        }
+        bool all = done == Quests.All.Length;
+        var chip = HudStyle.Panel(root, "QuestChip", DX(740), DY(192), DX(1120), DY(103), done > 0 ? UIKit.Good : HudStyle.SandSoft);
+        var icon = UIKit.Box(chip, "Icon", 0.03f, 0.18f, 0.17f, 0.82f).gameObject.AddComponent<Image>();
+        icon.sprite = Art.Load("icon_star");
+        icon.preserveAspect = true;
+        icon.raycastTarget = false;
+        icon.color = done > 0 ? Color.white : new Color(0.85f, 0.62f, 0.2f);
+        if (icon.sprite == null) icon.enabled = false;
+        Color main = done > 0 ? Color.black : HudStyle.Text, sub = done > 0 ? new Color(0f, 0f, 0f, 0.85f) : HudStyle.TextSoft;
+        var t1 = UIKit.Label(chip, "퀘스트 " + done + "/" + Quests.All.Length + " 달성", 0.19f, 0.50f, 0.97f, 0.93f, 28, TextAnchor.MiddleLeft, main);
+        t1.resizeTextForBestFit = true; t1.resizeTextMinSize = 16; t1.resizeTextMaxSize = 28;
+        string line = all ? "모두 달성! 다음 주 로비에서 받아요" : "다음: " + Quests.All[next].name + " " + prog[next] + "/" + Quests.All[next].target;
+        var t2 = UIKit.Label(chip, line, 0.19f, 0.10f, 0.97f, 0.50f, 22, TextAnchor.MiddleLeft, sub);
+        t2.resizeTextForBestFit = true; t2.resizeTextMinSize = 12; t2.resizeTextMaxSize = 22;
+    }
+
+    // 받침이 있으면 "은", 없으면 "는"
+    static string Eun(string word)
+    {
+        if (string.IsNullOrEmpty(word)) return "은";
+        int c = word[word.Length - 1] - 0xAC00;
+        return c >= 0 && c <= 11171 && c % 28 != 0 ? "은" : "는";
+    }
+
+    // 고른 재료 중 익는 속도(speedMod)가 크게 다른 쌍이 있으면 철판 아래에 주의 문구를 띄운다
+    void ShowSpeedWarning()
+    {
+        if (guideMeal || sel.Count < 2) return;
+        var fast = sel.OrderByDescending(i => i.speedMod).First();
+        var slow = sel.OrderBy(i => i.speedMod).First();
+        if (fast.speedMod < slow.speedMod * 1.7f) return;
+        // 철판 안쪽 아래 줄(재료 그림 아래 빈 곳)에 어두운 철판 위에서 읽히는 밝은 글자로 놓는다
+        var w = UIKit.Label(root, fast.name + Eun(fast.name) + " 빨리, " + slow.name + Eun(slow.name) + " 천천히 익어요. 같이 하면 위험해요", DX(900), DY(636), DX(1432), DY(600), 24, TextAnchor.MiddleCenter, new Color(1f, 0.85f, 0.5f));
+        w.resizeTextForBestFit = true; w.resizeTextMinSize = 14; w.resizeTextMaxSize = 24;
+        w.raycastTarget = false;
+        var o = w.gameObject.AddComponent<Outline>();
+        o.effectColor = new Color(0.2f, 0.12f, 0.08f, 0.9f);
+        o.effectDistance = new Vector2(1.5f, -1.5f);
+    }
+
     // 퀘스트 창 (로비 전용). 줄마다 이름 · 목표 · 지난 주 진행 막대 · [받기]
     void ShowQuests()
     {
@@ -160,7 +212,7 @@ public partial class GameFlow
             if (cur > 0) BarBox(row, "BarFill", 0.65f, 0.18f, 0.65f + 0.125f * cur / q.target, 0.40f, cur >= q.target ? UIKit.Good : HudStyle.Gold);
             bool pending = Quests.IsPending(run, i);
             // 도전 중·받음 버튼과 같은 크림 버튼 그림을 쓰고, 받을 수 있을 때만 초록으로 물들인다 (못 누르면 그림이 회색으로 어두워진다)
-            var claimBtn = UIKit.Btn(row, pending ? "받기" : cur >= q.target ? "받음" : "도전 중", 0.80f, 0.17f, 0.965f, 0.83f, () => ClaimQuest(qi), UIKit.Good, 30, pending);
+            var claimBtn = UIKit.Btn(row, pending ? "받기" : cur >= q.target ? "받음" : run.week == 1 ? "이번 주 도전" : "미달성", 0.80f, 0.17f, 0.965f, 0.83f, () => ClaimQuest(qi), UIKit.Good, 30, pending);
             if (pending) TintGreen(claimBtn);
         }
 
@@ -320,7 +372,7 @@ public partial class GameFlow
 
     void AfterQuestClaim(int gained, IEnumerable<Ingredient> items)
     {
-        string before = run.budget.ToString("N0");
+        string before = run.budget.ToString("N0") + "원"; // 로비 금액 글자도 원을 붙여 쓴다
         run.budget += gained;
         foreach (var it in items) AddQuestItem(it);
         Sound.Play("click");
@@ -328,7 +380,7 @@ public partial class GameFlow
         ShowQuests(); // 창을 새로 그려 버튼 상태와 예산을 갱신한다
         // 뒤에 있는 로비의 금액 글자도 바꾼다 (로비를 다시 그리면 창이 닫히고 칭호 알림이 겹칠 수 있어서 글자만 바꾼다)
         foreach (var t in root.GetComponentsInChildren<Text>(true))
-            if (t.text == before) t.text = run.budget.ToString("N0");
+            if (t.text == before) t.text = run.budget.ToString("N0") + "원";
         RefreshQuestBadge();
     }
 
