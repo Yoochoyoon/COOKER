@@ -426,8 +426,9 @@ public partial class GameFlow : MonoBehaviour
     }
 
     // 재료 이름표 크기 (재료 그림 높이 기준, 아래쪽이 음수). 두 줄이 위아래 줄 재료와 겹치지 않는 높이
-    const float LabelCellFill = 0.96f, LabelBottom = -0.52f, LabelTop = -0.02f, LabelLineSpacing = 0.9f;
-    const int LabelMinFont = 16, LabelMaxFont = 26;
+    // 재료가 최대 3개라 도마에는 한 줄만 놓인다. 이름표를 그림 높이만큼 크게 잡아 글자가 작아지지 않게 한다 (16px로 줄어 안 읽혔다)
+    const float LabelCellFill = 0.96f, LabelBottom = -0.98f, LabelTop = -0.02f, LabelLineSpacing = 0.9f;
+    const int LabelMinFont = 22, LabelMaxFont = 32;
     // 접시에 모아 담을 때: 가운데에서 떨어지는 거리(접시 안쪽 폭 기준)와 재료 크기
     const float PlatePileRadius = 0.20f, PlatePile2Scale = 0.95f, PlatePileManyScale = 0.85f;
 

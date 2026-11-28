@@ -439,8 +439,8 @@ public partial class GameFlow : MonoBehaviour
         Color nameColor = enabled ? new Color(0.25f, 0.13f, 0.08f) : new Color(0.78f, 0.77f, 0.75f);
         var nameTxt = UIKit.Label(rt, name, 0.43f, 0.52f, 0.94f, 0.92f, size, TextAnchor.MiddleLeft, nameColor);
         nameTxt.resizeTextForBestFit = true; nameTxt.resizeTextMinSize = 18; nameTxt.resizeTextMaxSize = size;
-        var tipTxt = UIKit.Label(rt, tip, 0.43f, 0.13f, 0.94f, 0.54f, 18, TextAnchor.UpperLeft, new Color(nameColor.r, nameColor.g, nameColor.b, 0.8f));
-        tipTxt.resizeTextForBestFit = true; tipTxt.resizeTextMinSize = 11; tipTxt.resizeTextMaxSize = 18;
+        var tipTxt = UIKit.Label(rt, tip, 0.43f, 0.14f, 0.96f, 0.52f, 22, TextAnchor.MiddleLeft, new Color(nameColor.r, nameColor.g, nameColor.b, 0.85f));
+        tipTxt.resizeTextForBestFit = true; tipTxt.resizeTextMinSize = 16; tipTxt.resizeTextMaxSize = 22;
         return b;
     }
 
@@ -603,7 +603,10 @@ public partial class GameFlow : MonoBehaviour
         bgFill.gameObject.SetActive(true);
         bgFill.sprite = null; // 단색: 조리대 그림 가장자리 네 변의 평균색(식탁 나무 색). 같은 그림을 크게 깔면 도마·접시 가장자리가 비쳐 보인다
         bgFill.color = new Color(0.989f, 0.775f, 0.652f);
-        bgFill.transform.SetSiblingIndex(bgImg.transform.GetSiblingIndex()); // 그림 바로 아래
+        // 채움 칸은 항상 그림 바로 아래. (한 번만 옮기면 두 번째 조리부터 채움 칸이 그림 위로 올라가 배경이 사라졌다)
+        bgFill.transform.SetSiblingIndex(bgImg.transform.GetSiblingIndex());
+        if (bgFill.transform.GetSiblingIndex() > bgImg.transform.GetSiblingIndex())
+            bgImg.transform.SetSiblingIndex(bgFill.transform.GetSiblingIndex());
     }
 
     // 이번 주 재료 가격: 매주 오른다
@@ -764,8 +767,9 @@ public partial class GameFlow : MonoBehaviour
             var md = openMethods[k];
             bool on = selMethod == md.id;
             // 방식마다 핵심 조작을 한마디로 (고르기 전에 알 수 있게)
-            string tip = md.id == Method.Grill ? "뒤집을 때를 잡아라" : md.id == Method.Stirfry ? "쉬지 않고 저어라"
-                : md.id == Method.Boil ? "넘치면 뚜껑" : "불을 약하게 두지 마";
+            // 바가 좁아 긴 문장은 11px까지 줄어 안 읽혔다. 한 줄에 들어가는 짧은 말로 쓴다
+            string tip = md.id == Method.Grill ? "제때 뒤집기" : md.id == Method.Stirfry ? "계속 젓기"
+                : md.id == Method.Boil ? "넘치면 뚜껑" : "센불 유지";
             DayMethodBtn(md.id == Method.Grill ? "icon_pan" : md.id == Method.Stirfry ? "icon_wok" : md.id == Method.Boil ? "icon_pot" : "icon_fry",
                 md.name, "[" + "QWER"[k] + "] " + tip, DX(1541), DY(barTop[k] + 96f), DX(1812), DY(barTop[k]), () => { selMethod = md.id; ShowDay(); },
                 on, 36, !guideMeal || on);
@@ -1278,9 +1282,9 @@ public partial class GameFlow : MonoBehaviour
     {
         CloseModal();
         var list = Recipes.Suggest(run.inv.Keys, DaysLeft, 3, Data.Unlocked);
-        modal = UIKit.Box(canvasRT, "MomRecipes", 0.05f, 0.10f, 0.95f, 0.90f, UIKit.Card).gameObject;
-        modal.transform.localScale = Vector3.one * 0.97f; // 가장자리 여백
-        var m = modal.transform;
+        modal = ModalDim("MomRecipesDim");
+        var m = UIKit.Box(modal.transform, "MomRecipes", 0.05f, 0.10f, 0.95f, 0.90f, UIKit.Card);
+        m.localScale = Vector3.one * 0.97f; // 가장자리 여백
         UIKit.Label(m, "엄마의 전언", 0.04f, 0.87f, 0.6f, 0.98f, 64, TextAnchor.MiddleLeft, UIKit.Accent);
         UIX.CloseX(m, 0.915f, 0.885f, 0.975f, 0.975f, CloseModal);
         UIKit.Label(m, list.Count == 0 ? "엄마: 냉장고가 텅 비었네... 비상 라면이라도 챙겨 먹어라."
@@ -1314,6 +1318,13 @@ public partial class GameFlow : MonoBehaviour
             selMethod = list[i].method;
             ShowDay(); // ShowDay의 Clear가 모달도 닫는다
         };
+    }
+
+    // 팝업 뒤를 어둡게 덮는 칸. 팝업 창은 이 칸의 자식으로 만들고, 이 칸을 modal로 두면 닫을 때 같이 사라진다.
+    // 화면 전체를 덮어 뒤의 버튼이 눌리지 않게 막는다.
+    GameObject ModalDim(string name)
+    {
+        return UIKit.Box(canvasRT, name, 0, 0, 1, 1, new Color(0f, 0f, 0f, 0.45f), false).gameObject;
     }
 
     void CloseModal()

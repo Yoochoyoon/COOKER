@@ -53,9 +53,9 @@ public partial class GameFlow : MonoBehaviour
         CloseModal();
         bool canEquip = scr == Scr.Title || scr == Scr.Lobby || scr == Scr.Result;
         var dishes = dex.Values.ToList();
-        modal = UIKit.Box(canvasRT, "Titles", 0.06f, 0.10f, 0.94f, 0.90f, UIKit.Card, true).gameObject;
-        modal.transform.localScale = Vector3.one * 0.97f; // 가장자리 여백
-        var m = modal.transform;
+        modal = ModalDim("TitlesDim"); // 뒤 화면을 어둡게 덮는다
+        var m = UIKit.Box(modal.transform, "Titles", 0.06f, 0.10f, 0.94f, 0.90f, UIKit.Card, true);
+        m.localScale = Vector3.one * 0.97f; // 가장자리 여백
         // 아직 해금되지 않은 튀김 관련 칭호는 목록에 보이지 않는다
         var shownTitles = Titles.All.Where(t => t.id != "frypro" || Data.Unlocked(Method.Fry)).ToArray();
         UIKit.Label(m, "칭호 (" + Titles.EarnedCount + " / " + shownTitles.Length + ")", 0.04f, 0.88f, 0.5f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
@@ -69,10 +69,13 @@ public partial class GameFlow : MonoBehaviour
             float top = 0.86f - i * 0.1f, bot = top - 0.08f;
             var row = UIKit.Box(m, "Row" + i, 0.03f, bot, 0.97f, top, has ? Color.white : new Color(0.88f, 0.8f, 0.64f), true);
             UIKit.Label(row, t.name, 0.02f, 0.05f, 0.22f, 0.95f, 34, TextAnchor.MiddleLeft, has ? UIKit.Ink : UIKit.Muted);
-            UIKit.Label(row, t.cond + "\n" + (has ? "달성!" : "진행 " + Titles.ProgressOf(t, dishes)), 0.23f, 0.05f, 0.58f, 0.95f, 24, TextAnchor.MiddleLeft, UIKit.Muted);
-            // 튀김 해금 보상은 얻기 전에는 무엇인지 숨긴다
+            // 튀김 해금 보상은 얻기 전에는 무엇인지 숨긴다. 보상이 없는 칭호는 "보상: 없음"을 쓰지 않고 조건 칸을 넓힌다
             string rewardText = !has && t.id == Titles.Survivor ? "???" : t.reward;
-            UIKit.Label(row, "보상: " + rewardText, 0.59f, 0.05f, 0.80f, 0.95f, 24, TextAnchor.MiddleLeft, has && t.reward != "없음" ? UIKit.Good : UIKit.Muted);
+            bool hasReward = !string.IsNullOrEmpty(rewardText) && rewardText != "없음";
+            var condTxt = UIKit.Label(row, t.cond + "\n" + (has ? "달성!" : "진행 " + Titles.ProgressOf(t, dishes)), 0.23f, 0.05f, hasReward ? 0.58f : 0.79f, 0.95f, 28, TextAnchor.MiddleLeft, UIKit.Muted);
+            condTxt.resizeTextForBestFit = true; condTxt.resizeTextMinSize = 20; condTxt.resizeTextMaxSize = 28;
+            if (hasReward)
+                UIKit.Label(row, "보상: " + rewardText, 0.59f, 0.05f, 0.80f, 0.95f, 26, TextAnchor.MiddleLeft, has ? UIKit.Good : UIKit.Muted);
             bool on = Titles.IsRepresentative(t);
             var tt = t;
             UIKit.IconBtn(row, !has ? "icon_lock" : on ? "icon_star" : "icon_star_off", !has ? "잠김" : on ? "해제" : "대표로", 0.80f, 0.12f, 0.98f, 0.88f, () => { Titles.SetRepresentative(tt); ShowTitles(); Lobby.RefreshTitle(); },
@@ -86,9 +89,9 @@ public partial class GameFlow : MonoBehaviour
     void ShowFridge()
     {
         CloseModal();
-        modal = UIKit.Box(canvasRT, "Fridge", 0.25f, 0.15f, 0.75f, 0.85f, UIKit.Card, true).gameObject;
-        modal.transform.localScale = Vector3.one * 0.97f; // 가장자리 여백
-        var m = modal.transform;
+        modal = ModalDim("FridgeDim"); // 뒤 화면을 어둡게 덮는다 (도감 상세와 같게)
+        var m = UIKit.Box(modal.transform, "Fridge", 0.25f, 0.15f, 0.75f, 0.85f, UIKit.Card, true);
+        m.localScale = Vector3.one * 0.97f; // 가장자리 여백
         UIKit.Label(m, "냉장고", 0.05f, 0.84f, 0.95f, 0.98f, 64, TextAnchor.MiddleCenter, UIKit.Accent);
         // 재료마다 한 줄: 재료 그림, 이름 × 개수, 남은 유통기한 (급한 것부터)
         var have = run.inv.Where(kv => kv.Value > 0)
@@ -282,7 +285,11 @@ public partial class GameFlow : MonoBehaviour
         modal = UIKit.Box(canvasRT, "Dex", 0.08f, 0.08f, 0.92f, 0.92f, UIKit.Card).gameObject;
         modal.transform.localScale = Vector3.one * 0.97f; // 가장자리 여백
         var m = modal.transform;
-        UIKit.Label(m, "도감 (" + found + " / " + slots.Count + ")", 0.05f, 0.88f, 0.45f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
+        // 기본 칸(재료 1~2개)만 분모로 센다. 재료 3개 요리는 만들 때마다 칸이 생기므로 "보너스"로 따로 센다 (분모가 늘어나 헷갈리지 않게)
+        int baseCount = DexSlots().Count;
+        int bonus = Mathf.Max(0, slots.Count - baseCount);
+        var dexTitle = UIKit.Label(m, "도감 (" + (found - bonus) + " / " + baseCount + ")" + (bonus > 0 ? " +보너스 " + bonus : ""), 0.05f, 0.88f, 0.48f, 0.98f, 60, TextAnchor.MiddleLeft, UIKit.Accent);
+        dexTitle.resizeTextForBestFit = true; dexTitle.resizeTextMinSize = 36; dexTitle.resizeTextMaxSize = 60;
         dexInfo = UIKit.Label(m, "", 0.40f, 0.88f, 0.74f, 0.98f, 28, TextAnchor.MiddleRight, UIKit.Muted);
         UIX.CloseX(m, 0.915f, 0.895f, 0.975f, 0.975f, CloseModal);
 
