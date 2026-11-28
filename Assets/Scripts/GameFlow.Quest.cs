@@ -131,8 +131,62 @@ public partial class GameFlow
 
         int count = Quests.PendingCount(run);
         UIKit.Label(m, "예산 " + run.budget.ToString("N0") + "원", 0.05f, 0.03f, 0.34f, 0.12f, 30, TextAnchor.MiddleLeft, HudStyle.Text);
-        // 닫기는 오른쪽 위 X(와 Esc·Enter)가 맡으므로 아래에는 [모두 받기] 하나만 둔다
-        UIKit.Btn(m, count > 0 ? "모두 받기 (" + count + "개)" : "모두 받기", 0.40f, 0.025f, 0.96f, 0.125f, ClaimAllQuests, UIKit.Good, 38, count > 0, false, count == 0);
+        // 닫기는 오른쪽 위 X(와 Esc·Enter)가 맡으므로 아래에는 [모두 받기] 하나만 둔다. 노란 주요 버튼(lobby_start)과 같은 그림을 초록으로 바꿔 쓴다
+        GreenPrimaryBtn(m, count > 0 ? "모두 받기 (" + count + "개)" : "모두 받기", 0.40f, 0.025f, 0.96f, 0.125f, ClaimAllQuests, 44, count > 0);
+    }
+
+    // 주요 버튼(lobby_start, 노란색)의 색상만 초록으로 돌린 그림. 처음 한 번 만들어 두고 계속 쓴다. 그림이 없으면 null
+    static Sprite greenPrimary;
+    static Sprite GreenPrimarySprite()
+    {
+        if (greenPrimary != null) return greenPrimary;
+        var src = Art.Load("lobby_start");
+        if (src == null) return null;
+        var rt = RenderTexture.GetTemporary(src.texture.width, src.texture.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+        Graphics.Blit(src.texture, rt); // 읽기 불가 텍스처도 복사해서 읽는다
+        var prev = RenderTexture.active;
+        RenderTexture.active = rt;
+        var r = src.rect;
+        var tex = new Texture2D((int)r.width, (int)r.height, TextureFormat.RGBA32, false);
+        tex.ReadPixels(new Rect(r.x, r.y, r.width, r.height), 0, 0);
+        RenderTexture.active = prev;
+        RenderTexture.ReleaseTemporary(rt);
+        var px = tex.GetPixels();
+        for (int k = 0; k < px.Length; k++)
+        {
+            float h, s, v;
+            Color.RGBToHSV(px[k], out h, out s, out v);
+            if (s < 0.12f) continue; // 흰 하이라이트·회색은 그대로
+            // 노랑(0.13) -> 게임의 초록(UIKit.Good, 색상 0.41)으로. 주황 테두리도 같이 초록. 그대로 돌리면 너무 쨍해서 채도와 밝기를 낮춘다
+            var c = Color.HSVToRGB(Mathf.Repeat(h + 0.28f, 1f), s * 0.62f, v * 0.84f);
+            c.a = px[k].a;
+            px[k] = c;
+        }
+        tex.SetPixels(px);
+        tex.Apply();
+        greenPrimary = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), src.pixelsPerUnit, 0, SpriteMeshType.FullRect, src.border);
+        return greenPrimary;
+    }
+
+    // [Enter] 큰 버튼(PrimaryBtn)과 같은 모양의 초록 버튼. 못 누르면 PrimaryBtn과 같은 회색 버튼이다
+    Button GreenPrimaryBtn(Transform parent, string text, float x0, float y0, float x1, float y1, System.Action onClick, int size, bool enabled)
+    {
+        var s = GreenPrimarySprite();
+        if (s == null || !enabled) return UIKit.PrimaryBtn(parent, text, x0, y0, x1, y1, onClick, size, enabled);
+        var rt = UIKit.Box(parent, "Btn_" + text, x0, y0, x1, y1);
+        var img = rt.gameObject.AddComponent<Image>();
+        img.sprite = s;
+        img.type = Image.Type.Sliced;
+        var b = rt.gameObject.AddComponent<Button>();
+        b.targetGraphic = img;
+        b.transition = Selectable.Transition.None;
+        if (onClick != null) b.onClick.AddListener(() => onClick());
+        rt.gameObject.AddComponent<LobbyHover>().img = img;
+        rt.gameObject.AddComponent<PressDown>().depth = 5f;
+        var label = UIKit.PrimaryLabel(rt, text, size, true);
+        var o = label.GetComponent<Outline>();
+        if (o != null) o.effectColor = new Color(0.16f, 0.40f, 0.26f); // 글자 테두리도 주황 대신 진한 초록
+        return b;
     }
 
     // 줄 안의 보상 칸 하나: 어두운 모래색 정사각 칸에 그림 + 오른쪽 아래 숫자
