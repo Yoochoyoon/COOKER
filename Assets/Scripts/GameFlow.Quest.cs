@@ -123,8 +123,8 @@ public partial class GameFlow
             RewardSlot(row, 0.545f, null, Quests.Item(q), "1", canClaim);
             int cur = run.questLast != null && i < run.questLast.Length ? Mathf.Min(q.target, run.questLast[i]) : 0;
             UIKit.Label(row, cur + " / " + q.target, 0.65f, 0.50f, 0.76f, 0.94f, 26, TextAnchor.MiddleRight, HudStyle.Text);
-            UIKit.Box(row, "BarBg", 0.65f, 0.18f, 0.775f, 0.40f, new Color(0.35f, 0.27f, 0.22f), false);
-            UIKit.Box(row, "BarFill", 0.65f, 0.18f, 0.65f + 0.125f * cur / q.target, 0.40f, cur >= q.target ? UIKit.Good : HudStyle.Gold, false);
+            BarBox(row, "BarBg", 0.65f, 0.18f, 0.775f, 0.40f, new Color(0.35f, 0.27f, 0.22f));
+            if (cur > 0) BarBox(row, "BarFill", 0.65f, 0.18f, 0.65f + 0.125f * cur / q.target, 0.40f, cur >= q.target ? UIKit.Good : HudStyle.Gold);
             bool pending = Quests.IsPending(run, i);
             UIKit.Btn(row, pending ? "받기" : cur >= q.target ? "받음" : "도전 중", 0.80f, 0.17f, 0.965f, 0.83f, () => ClaimQuest(qi), UIKit.Good, 30, pending, false, !pending); // 받을 수 있는 줄은 초록 버튼, 아니면 회색 (크림 버튼의 못 누르는 모양)
         }
@@ -187,6 +187,36 @@ public partial class GameFlow
         var o = label.GetComponent<Outline>();
         if (o != null) o.effectColor = new Color(0.16f, 0.40f, 0.26f); // 글자 테두리도 주황 대신 진한 초록
         return b;
+    }
+
+    // 진행 막대: 거의 사각형이고 모서리만 2px 정도 둥글다 (9칸 늘이기 그림 한 장을 만들어 둘 다 쓴다)
+    static Sprite barSprite;
+    static Sprite BarSprite()
+    {
+        if (barSprite != null) return barSprite;
+        const int n = 8; const float r = 2f;
+        var tex = new Texture2D(n, n, TextureFormat.RGBA32, false);
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float px = x + 0.5f, py = y + 0.5f;
+                float dx = Mathf.Max(r - px, 0f, px - (n - r)), dy = Mathf.Max(r - py, 0f, py - (n - r));
+                float a = Mathf.Clamp01(r - Mathf.Sqrt(dx * dx + dy * dy) + 0.5f); // 모서리 바깥쪽은 투명, 가장자리는 부드럽게
+                tex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+            }
+        tex.filterMode = FilterMode.Bilinear;
+        tex.Apply();
+        barSprite = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(3, 3, 3, 3));
+        return barSprite;
+    }
+
+    static void BarBox(Transform parent, string name, float x0, float y0, float x1, float y1, Color color)
+    {
+        var rt = UIKit.Box(parent, name, x0, y0, x1, y1, color, false);
+        var img = rt.GetComponent<Image>();
+        img.sprite = BarSprite();
+        img.type = Image.Type.Sliced;
+        img.raycastTarget = false;
     }
 
     // 줄 안의 보상 칸 하나: 어두운 모래색 정사각 칸에 그림 + 오른쪽 아래 숫자
