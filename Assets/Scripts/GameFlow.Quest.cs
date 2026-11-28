@@ -68,7 +68,7 @@ public partial class GameFlow
     void BuildQuestBtn()
     {
         int pend = Quests.PendingCount(run);
-        var btn = HudStyle.Panel(root, "QuestBtn", DX(1013), DY(978), DX(1143), DY(873), UIKit.Good, false, true); // 초록 (받기 버튼과 같은 색)
+        var btn = HudStyle.Panel(root, "QuestBtn", DX(1013), DY(978), DX(1143), DY(873), UIKit.Good, true, true); // 초록 (받기 버튼과 같은 색). small: 아래 그림자 두께를 옆 버튼들처럼 얇게
         var img = btn.GetComponent<Image>();
         var b = btn.gameObject.AddComponent<Button>();
         b.targetGraphic = img;
