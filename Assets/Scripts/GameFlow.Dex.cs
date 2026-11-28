@@ -426,7 +426,8 @@ public partial class GameFlow : MonoBehaviour
         foreach (var s in shown) DexCard(dexContent, s);
         ((RectTransform)dexContent).anchoredPosition = Vector2.zero;
         if (dexInfo != null)
-            dexInfo.text = shown.Count == 0 ? "조건에 맞는 요리가 없다." : "표시 " + shown.Count + "칸 · 요리를 누르면 자세히";
+            // 제목의 (발견 / 전체)와 숫자가 겹쳐 헷갈렸다: 전부 보일 때는 안내만, 거를 때만 몇 칸인지 적는다
+            dexInfo.text = shown.Count == 0 ? "조건에 맞는 요리가 없다." : shown.Count < AllDexSlots().Count ? "조건에 맞는 " + shown.Count + "칸 · 요리를 누르면 자세히" : "요리를 누르면 자세히";
     }
 
     void DexCard(Transform parent, DexSlot s)

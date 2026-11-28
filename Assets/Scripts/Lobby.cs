@@ -56,7 +56,7 @@ public static class Lobby
         Piece(fit, "WeekIcon", "icon_week", 121, 116, 31, 32, null);
         Text(fit, run.week + "주차", 168, 112, 200, 46, 36, Brown, TextAnchor.MiddleLeft);
         Piece(fit, "MoneyIcon", "icon_money", 386, 116, 28, 32, null);
-        string money = run.budget.ToString("N0");
+        string money = run.budget.ToString("N0") + "원"; // 다른 화면과 같게 원을 붙인다
         Text(fit, money, 428, 112, 250, 46, 36, Brown, TextAnchor.MiddleLeft);
 
         // 아래 줄: 도감(책) · 칭호(왕관) · 게임 시작
