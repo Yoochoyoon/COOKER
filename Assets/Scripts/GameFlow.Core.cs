@@ -31,6 +31,8 @@ public class Run
     public int bought;
     public Dictionary<Ingredient, int> inv = new Dictionary<Ingredient, int>();
     public List<Dish> dishes = new List<Dish>();
+    public int[] questLast = new int[Quests.All.Length]; // 지난 주 퀘스트별 진행 (GameFlow.Quest.cs)
+    public int questPending;                             // 받을 수 있는 퀘스트 (비트마다 퀘스트 하나)
 }
 
 public partial class GameFlow : MonoBehaviour
@@ -308,6 +310,7 @@ public partial class GameFlow : MonoBehaviour
     {
         Lobby.Show(root, run, Clear, ShowShop, ShowDex, ShowTitles, ShowFridge);
         Pad(1f);
+        BuildQuestBtn(); // 퀘스트 버튼 (GameFlow.Quest.cs)
         scr = Scr.Lobby;
         confirm = ShowShop;
         if (pendingGain.Count > 0)
@@ -898,6 +901,7 @@ public partial class GameFlow : MonoBehaviour
         }
         if (kb.dKey.wasPressedThisFrame && (scr == Scr.Lobby || scr == Scr.Day || scr == Scr.Result)) { ShowDex(); return; }
         if (kb.tKey.wasPressedThisFrame && scr == Scr.Lobby) { ShowTitles(); return; } // 칭호는 로비에서만 연다
+        if (kb.qKey.wasPressedThisFrame && scr == Scr.Lobby) { ShowQuests(); return; } // 퀘스트도 로비에서만
         if (kb.mKey.wasPressedThisFrame && scr == Scr.Day && !guideMeal) { ShowMomRecipes(); return; }
         if (confirm != null && (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame))
         {
@@ -1089,6 +1093,7 @@ public partial class GameFlow : MonoBehaviour
     void NextWeek()
     {
         float sat = run.dishes.Count == 0 ? 0f : (float)run.dishes.Average(d => (float)d.satisfaction);
+        Quests.CloseWeek(run); // 이번 주 퀘스트를 판정해 두고, 로비에서 받게 한다
         run.week++;
         run.day = 1;
         run.strikes = 0;

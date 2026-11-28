@@ -20,6 +20,8 @@ class RunSaveData
     public string[] expName;
     public int[] expDay;
     public DishSave[] dishes;
+    public int[] questLast;    // 지난 주 퀘스트 진행 (없으면 예전 저장)
+    public int questPending;   // 받을 수 있는 퀘스트 비트
 }
 
 // 이번 주에 먹은 요리 하나. 재료는 이름, 익힘과 방식은 enum 숫자로 저장한다 (결산·칭호 판정에 쓴다).
@@ -53,6 +55,8 @@ public static class RunSave
                 strikes = run.strikes,
                 budget = run.budget,
                 bought = run.bought,
+                questLast = run.questLast,
+                questPending = run.questPending,
                 invName = run.inv.Keys.Select(i => i.name).ToArray(),
                 invCount = run.inv.Values.ToArray(),
                 expName = run.expire.Keys.Select(i => i.name).ToArray(),
@@ -84,7 +88,10 @@ public static class RunSave
                 strikes = Mathf.Max(0, s.strikes),
                 budget = s.budget,
                 bought = s.bought,
+                questPending = Mathf.Max(0, s.questPending),
             };
+            if (s.questLast != null)
+                for (int k = 0; k < s.questLast.Length && k < run.questLast.Length; k++) run.questLast[k] = Mathf.Max(0, s.questLast[k]);
             var all = Data.All;
             for (int k = 0; k < s.invName.Length && k < s.invCount.Length; k++)
             {
