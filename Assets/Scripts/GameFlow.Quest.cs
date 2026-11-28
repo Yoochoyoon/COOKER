@@ -78,7 +78,7 @@ public partial class GameFlow
         b.colors = cb;
         b.onClick.AddListener(ShowQuests);
         btn.gameObject.AddComponent<PressDown>().depth = 5f;
-        var icon = UIKit.Box(btn, "Icon", 0.2f, 0.16f, 0.8f, 0.84f).gameObject.AddComponent<Image>();
+        var icon = UIKit.Box(btn, "Icon", 0.2f, 0.25f, 0.8f, 0.93f).gameObject.AddComponent<Image>();
         icon.sprite = Art.Load("icon_star");
         icon.preserveAspect = true;
         icon.raycastTarget = false;
