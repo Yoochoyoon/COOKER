@@ -44,6 +44,7 @@ public partial class GameFlow : MonoBehaviour
             : md.id == Method.Fry ? (Art.Load("bg_cook_fry") != null ? "bg_cook_fry" : "bg_cook_wok") : "bg_cook_pot";
         cookArt = Art.Load(bgFile) != null;
         if (cookArt) SetBgScaled(bgFile); // 배경 그림도 내용과 같은 비율로 (접시·도마·가스레인지 위치가 어긋나지 않게)
+        if (cookArt) StageFit.Attach(root); // 창이 16:9가 아니어도 재료·접시 칸이 배경 그림의 도마·접시 위에 오게 (넓은 창에서 음식이 접시 오른쪽으로 쏠렸다)
 
         if (cookArt)
         {
@@ -89,7 +90,7 @@ public partial class GameFlow : MonoBehaviour
 
             var timerBg = UIKit.Box(root, "TimerBg", 0.023f, 0.870f, 0.172f, 0.977f);
             timerBg.gameObject.AddComponent<Image>().sprite = Art.Load("cook_timer");
-            timeLabel = UIKit.Label(timerBg, "", 0.30f, 0.08f, 0.96f, 0.92f, 30, TextAnchor.MiddleCenter, UIKit.Ink);
+            timeLabel = UIKit.Label(timerBg, "", 0.06f, 0.08f, 0.94f, 0.92f, 30, TextAnchor.MiddleCenter, UIKit.Ink); // 타이머 그림에 아이콘이 없으니 글자를 알약 한가운데에
 
             // (아래 갈색 바는 없앴다: 밸브·글자·버튼이 조리대 위에 바로 놓인다)
             // 불 조절: 가스 밸브 손잡이를 돌린다(왼쪽 약불 · 위 중불 · 오른쪽 강불). 숫자키 1·2·3도 된다

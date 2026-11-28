@@ -17,6 +17,9 @@ public static class Lobby
     public static void Show(Transform root, Run run, Action clear, Action startGame, Action openDex, Action openTitles, Action openFridge)
     {
         clear();
+        // 로비 그림 조각은 아래 16:9 칸(fit) 안에 놓이는데, 퀘스트 버튼(GameFlow.Quest.cs)은 root에 1920x1080 좌표로 놓인다.
+        // 창이 16:9가 아니면 둘이 어긋나 퀘스트 버튼이 도감 버튼과 겹쳤다. root도 16:9로 맞춰 둘의 기준을 같게 한다
+        StageFit.Attach(root as RectTransform);
         Sound.Music("bgm_lobby"); // 장보기·하루 선택도 이 곡이 이어진다
         var screen = UIKit.Box(root, "Lobby", 0, 0, 1, 1);
 
