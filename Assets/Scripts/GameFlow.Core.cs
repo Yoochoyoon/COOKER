@@ -1157,6 +1157,7 @@ public partial class GameFlow : MonoBehaviour
         // 다음 주 버튼과 같은 띠(0.05~0.19) 안에 들어가는 폭으로 둔다.
         UIKit.DexBtn(root, 0.06f, 0.05f, 0.10f, ShowDex);
         UIKit.PrimaryBtn(root, "다음 주 [Enter]", 0.57f, 0.05f, 0.94f, 0.19f, NextWeek, 40); // 오른쪽 카드들과 좌우 끝을 맞춘다
+        BuildQuestNote(); // 이번 주 퀘스트 달성 안내 (GameFlow.Quest.cs)
         scr = Scr.Result;
         confirm = NextWeek;
         var gained = Titles.Check(dex.Values.ToList()); // 칭호는 한 주가 끝나는 결산 때 판정한다

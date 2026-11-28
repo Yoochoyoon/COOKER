@@ -69,7 +69,7 @@ public partial class GameFlow
     {
         int pend = Quests.PendingCount(run);
         // 초록(받기 버튼과 같은 색). 옆 버튼들보다 조금 작고, 바깥 선과 아래 그림자는 검정에 아주 얇게 (2px)
-        var btn = UIKit.Box(root, "QuestBtn", DX(1024), DY(969), DX(1132), DY(881));
+        var btn = UIKit.Box(root, "QuestBtn", DX(1013), DY(978), DX(1143), DY(873)); // 그림자까지 포함해 옆 도감 버튼(130x105)과 같은 크기와 자리
         var btnImg = btn.gameObject.AddComponent<Image>();
         btnImg.sprite = HudStyle.Make(UIKit.Good, true, true, new Color(0.06f, 0.05f, 0.05f), 2f);
         btnImg.type = Image.Type.Sliced;
@@ -103,6 +103,28 @@ public partial class GameFlow
             mark.fontStyle = FontStyle.Bold;
             mark.raycastTarget = false;
         }
+    }
+
+    // 결산 화면: 이번 주 퀘스트를 몇 개 달성했는지 알리고, 로비에서 받을 수 있다고 안내한다 (도감 버튼 오른쪽 빈 자리)
+    void BuildQuestNote()
+    {
+        var prog = Quests.Progress(run.dishes);
+        int done = 0;
+        for (int i = 0; i < Quests.All.Length; i++) if (prog[i] >= Quests.All[i].target) done++;
+        bool any = done > 0;
+        var card = HudStyle.Panel(root, "QuestNote", 0.19f, 0.05f, 0.52f, 0.19f, any ? UIKit.Good : HudStyle.SandSoft);
+        var icon = UIKit.Box(card, "Icon", 0.04f, 0.18f, 0.20f, 0.82f).gameObject.AddComponent<Image>();
+        icon.sprite = Art.Load("icon_star");
+        icon.preserveAspect = true;
+        icon.raycastTarget = false;
+        icon.color = any ? Color.white : new Color(0.85f, 0.62f, 0.2f); // 달성이 없으면 연한 바탕에서도 보이게 금색 별
+        if (icon.sprite == null) icon.enabled = false;
+        Color main = any ? Color.white : HudStyle.Text, sub = any ? new Color(1f, 1f, 1f, 0.92f) : HudStyle.TextSoft;
+        var t1 = UIKit.Label(card, "퀘스트 " + done + "/" + Quests.All.Length + "개 달성", 0.23f, 0.50f, 0.96f, 0.92f, 36, TextAnchor.MiddleLeft, main);
+        t1.resizeTextForBestFit = true; t1.resizeTextMinSize = 20; t1.resizeTextMaxSize = 36;
+        string tip = any ? "로비에서 받기 · +" + (done * Quests.Reward).ToString("N0") + "원 · 재료 " + done + "개" : "로비 퀘스트에서 목표 확인";
+        var t2 = UIKit.Label(card, tip, 0.23f, 0.08f, 0.96f, 0.50f, 24, TextAnchor.MiddleLeft, sub);
+        t2.resizeTextForBestFit = true; t2.resizeTextMinSize = 14; t2.resizeTextMaxSize = 24;
     }
 
     // 퀘스트 창 (로비 전용). 줄마다 이름 · 목표 · 지난 주 진행 막대 · [받기]
