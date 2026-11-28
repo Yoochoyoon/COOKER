@@ -61,7 +61,10 @@ public partial class GameFlow
         var area = UIKit.Box(dim, "SeasonArea", a0, a0, a1, a1);
         UIKit.Box(area, "SeasonPanel", 0.20f, 0.10f, 0.80f, 0.90f, UIKit.Card);
         UIKit.Label(area, "간 고르기", 0.30f, 0.76f, 0.70f, 0.86f, 56, TextAnchor.MiddleCenter, UIKit.Ink);
-        UIKit.Label(area, "맛을 고르면 완성돼요", 0.30f, 0.69f, 0.70f, 0.76f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
+        // 처음 두 주는 엄마가 알맞은 간을 알려 준다. 그 뒤로는 스스로 고른다 (어느 간이 맞는지 단서가 없어 막막했다)
+        string seasonNote = run.week <= 2 ? "엄마 힌트: " + cook.m.name + " 요리엔 " + SeasonName(cook.SeasonAnswer()) : "이 요리에 어울리는 간을 골라요";
+        var noteTxt = UIKit.Label(area, seasonNote, 0.25f, 0.69f, 0.75f, 0.76f, 30, TextAnchor.MiddleCenter, UIKit.Muted);
+        noteTxt.resizeTextForBestFit = true; noteTxt.resizeTextMinSize = 18; noteTxt.resizeTextMaxSize = 30;
         var choices = cook.SeasonChoices;
         string[] keyNames = { "Q", "W", "E", "R" };
         for (int i = 0; i < choices.Length && i < 4; i++)

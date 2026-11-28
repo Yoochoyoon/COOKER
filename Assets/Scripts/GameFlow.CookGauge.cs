@@ -48,13 +48,15 @@ public partial class GameFlow
         gaugeNeedleImg.raycastTarget = false;
 
         // 화살표: 바늘 오른쪽에 붙어 다니며 바늘이 가야 할 방향(위/아래)을 가리킨다
+        var gaugeName = UIKit.Label(root, "불 게이지", 0.008f, 0.800f, 0.090f, 0.850f, 28, TextAnchor.MiddleLeft, UIKit.Ink); // 초록 구간에 바늘을 맞추는 막대라는 이름표
+        gaugeName.raycastTarget = false;
         gaugeArrow = UIKit.Box(root, "GaugeArrow", 0f, 0f, 0f, 0f);
         gaugeArrowImg = gaugeArrow.gameObject.AddComponent<Image>();
         gaugeArrowImg.sprite = TriangleSprite();
         gaugeArrowImg.raycastTarget = false;
         gaugeArrowImg.color = new Color(UIKit.Bad.r, UIKit.Bad.g, UIKit.Bad.b, 0f);
 
-        gaugeLabel = UIKit.Label(root, "", 0.100f, 0.030f, 0.30f, 0.088f, 34, TextAnchor.MiddleLeft, UIKit.Bad); // 상태 메시지도 밸브 오른쪽, 불 세기 글자 아래
+        gaugeLabel = UIKit.Label(root, "", 0.100f, 0.020f, 0.30f, 0.078f, 34, TextAnchor.MiddleLeft, UIKit.Bad); // 상태 메시지도 밸브 오른쪽, 불 세기 글자 아래
         gaugeLabel.raycastTarget = false;
 
         // 밸브 둘레 점선 링 (위험일 때만 보인다). 밸브와 같은 자리, 같은 중심
@@ -70,7 +72,10 @@ public partial class GameFlow
 
         // 전체 익힘 막대(docs/27): 팬 전체의 익힘을 막대 하나로 보여 준다. 재료별 게이지는 숨긴다.
         foreach (var r in itemRects) { var gb = r.Find("GaugeBg"); if (gb != null) gb.gameObject.SetActive(false); }
-        var bar = UIKit.Box(root, "OverallBar", 0.36f, 0.185f, 0.64f, 0.215f, new Color(0f, 0f, 0f, 0.45f), false);
+        // 이름이 없어서 무슨 막대인지 몰랐다: 왼쪽에 "전체 익힘"을 적고 막대를 조금 굵게 한다
+        var barName = UIKit.Label(root, "전체 익힘", 0.245f, 0.176f, 0.355f, 0.224f, 30, TextAnchor.MiddleRight, UIKit.Ink);
+        barName.raycastTarget = false;
+        var bar = UIKit.Box(root, "OverallBar", 0.36f, 0.180f, 0.64f, 0.220f, new Color(0f, 0f, 0f, 0.45f), false);
         bar.GetComponent<Image>().raycastTarget = false;
         overallFill = UIKit.Box(bar, "OverallFill", 0f, 0f, 0f, 1f, Color.white, false).GetComponent<Image>();
         overallFill.raycastTarget = false;
@@ -80,7 +85,7 @@ public partial class GameFlow
 
     // 밸브 손잡이 중심 (StartCook의 SetSquare(knobRT, ...)와 같은 값)
     // 밸브 중심을 세로 타이밍 바의 가운데(GaugeX0과 GaugeX1의 가운데)에 맞춰 바 바로 아래 같은 줄에 놓는다
-    const float KnobFx = (GaugeX0 + GaugeX1) * 0.5f, KnobFy = 0.095f;
+    const float KnobFx = (GaugeX0 + GaugeX1) * 0.5f, KnobFy = 0.085f; // 숫자 2가 타이밍 바 아래 끝에 붙지 않게 조금 내렸다
     static Vector2 KnobCenter { get { return new Vector2(KnobFx * RefW, KnobFy * RefH); } }
 
     // 매 프레임: 바늘 위치, 구간 밖 경고, 밸브 강조
